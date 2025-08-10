@@ -2,11 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Global */
+/* App baseline */
 html, body, #root { height: 100%; }
 body { @apply text-slate-900 bg-sky-50 overflow-x-hidden; }
 
-/* Safe area (bottom) */
+/* Dynamic safe-area for devices with gesture bars/notches */
 :root { --safe-bottom: env(safe-area-inset-bottom); }
 .safe-b { padding-bottom: var(--safe-bottom); }
 
@@ -16,5 +16,8 @@ body { @apply text-slate-900 bg-sky-50 overflow-x-hidden; }
 .btn-secondary { @apply border border-slate-300 bg-white hover:bg-slate-50; }
 .badge { @apply inline-flex items-center gap-1 rounded-full border px-3 py-1 text-sm font-medium; }
 
-/* RTL helpers */
+/* Cards */
+.card { @apply rounded-2xl border bg-white shadow-sm; }
+
+/* RTL helper (for icon mirroring if needed) */
 [dir="rtl"] .rtl\:flip { transform: scaleX(-1); }

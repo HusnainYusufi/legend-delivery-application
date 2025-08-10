@@ -1,14 +1,18 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Camera, Loader2, QrCode, RefreshCcw, Edit3, XCircle, X } from "lucide-react";
+import { Camera as CameraIcon, Loader2, QrCode, RefreshCcw, Edit3, XCircle, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import Header from "./components/Header.jsx";
 import StatusBadge from "./components/StatusBadge.jsx";
+import Splash from "./components/Splash.jsx";
 import { CONFIG, DEFAULT_MOCK_MODE, apiFetch, parseOrderNumberFromScan } from "./lib/api.js";
 import { mockApplyStatus, mockGetOrder } from "./lib/mock.js";
+import { ensureCameraPermission, startWebQrScanner } from "./lib/scanner.js";
 
 export default function App() {
   const { t, i18n } = useTranslation();
   const [language, setLanguage] = useState(i18n.language);
+  const [showSplash, setShowSplash] = useState(true);
+
   const [isScanning, setIsScanning] = useState(false);
   const [scanError, setScanError] = useState("");
   const [rawScan, setRawScan] = useState("");
@@ -20,53 +24,52 @@ export default function App() {
   const [newStatus, setNewStatus] = useState(CONFIG.statuses[0]);
   const [useMock, setUseMock] = useState(DEFAULT_MOCK_MODE);
 
-  // QR scanner (full-screen overlay)
+  // Splash: keep for a short, nice entrance
+  useEffect(() => {
+    const t = setTimeout(() => setShowSplash(false), 900);
+    return () => clearTimeout(t);
+  }, []);
+
+  // Web QR scanner instance management
   const scannerRef = useRef(null);
   const scannerDivId = "qr-scanner-region";
 
   const stopScanner = useCallback(async () => {
     try {
-      if (scannerRef.current) {
-        await scannerRef.current.stop();
-        await scannerRef.current.clear();
+      if (scannerRef.current?.stop) await scannerRef.current.stop();
+    } catch {}
+    scannerRef.current = null;
+  }, []);
+
+  const beginScan = useCallback(async () => {
+    setScanError("");
+    setRawScan("");
+    // Ask for camera permission using Capacitor Camera so WebView getUserMedia will be allowed
+    const ok = await ensureCameraPermission();
+    if (!ok) {
+      setScanError("Camera permission denied. Enable it in Settings.");
+      return;
+    }
+    setIsScanning(true);
+    // start web scanner
+    scannerRef.current = await startWebQrScanner(
+      scannerDivId,
+      (decoded) => {
+        const ord = parseOrderNumberFromScan(decoded);
+        if (ord) setOrderNumber(ord);
+        setRawScan(decoded);
+        setIsScanning(false);
+      },
+      (err) => {
+        setScanError(err || "Camera failed to start.");
+        setIsScanning(false);
       }
-    } catch (_) {}
+    );
   }, []);
 
   useEffect(() => {
-    let isActive = true;
-    async function start() {
-      setScanError("");
-      try {
-        const { Html5Qrcode } = await import("html5-qrcode");
-        const html5QrCode = new Html5Qrcode(scannerDivId, { verbose: false });
-        scannerRef.current = html5QrCode;
-        const config = { fps: 10, qrbox: { width: 280, height: 280 } };
-        await html5QrCode.start(
-          { facingMode: "environment" },
-          config,
-          (decodedText) => {
-            if (!isActive) return;
-            setRawScan(decodedText);
-            const ord = parseOrderNumberFromScan(decodedText);
-            if (ord) setOrderNumber(ord);
-            setIsScanning(false);
-          },
-          () => {}
-        );
-      } catch (err) {
-        setScanError((err && (err.message || String(err))) || "Camera initialization failed. Check permissions and HTTPS.");
-        setIsScanning(false);
-      }
-    }
-    if (isScanning) start();
-    return () => { isActive = false; stopScanner(); };
-  }, [isScanning, stopScanner]);
-
-  const handleScanToggle = async () => {
-    if (isScanning) { setIsScanning(false); await stopScanner(); }
-    else { setRawScan(""); setScanError(""); setIsScanning(true); }
-  };
+    return () => { stopScanner(); };
+  }, [stopScanner]);
 
   const getStatus = useCallback(async () => {
     if (!orderNumber) { setToast({ type: "error", msg: t("toast_need_order") }); return; }
@@ -97,14 +100,13 @@ export default function App() {
   }, [orderNumber, newStatus, useMock, t]);
 
   const reset = () => { setOrderNumber(""); setRawScan(""); setCurrent(null); };
-
-  useEffect(() => {
-    if (language !== i18n.language) i18n.changeLanguage(language);
-  }, [language, i18n]);
+  useEffect(() => { if (language !== i18n.language) i18n.changeLanguage(language); }, [language, i18n]);
 
   return (
     <div className="min-h-[100dvh] flex flex-col bg-gradient-to-br from-sky-50 to-sky-100 text-slate-900">
-      <div className="w-full px-4 pt-4 pb-6 safe-b max-w-xl mx-auto">
+      {showSplash && <Splash />}
+
+      <div className="w-full px-4 pt-4 pb-6 safe-b max-w-md mx-auto">
         <Header
           useMock={useMock}
           onToggleMock={() => setUseMock((v) => !v)}
@@ -112,8 +114,10 @@ export default function App() {
           onChangeLanguage={setLanguage}
         />
 
-        <div className="rounded-2xl border border-sky-200 bg-white p-4 shadow-sm">
-          {/* Input + actions: stack on small screens, grid on >=sm */}
+        <div className="card border-sky-200 p-4">
+          <div className="text-sm text-slate-600 mb-2">{t("scan_or_enter")}</div>
+
+          {/* Input + actions: stack on mobiles, tidy on tablets */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <input
               className="sm:col-span-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 outline-none ring-0 focus:border-slate-400"
@@ -123,8 +127,8 @@ export default function App() {
               inputMode="text"
               autoComplete="off"
             />
-            <button onClick={handleScanToggle} className={`btn btn-secondary ${isScanning ? "!border-red-200 !bg-red-50 text-red-700" : ""}`}>
-              <Camera className="h-5 w-5" /> {isScanning ? t("stop") : t("scan")}
+            <button onClick={beginScan} className="btn btn-secondary">
+              <CameraIcon className="h-5 w-5" /> {t("scan")}
             </button>
             <button onClick={reset} className="btn btn-secondary" title={t("reset")}>
               <RefreshCcw className="h-5 w-5" /> {t("reset")}
@@ -184,14 +188,6 @@ export default function App() {
               </div>
             </div>
           )}
-
-          {toast && (
-            <div className={`mt-4 inline-flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-sm ${
-              toast.type === "success" ? "border-green-200 bg-green-50 text-green-700" : "border-red-200 bg-red-50 text-red-700"
-            }`}>
-              {toast.msg}
-            </div>
-          )}
         </div>
 
         <p className="mt-4 text-xs leading-relaxed text-slate-500">{t("tip_camera")}</p>
@@ -205,7 +201,7 @@ export default function App() {
           </div>
           <div className="absolute top-0 left-0 right-0 flex items-center justify-between gap-2 p-3">
             <span className="font-semibold">{t("scan")}</span>
-            <button onClick={handleScanToggle} className="btn btn-secondary bg-white/10 border-white/30 text-white">
+            <button onClick={() => { setIsScanning(false); stopScanner(); }} className="btn btn-secondary bg-white/10 border-white/30 text-white">
               <X className="h-5 w-5" /> {t("stop")}
             </button>
           </div>

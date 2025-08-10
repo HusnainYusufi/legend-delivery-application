@@ -5,6 +5,7 @@ const resources = {
   en: {
     translation: {
       brand: "LEGEND DELIVERY",
+      splash_tagline: "Fast. Simple. Reliable.",
       scan_or_enter: "Scan QR or enter order number",
       placeholder_order: "e.g. ORD-12345",
       scan: "Scan",
@@ -18,7 +19,7 @@ const resources = {
       apply_status: "Apply Status",
       mock_api: "Mock API",
       live_api: "Live API",
-      tip_camera: "Tip: Camera scanning requires HTTPS (or localhost) and permission.",
+      tip_camera: "Tip: On device, camera scanning needs HTTPS + permission.",
       toast_need_order: "Enter or scan an order number.",
       toast_set_status: "Status set to \"{{status}}\"",
       error_apply_status: "Failed to apply status",
@@ -40,6 +41,7 @@ const resources = {
   ar: {
     translation: {
       brand: "ليجند ديلفري",
+      splash_tagline: "سريع. بسيط. موثوق.",
       scan_or_enter: "امسح رمز QR أو أدخل رقم الطلب",
       placeholder_order: "مثال: ORD-12345",
       scan: "مسح",
@@ -53,7 +55,7 @@ const resources = {
       apply_status: "تطبيق الحالة",
       mock_api: "واجهة تجريبية",
       live_api: "واجهة حية",
-      tip_camera: "ملاحظة: يعمل المسح عبر HTTPS (أو localhost) ويحتاج إذن الكاميرا.",
+      tip_camera: "ملاحظة: على الجهاز، المسح يحتاج HTTPS + إذن.",
       toast_need_order: "أدخل أو امسح رقم الطلب.",
       toast_set_status: "تم ضبط الحالة إلى \"{{status}}\"",
       error_apply_status: "تعذر تطبيق الحالة",
@@ -75,9 +77,7 @@ const resources = {
 };
 
 i18n.use(initReactI18next).init({
-  resources,
-  lng: "en",
-  fallbackLng: "en",
+  resources, lng: "en", fallbackLng: "en",
   interpolation: { escapeValue: false },
 });
 

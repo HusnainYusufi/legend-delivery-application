@@ -8,7 +8,6 @@ on:
 jobs:
   build-android:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -24,11 +23,9 @@ jobs:
       - name: Build web (Vite)
         run: npm run build
 
-      # 👇 Wipe any previous android project so we always start clean
       - name: Remove existing android folder (if any)
         run: rm -rf android
 
-      # Recreate android project from Capacitor config (no Studio needed)
       - name: Add Android platform
         run: npx cap add android
 
@@ -50,7 +47,6 @@ jobs:
       - name: Make Gradle executable
         run: chmod +x android/gradlew
 
-      # Force SDK 35 in project files (some templates default to 34)
       - name: Force compile/target SDK 35
         run: |
           if [ -f android/variables.gradle ]; then
@@ -63,12 +59,10 @@ jobs:
       - name: Suppress unsupported compileSdk warning
         run: echo "android.suppressUnsupportedCompileSdk=35" >> android/gradle.properties
 
-      # Just print the top of the generated manifest for sanity (no editing!)
-      - name: Show AndroidManifest first lines
+      - name: Show AndroidManifest first lines (sanity)
         run: |
           MANIFEST=android/app/src/main/AndroidManifest.xml
           test -f "$MANIFEST" || (echo "Manifest missing"; exit 1)
-          echo "---- AndroidManifest.xml (first 40 lines) ----"
           head -n 40 "$MANIFEST"
 
       - name: Build debug APK

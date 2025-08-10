@@ -31,7 +31,7 @@ export default function Header({ useMock, onToggleMock, language, onChangeLangua
           title="Toggle mock API"
         >
           <Settings className="h-4 w-4" />
-          {useMock ? "Mock API" : "Live API"}
+          {useMock ? t("mock_api") : t("live_api")}
         </button>
       </div>
     </header>

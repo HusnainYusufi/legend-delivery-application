@@ -6,14 +6,8 @@ const CONFIG = {
     applyStatus: (orderNumber) => `/orders/${encodeURIComponent(orderNumber)}/status`,
   },
   statuses: [
-    "pending",
-    "processing",
-    "packed",
-    "shipped",
-    "out_for_delivery",
-    "delivered",
-    "cancelled",
-    "returned",
+    "pending","processing","packed","shipped",
+    "out_for_delivery","delivered","cancelled","returned",
   ],
 };
 
@@ -40,7 +34,7 @@ function parseOrderNumberFromScan(payload) {
   if (!payload) return "";
   try {
     const url = new URL(payload);
-    const candidates = ["order", "orderId", "order_id", "ordernumber", "orderNumber", "o"];
+    const candidates = ["order","orderId","order_id","ordernumber","orderNumber","o"];
     for (const key of candidates) {
       const v = url.searchParams.get(key);
       if (v) return v.trim();
@@ -48,11 +42,8 @@ function parseOrderNumberFromScan(payload) {
     const pathParts = url.pathname.split("/").filter(Boolean);
     const last = pathParts[pathParts.length - 1];
     if (last && /[A-Za-z0-9_-]{4,}/.test(last)) return last;
-  } catch (_) {}
-  const tokens = String(payload)
-    .split(/[^A-Za-z0-9_-]+/)
-    .filter(Boolean)
-    .sort((a, b) => b.length - a.length);
+  } catch(_) {}
+  const tokens = String(payload).split(/[^A-Za-z0-9_-]+/).filter(Boolean).sort((a,b)=>b.length-a.length);
   return tokens[0] || "";
 }
 
