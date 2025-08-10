@@ -1,0 +1,6 @@
+{
+  "appId": "com.legend.delivery",
+  "appName": "LEGEND DELIVERY",
+  "webDir": "dist",
+  "server": { "androidScheme": "https" }
+}
