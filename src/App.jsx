@@ -1,13 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Camera as CameraIcon, Image as ImageIcon, Loader2, QrCode, RefreshCcw, Edit3, XCircle } from "lucide-react";
+import { Camera as CameraIcon, Loader2, QrCode, RefreshCcw, Edit3, XCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import Navbar from "./components/Navbar.jsx";
 import Splash from "./components/Splash.jsx";
 import ScannerOverlay from "./components/ScannerOverlay.jsx";
+import StatusBadge from "./components/StatusBadge.jsx";
 import { CONFIG, DEFAULT_MOCK_MODE, apiFetch, parseOrderNumberFromScan } from "./lib/api.js";
 import { mockApplyStatus, mockGetOrder } from "./lib/mock.js";
 import { ensureCameraPermission, startWebQrScanner, openAppSettings, scanImageFile } from "./lib/scanner.js";
-import StatusBadge from "./components/StatusBadge.jsx";
 
 export default function App() {
   const { t, i18n } = useTranslation();
@@ -15,7 +15,7 @@ export default function App() {
 
   // Splash
   const [showSplash, setShowSplash] = useState(true);
-  useEffect(() => { const t = setTimeout(() => setShowSplash(false), 900); return () => clearTimeout(t); }, []);
+  useEffect(() => { const tm = setTimeout(() => setShowSplash(false), 900); return () => clearTimeout(tm); }, []);
 
   // State
   const [isScanning, setIsScanning] = useState(false);
@@ -56,10 +56,7 @@ export default function App() {
         setRawScan(decoded);
         setIsScanning(false);
       },
-      (err) => {
-        setScanError(err || "Camera failed to start.");
-        setIsScanning(false);
-      }
+      (err) => { setScanError(err || "Camera failed to start."); setIsScanning(false); }
     );
   }, []);
 
@@ -74,8 +71,7 @@ export default function App() {
       setCurrent(data);
       if (data?.status && CONFIG.statuses.includes(String(data.status))) setNewStatus(String(data.status));
     } catch (err) {
-      setToast({ type: "error", msg: err.message || t("error_fetch_status") });
-      setCurrent(null);
+      setToast({ type: "error", msg: err.message || t("error_fetch_status") }); setCurrent(null);
     } finally { setIsLoading(false); }
   }, [orderNumber, useMock, t]);
 
@@ -97,7 +93,6 @@ export default function App() {
   const reset = () => { setOrderNumber(""); setRawScan(""); setCurrent(null); };
   useEffect(() => { if (language !== i18n.language) i18n.changeLanguage(language); }, [language, i18n]);
 
-  // Photo fallback
   const onPickImage = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -118,18 +113,23 @@ export default function App() {
     <div className="app-shell">
       {showSplash && <Splash />}
 
-      {/* Top navbar */}
-      <Navbar language={language} onChangeLanguage={setLanguage} />
+      {/* Fixed top navbar with solid background and shadow */}
+      <Navbar
+        language={language}
+        onChangeLanguage={setLanguage}
+        onScan={beginScan}
+        onPickImage={onPickImage}
+        useMock={useMock}
+        onToggleMock={() => setUseMock(v => !v)}
+      />
 
-      {/* Main content */}
-      <main className="container py-4 safe-b">
+      {/* Content area below navbar (no horizontal scroll) */}
+      <main className="content safe-b">
+        {/* Primary task card */}
         <section className="card p-4">
-          <div className="text-sm text-slate-600 mb-3">
-            {t("scan_or_enter")}
-          </div>
+          <div className="text-sm text-slate-600 mb-3">{t("scan_or_enter")}</div>
 
-          {/* Input + actions: mobile-first grid, no sideways scroll */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <div className="grid-actions">
             <input
               className="sm:col-span-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 outline-none ring-0 focus:border-slate-400"
               placeholder={t("placeholder_order")}
@@ -143,11 +143,6 @@ export default function App() {
               <CameraIcon className="h-5 w-5" /> {t("scan")}
             </button>
 
-            <label className="btn btn-secondary cursor-pointer">
-              <input type="file" accept="image/*" className="hidden" onChange={onPickImage} />
-              <ImageIcon className="h-5 w-5" /> Scan Photo
-            </label>
-
             <button onClick={reset} className="btn btn-secondary" title={t("reset")}>
               <RefreshCcw className="h-5 w-5" /> {t("reset")}
             </button>
@@ -158,15 +153,11 @@ export default function App() {
             </button>
           </div>
 
-          {/* Messages */}
           {!!scanError && (
             <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
               {scanError}
               {permDenied && (
-                <button
-                  onClick={openAppSettings}
-                  className="ml-2 underline"
-                >
+                <button onClick={openAppSettings} className="ml-2 underline">
                   Open Settings
                 </button>
               )}
@@ -179,7 +170,7 @@ export default function App() {
           )}
         </section>
 
-        {/* Details card */}
+        {/* Details / status card */}
         {current && (
           <section className="card mt-4 p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -197,7 +188,9 @@ export default function App() {
               </div>
               <div className="rounded-xl border border-sky-200 bg-white p-3">
                 <div className="text-xs text-slate-500">{t("last_updated")}</div>
-                <div className="text-sm font-medium">{current?.lastUpdated ? new Date(current.lastUpdated).toLocaleString() : "—"}</div>
+                <div className="text-sm font-medium">
+                  {current?.lastUpdated ? new Date(current.lastUpdated).toLocaleString() : "—"}
+                </div>
               </div>
             </div>
 
@@ -228,12 +221,10 @@ export default function App() {
           </div>
         )}
 
-        <p className="mt-4 text-xs leading-relaxed text-slate-500">
-          {t("tip_camera")}
-        </p>
+        <p className="mt-4 text-xs leading-relaxed text-slate-500">{t("tip_camera")}</p>
       </main>
 
-      {/* Full-screen live scanner */}
+      {/* Full-screen scanner */}
       <ScannerOverlay
         visible={isScanning}
         onClose={() => { setIsScanning(false); stopScanner(); }}

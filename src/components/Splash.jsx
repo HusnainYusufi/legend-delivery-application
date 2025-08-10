@@ -7,7 +7,7 @@ export default function Splash() {
     <div className="splash">
       <div className="splash-card">
         <div className="splash-logo">
-          <span className="text-white text-2xl font-black">LD</span>
+          <span className="text-white text-2xl font-black select-none">LD</span>
         </div>
         <div className="text-2xl font-extrabold text-brand-800">LEGEND DELIVERY</div>
         <div className="mt-1 text-sm text-brand-700">{t("splash_tagline")}</div>

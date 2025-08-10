@@ -1,8 +1,6 @@
 import { Camera } from "@capacitor/camera";
 import { App } from "@capacitor/app";
 
-// Ask Android for CAMERA permission via native plugin.
-// If denied permanently, return { granted:false, canOpenSettings:true }
 export async function ensureCameraPermission() {
   try {
     const status = await Camera.checkPermissions();
@@ -16,7 +14,7 @@ export async function ensureCameraPermission() {
 }
 
 export async function openAppSettings() {
-  try { await App.openSettings(); } catch (_) {}
+  try { await App.openSettings(); } catch {}
 }
 
 // Web QR scanner using html5-qrcode
@@ -31,16 +29,13 @@ export async function startWebQrScanner(mountDivId, onDecoded, onError) {
       (decoded) => onDecoded?.(decoded),
       () => {}
     );
-    return {
-      stop: async () => { try { await html5Qr.stop(); await html5Qr.clear(); } catch {} },
-    };
+    return { stop: async () => { try { await html5Qr.stop(); await html5Qr.clear(); } catch {} } };
   } catch (e) {
     onError?.(e?.message || String(e));
     return { stop: async () => {} };
   }
 }
 
-// Optional: scan from image if live camera fails
 export async function scanImageFile(file, onDecoded, onError) {
   try {
     const { Html5Qrcode } = await import("html5-qrcode");
