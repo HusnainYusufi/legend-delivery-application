@@ -18,7 +18,7 @@ export default function StatusBadge({ value }) {
   };
   const cls = styles[normalized] || "bg-slate-100 text-slate-700 border-slate-300";
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-sm font-medium ${cls}`}>
+    <span className={`badge ${cls}`}>
       <CheckCircle2 className="h-4 w-4" />
       {t(`statuses.${normalized}`)}
     </span>

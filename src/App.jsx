@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Camera, Loader2, QrCode, RefreshCcw, Edit3, XCircle } from "lucide-react";
+import { Camera, Loader2, QrCode, RefreshCcw, Edit3, XCircle, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import Header from "./components/Header.jsx";
 import StatusBadge from "./components/StatusBadge.jsx";
@@ -20,6 +20,7 @@ export default function App() {
   const [newStatus, setNewStatus] = useState(CONFIG.statuses[0]);
   const [useMock, setUseMock] = useState(DEFAULT_MOCK_MODE);
 
+  // QR scanner (full-screen overlay)
   const scannerRef = useRef(null);
   const scannerDivId = "qr-scanner-region";
 
@@ -40,7 +41,7 @@ export default function App() {
         const { Html5Qrcode } = await import("html5-qrcode");
         const html5QrCode = new Html5Qrcode(scannerDivId, { verbose: false });
         scannerRef.current = html5QrCode;
-        const config = { fps: 10, qrbox: { width: 260, height: 260 }, aspectRatio: 1.7778 };
+        const config = { fps: 10, qrbox: { width: 280, height: 280 } };
         await html5QrCode.start(
           { facingMode: "environment" },
           config,
@@ -102,8 +103,8 @@ export default function App() {
   }, [language, i18n]);
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-sky-50 to-sky-100 text-slate-900">
-      <div className="mx-auto max-w-xl px-4 py-8">
+    <div className="min-h-[100dvh] flex flex-col bg-gradient-to-br from-sky-50 to-sky-100 text-slate-900">
+      <div className="w-full px-4 pt-4 pb-6 safe-b max-w-xl mx-auto">
         <Header
           useMock={useMock}
           onToggleMock={() => setUseMock((v) => !v)}
@@ -112,62 +113,52 @@ export default function App() {
         />
 
         <div className="rounded-2xl border border-sky-200 bg-white p-4 shadow-sm">
-          <div className="flex flex-col gap-3">
-            <label className="text-sm font-medium text-slate-700">{t("scan_or_enter")}</label>
-            <div className="flex items-center gap-2">
-              <input
-                className="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none ring-0 focus:border-slate-400"
-                placeholder={t("placeholder_order")}
-                value={orderNumber}
-                onChange={(e) => setOrderNumber(e.target.value)}
-                inputMode="text"
-                autoComplete="off"
-              />
-              <button onClick={handleScanToggle} className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm shadow-sm ${isScanning ? "border-red-200 bg-red-50 text-red-700" : "border-slate-300 bg-white hover:bg-slate-50"}`}>
-                <Camera className="h-4 w-4" /> {isScanning ? t("stop") : t("scan")}
-              </button>
-              <button onClick={reset} className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm hover:bg-slate-50">
-                <RefreshCcw className="h-4 w-4" /> {t("reset")}
-              </button>
-            </div>
-
-            {isScanning && (
-              <div className="overflow-hidden rounded-2xl border border-slate-200">
-                <div id={scannerDivId} className="aspect-video w-full bg-black/5" />
-              </div>
-            )}
-            {!!scanError && (
-              <p className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-                <XCircle className="h-4 w-4" /> {scanError}
-              </p>
-            )}
-            {!!rawScan && (
-              <p className="text-xs text-slate-500">{t("scanned_payload")}:
-                <span className="font-mono"> {rawScan}</span>
-              </p>
-            )}
-          </div>
-
-          <div className="mt-4 flex items-center gap-2">
-            <button onClick={getStatus} disabled={isLoading} className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-white shadow-sm disabled:opacity-60">
-              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <QrCode className="h-4 w-4" />}
+          {/* Input + actions: stack on small screens, grid on >=sm */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <input
+              className="sm:col-span-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 outline-none ring-0 focus:border-slate-400"
+              placeholder={t("placeholder_order")}
+              value={orderNumber}
+              onChange={(e) => setOrderNumber(e.target.value)}
+              inputMode="text"
+              autoComplete="off"
+            />
+            <button onClick={handleScanToggle} className={`btn btn-secondary ${isScanning ? "!border-red-200 !bg-red-50 text-red-700" : ""}`}>
+              <Camera className="h-5 w-5" /> {isScanning ? t("stop") : t("scan")}
+            </button>
+            <button onClick={reset} className="btn btn-secondary" title={t("reset")}>
+              <RefreshCcw className="h-5 w-5" /> {t("reset")}
+            </button>
+            <button onClick={getStatus} disabled={isLoading} className="btn btn-primary sm:col-span-3">
+              {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <QrCode className="h-5 w-5" />}
               {t("load_status")}
             </button>
           </div>
+
+          {!!scanError && (
+            <p className="mt-3 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              <XCircle className="h-4 w-4" /> {scanError}
+            </p>
+          )}
+          {!!rawScan && (
+            <p className="mt-2 text-xs text-slate-500 break-words">
+              {t("scanned_payload")}: <span className="font-mono">{rawScan}</span>
+            </p>
+          )}
 
           {current && (
             <div className="mt-6 rounded-2xl border border-slate-200 bg-sky-50 p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <div className="text-sm text-slate-500">{t("order")}</div>
-                  <div className="font-semibold">{current.orderNumber || orderNumber}</div>
+                  <div className="font-semibold break-words">{current.orderNumber || orderNumber}</div>
                 </div>
                 <StatusBadge value={current.status} />
               </div>
               <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="rounded-xl border border-sky-200 bg-white p-3">
                   <div className="text-xs text-slate-500">{t("customer")}</div>
-                  <div className="text-sm font-medium">{current?.customer?.name || "—"}</div>
+                  <div className="text-sm font-medium break-words">{current?.customer?.name || "—"}</div>
                 </div>
                 <div className="rounded-xl border border-sky-200 bg-white p-3">
                   <div className="text-xs text-slate-500">{t("last_updated")}</div>
@@ -175,21 +166,19 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="mt-4 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
-                <div className="flex items-center gap-2">
-                  <label className="text-sm text-slate-700">{t("new_status")}</label>
-                  <select
-                    className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
-                    value={newStatus}
-                    onChange={(e) => setNewStatus(e.target.value)}
-                  >
-                    {CONFIG.statuses.map((s) => (
-                      <option key={s} value={s}>{t(`statuses.${s}`)}</option>
-                    ))}
-                  </select>
-                </div>
-                <button onClick={applyStatus} disabled={isApplying} className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-white shadow-sm disabled:opacity-60">
-                  {isApplying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Edit3 className="h-4 w-4" />}
+              <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
+                <label className="text-sm text-slate-700 sm:col-span-1">{t("new_status")}</label>
+                <select
+                  className="rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm sm:col-span-1"
+                  value={newStatus}
+                  onChange={(e) => setNewStatus(e.target.value)}
+                >
+                  {CONFIG.statuses.map((s) => (
+                    <option key={s} value={s}>{t(`statuses.${s}`)}</option>
+                  ))}
+                </select>
+                <button onClick={applyStatus} disabled={isApplying} className="btn btn-primary sm:col-span-1">
+                  {isApplying ? <Loader2 className="h-5 w-5 animate-spin" /> : <Edit3 className="h-5 w-5" />}
                   {t("apply_status")}
                 </button>
               </div>
@@ -207,6 +196,21 @@ export default function App() {
 
         <p className="mt-4 text-xs leading-relaxed text-slate-500">{t("tip_camera")}</p>
       </div>
+
+      {/* Full-screen scanner overlay */}
+      {isScanning && (
+        <div className="fixed inset-0 z-50 bg-black/95 text-white">
+          <div className="absolute inset-0">
+            <div id={scannerDivId} className="h-full w-full" />
+          </div>
+          <div className="absolute top-0 left-0 right-0 flex items-center justify-between gap-2 p-3">
+            <span className="font-semibold">{t("scan")}</span>
+            <button onClick={handleScanToggle} className="btn btn-secondary bg-white/10 border-white/30 text-white">
+              <X className="h-5 w-5" /> {t("stop")}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

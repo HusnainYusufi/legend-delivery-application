@@ -4,5 +4,4 @@ import "./styles.css";
 import "./i18n.js";
 import App from "./App.jsx";
 
-const container = document.getElementById("root");
-createRoot(container).render(<App />);
+createRoot(document.getElementById("root")).render(<App />);

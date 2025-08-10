@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 export default function Header({ useMock, onToggleMock, language, onChangeLanguage }) {
   const { t } = useTranslation();
   return (
-    <header className="mb-6 flex items-center justify-between">
+    <header className="mb-4 flex items-center justify-between">
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-600 text-white shadow-sm">
           <QrCode className="h-6 w-6" />

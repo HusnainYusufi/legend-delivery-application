@@ -30,7 +30,7 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
-      - name: Setup Java 17
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -45,7 +45,15 @@ jobs:
       - name: Make Gradle executable
         run: chmod +x android/gradlew
 
-      # OPTIONAL: inject Camera permission if you didn't commit android/ with it
+      - name: Force compile/target SDK 35
+        run: |
+          if [ -f android/variables.gradle ]; then
+            sed -i 's/compileSdkVersion = [0-9]\+/compileSdkVersion = 35/' android/variables.gradle
+            sed -i 's/targetSdkVersion = [0-9]\+/targetSdkVersion = 35/' android/variables.gradle
+          fi
+          sed -i 's/compileSdkVersion [0-9]\+/compileSdkVersion 35/' android/app/build.gradle || true
+          sed -i 's/targetSdkVersion [0-9]\+/targetSdkVersion 35/' android/app/build.gradle || true
+
       - name: Add camera permission to Manifest (if missing)
         run: |
           MANIFEST=android/app/src/main/AndroidManifest.xml
