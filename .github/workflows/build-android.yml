@@ -54,12 +54,19 @@ jobs:
           sed -i 's/compileSdkVersion [0-9]\+/compileSdkVersion 35/' android/app/build.gradle || true
           sed -i 's/targetSdkVersion [0-9]\+/targetSdkVersion 35/' android/app/build.gradle || true
 
-      - name: Add camera permission to Manifest (if missing)
+      - name: Suppress unsupported compileSdk warning
+        run: echo "android.suppressUnsupportedCompileSdk=35" >> android/gradle.properties
+
+      - name: Ensure camera permission (safe insert)
         run: |
           MANIFEST=android/app/src/main/AndroidManifest.xml
+          test -f "$MANIFEST" || (echo "Manifest missing"; exit 1)
           if ! grep -q 'android.permission.CAMERA' "$MANIFEST"; then
-            sed -i '0,/<manifest>/s//<manifest>\n    <uses-permission android:name="android.permission.CAMERA" \/>/' "$MANIFEST"
+            # insert before the closing </manifest> tag without touching its attributes
+            sed -i '/<\/manifest>/i\    <uses-permission android:name="android.permission.CAMERA" \/>' "$MANIFEST"
           fi
+          echo "---- AndroidManifest.xml (head) ----"
+          head -n 30 "$MANIFEST"
 
       - name: Build debug APK
         working-directory: android
