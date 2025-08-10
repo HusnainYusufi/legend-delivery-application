@@ -46,7 +46,7 @@ jobs:
       - name: Make Gradle executable
         run: chmod +x android/gradlew
 
-      # Make sure project compiles against Android 35
+      # Ensure project compiles against Android 35
       - name: Force compile/target SDK 35
         run: |
           if [ -f android/variables.gradle ]; then
@@ -59,31 +59,17 @@ jobs:
       - name: Suppress unsupported compileSdk warning
         run: echo "android.suppressUnsupportedCompileSdk=35" >> android/gradle.properties
 
-      # SAFER camera permission insert using Perl (doesn't corrupt XML)
-      - name: Ensure camera permission (safe insert)
+      # SAFE camera permission insert: append after opening <manifest ...> line
+      - name: Ensure camera permission (safe append)
         run: |
-          MANIFEST=android/app/src/main/AndroidManifest.xml
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
           test -f "$MANIFEST" || (echo "Manifest missing"; exit 1)
-
-          echo "---- BEFORE (top of manifest) ----"
+          if ! grep -q 'android.permission.CAMERA' "$MANIFEST"; then
+            # Append a new line directly after the line that contains the opening <manifest ...>
+            sed -i '/<manifest[^>]*>/a\    <uses-permission android:name="android.permission.CAMERA" />' "$MANIFEST"
+          fi
+          echo "---- AndroidManifest.xml (first 40 lines) ----"
           head -n 40 "$MANIFEST"
-
-          # Insert permission right after the opening <manifest ...> tag.
-          perl -0777 -pe '
-            if ($done) { print $_; exit }
-            if (s|(<manifest\b[^>]*>)|$1\n    <uses-permission android:name="android.permission.CAMERA" />|e) {
-              $done=1
-            }
-            END { if (!$done) { print STDERR "!! Could not insert permission\\n" } }
-          ' -i "$MANIFEST"
-
-          echo "---- AFTER (top of manifest) ----"
-          head -n 60 "$MANIFEST"
-
-          # sanity check: file is valid XML-ish (basic)
-          grep -q "<manifest" "$MANIFEST" || (echo "broken manifest: no <manifest>"; exit 1)
-          grep -q "</manifest>" "$MANIFEST" || (echo "broken manifest: no </manifest>"; exit 1)
-          grep -q "android.permission.CAMERA" "$MANIFEST" || (echo "permission not present"; exit 1)
 
       - name: Build debug APK
         working-directory: android
@@ -91,6 +77,6 @@ jobs:
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
-        with: 
+        with:
           name: app-debug.apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
