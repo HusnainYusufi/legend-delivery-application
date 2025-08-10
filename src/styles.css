@@ -4,20 +4,35 @@
 
 /* App baseline */
 html, body, #root { height: 100%; }
+html, body { width: 100%; }
 body { @apply text-slate-900 bg-sky-50 overflow-x-hidden; }
 
-/* Dynamic safe-area for devices with gesture bars/notches */
+/* Layout containers */
+.app-shell { @apply min-h-[100dvh] bg-gradient-to-br from-sky-50 to-sky-100; }
+.container { @apply w-full max-w-md mx-auto px-4; }
+
+/* Safe area (bottom) */
 :root { --safe-bottom: env(safe-area-inset-bottom); }
 .safe-b { padding-bottom: var(--safe-bottom); }
 
-/* Buttons & badges */
+/* Navbar */
+.navbar { @apply sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-slate-200; }
+.navbar-inner { @apply container py-3 flex items-center justify-between; }
+
+/* Cards & controls */
+.card { @apply rounded-2xl border border-sky-200 bg-white shadow-sm; }
 .btn { @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-base font-medium shadow-sm transition w-full sm:w-auto; }
 .btn-primary { @apply bg-brand-600 text-white hover:bg-brand-700 disabled:opacity-60; }
 .btn-secondary { @apply border border-slate-300 bg-white hover:bg-slate-50; }
 .badge { @apply inline-flex items-center gap-1 rounded-full border px-3 py-1 text-sm font-medium; }
 
-/* Cards */
-.card { @apply rounded-2xl border bg-white shadow-sm; }
-
 /* RTL helper (for icon mirroring if needed) */
 [dir="rtl"] .rtl\:flip { transform: scaleX(-1); }
+
+/* Splash */
+.splash { @apply fixed inset-0 z-50 grid place-items-center bg-gradient-to-br from-sky-100 to-sky-300; }
+.splash-card { @apply text-center; }
+.splash-logo { @apply mx-auto mb-4 h-16 w-16 rounded-3xl bg-brand-600 shadow-lg flex items-center justify-center; }
+.splash-bar { @apply mt-6 h-1.5 w-40 mx-auto rounded-full bg-white/60 overflow-hidden; }
+@keyframes progress { 0% {transform:translateX(-100%)} 50% {transform:translateX(50%)} 100% {transform:translateX(200%)} }
+.splash-bar > div { animation: progress 1.1s ease-in-out infinite; }

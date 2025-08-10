@@ -1,20 +1,26 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Camera as CameraIcon, Loader2, QrCode, RefreshCcw, Edit3, XCircle, X } from "lucide-react";
+import { Camera as CameraIcon, Image as ImageIcon, Loader2, QrCode, RefreshCcw, Edit3, XCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import Header from "./components/Header.jsx";
-import StatusBadge from "./components/StatusBadge.jsx";
+import Navbar from "./components/Navbar.jsx";
 import Splash from "./components/Splash.jsx";
+import ScannerOverlay from "./components/ScannerOverlay.jsx";
 import { CONFIG, DEFAULT_MOCK_MODE, apiFetch, parseOrderNumberFromScan } from "./lib/api.js";
 import { mockApplyStatus, mockGetOrder } from "./lib/mock.js";
-import { ensureCameraPermission, startWebQrScanner } from "./lib/scanner.js";
+import { ensureCameraPermission, startWebQrScanner, openAppSettings, scanImageFile } from "./lib/scanner.js";
+import StatusBadge from "./components/StatusBadge.jsx";
 
 export default function App() {
   const { t, i18n } = useTranslation();
   const [language, setLanguage] = useState(i18n.language);
-  const [showSplash, setShowSplash] = useState(true);
 
+  // Splash
+  const [showSplash, setShowSplash] = useState(true);
+  useEffect(() => { const t = setTimeout(() => setShowSplash(false), 900); return () => clearTimeout(t); }, []);
+
+  // State
   const [isScanning, setIsScanning] = useState(false);
   const [scanError, setScanError] = useState("");
+  const [permDenied, setPermDenied] = useState(false);
   const [rawScan, setRawScan] = useState("");
   const [orderNumber, setOrderNumber] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -24,34 +30,24 @@ export default function App() {
   const [newStatus, setNewStatus] = useState(CONFIG.statuses[0]);
   const [useMock, setUseMock] = useState(DEFAULT_MOCK_MODE);
 
-  // Splash: keep for a short, nice entrance
-  useEffect(() => {
-    const t = setTimeout(() => setShowSplash(false), 900);
-    return () => clearTimeout(t);
-  }, []);
-
-  // Web QR scanner instance management
+  // Scanner
   const scannerRef = useRef(null);
   const scannerDivId = "qr-scanner-region";
 
   const stopScanner = useCallback(async () => {
-    try {
-      if (scannerRef.current?.stop) await scannerRef.current.stop();
-    } catch {}
+    try { await scannerRef.current?.stop?.(); } catch {}
     scannerRef.current = null;
   }, []);
 
   const beginScan = useCallback(async () => {
-    setScanError("");
-    setRawScan("");
-    // Ask for camera permission using Capacitor Camera so WebView getUserMedia will be allowed
-    const ok = await ensureCameraPermission();
-    if (!ok) {
-      setScanError("Camera permission denied. Enable it in Settings.");
+    setScanError(""); setRawScan(""); setPermDenied(false);
+    const perm = await ensureCameraPermission();
+    if (!perm.granted) {
+      setPermDenied(true);
+      setScanError("Camera permission denied. Tap 'Open Settings' and allow Camera.");
       return;
     }
     setIsScanning(true);
-    // start web scanner
     scannerRef.current = await startWebQrScanner(
       scannerDivId,
       (decoded) => {
@@ -67,10 +63,9 @@ export default function App() {
     );
   }, []);
 
-  useEffect(() => {
-    return () => { stopScanner(); };
-  }, [stopScanner]);
+  useEffect(() => () => { stopScanner(); }, [stopScanner]);
 
+  // API
   const getStatus = useCallback(async () => {
     if (!orderNumber) { setToast({ type: "error", msg: t("toast_need_order") }); return; }
     setIsLoading(true); setToast(null);
@@ -102,22 +97,38 @@ export default function App() {
   const reset = () => { setOrderNumber(""); setRawScan(""); setCurrent(null); };
   useEffect(() => { if (language !== i18n.language) i18n.changeLanguage(language); }, [language, i18n]);
 
+  // Photo fallback
+  const onPickImage = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await scanImageFile(
+      file,
+      (decoded) => {
+        const ord = parseOrderNumberFromScan(decoded);
+        if (ord) setOrderNumber(ord);
+        setRawScan(decoded);
+        setToast({ type: "success", msg: t("scanned_payload") + " ✓" });
+      },
+      (err) => setToast({ type: "error", msg: err || "Could not read QR from image." })
+    );
+    e.target.value = "";
+  };
+
   return (
-    <div className="min-h-[100dvh] flex flex-col bg-gradient-to-br from-sky-50 to-sky-100 text-slate-900">
+    <div className="app-shell">
       {showSplash && <Splash />}
 
-      <div className="w-full px-4 pt-4 pb-6 safe-b max-w-md mx-auto">
-        <Header
-          useMock={useMock}
-          onToggleMock={() => setUseMock((v) => !v)}
-          language={language}
-          onChangeLanguage={setLanguage}
-        />
+      {/* Top navbar */}
+      <Navbar language={language} onChangeLanguage={setLanguage} />
 
-        <div className="card border-sky-200 p-4">
-          <div className="text-sm text-slate-600 mb-2">{t("scan_or_enter")}</div>
+      {/* Main content */}
+      <main className="container py-4 safe-b">
+        <section className="card p-4">
+          <div className="text-sm text-slate-600 mb-3">
+            {t("scan_or_enter")}
+          </div>
 
-          {/* Input + actions: stack on mobiles, tidy on tablets */}
+          {/* Input + actions: mobile-first grid, no sideways scroll */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <input
               className="sm:col-span-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 outline-none ring-0 focus:border-slate-400"
@@ -127,86 +138,108 @@ export default function App() {
               inputMode="text"
               autoComplete="off"
             />
+
             <button onClick={beginScan} className="btn btn-secondary">
               <CameraIcon className="h-5 w-5" /> {t("scan")}
             </button>
+
+            <label className="btn btn-secondary cursor-pointer">
+              <input type="file" accept="image/*" className="hidden" onChange={onPickImage} />
+              <ImageIcon className="h-5 w-5" /> Scan Photo
+            </label>
+
             <button onClick={reset} className="btn btn-secondary" title={t("reset")}>
               <RefreshCcw className="h-5 w-5" /> {t("reset")}
             </button>
+
             <button onClick={getStatus} disabled={isLoading} className="btn btn-primary sm:col-span-3">
               {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <QrCode className="h-5 w-5" />}
               {t("load_status")}
             </button>
           </div>
 
+          {/* Messages */}
           {!!scanError && (
-            <p className="mt-3 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-              <XCircle className="h-4 w-4" /> {scanError}
-            </p>
+            <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {scanError}
+              {permDenied && (
+                <button
+                  onClick={openAppSettings}
+                  className="ml-2 underline"
+                >
+                  Open Settings
+                </button>
+              )}
+            </div>
           )}
           {!!rawScan && (
             <p className="mt-2 text-xs text-slate-500 break-words">
               {t("scanned_payload")}: <span className="font-mono">{rawScan}</span>
             </p>
           )}
+        </section>
 
-          {current && (
-            <div className="mt-6 rounded-2xl border border-slate-200 bg-sky-50 p-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <div className="text-sm text-slate-500">{t("order")}</div>
-                  <div className="font-semibold break-words">{current.orderNumber || orderNumber}</div>
-                </div>
-                <StatusBadge value={current.status} />
+        {/* Details card */}
+        {current && (
+          <section className="card mt-4 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="text-sm text-slate-500">{t("order")}</div>
+                <div className="font-semibold break-words">{current.orderNumber || orderNumber}</div>
               </div>
-              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div className="rounded-xl border border-sky-200 bg-white p-3">
-                  <div className="text-xs text-slate-500">{t("customer")}</div>
-                  <div className="text-sm font-medium break-words">{current?.customer?.name || "—"}</div>
-                </div>
-                <div className="rounded-xl border border-sky-200 bg-white p-3">
-                  <div className="text-xs text-slate-500">{t("last_updated")}</div>
-                  <div className="text-sm font-medium">{current?.lastUpdated ? new Date(current.lastUpdated).toLocaleString() : "—"}</div>
-                </div>
-              </div>
+              <StatusBadge value={current.status} />
+            </div>
 
-              <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
-                <label className="text-sm text-slate-700 sm:col-span-1">{t("new_status")}</label>
-                <select
-                  className="rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm sm:col-span-1"
-                  value={newStatus}
-                  onChange={(e) => setNewStatus(e.target.value)}
-                >
-                  {CONFIG.statuses.map((s) => (
-                    <option key={s} value={s}>{t(`statuses.${s}`)}</option>
-                  ))}
-                </select>
-                <button onClick={applyStatus} disabled={isApplying} className="btn btn-primary sm:col-span-1">
-                  {isApplying ? <Loader2 className="h-5 w-5 animate-spin" /> : <Edit3 className="h-5 w-5" />}
-                  {t("apply_status")}
-                </button>
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="rounded-xl border border-sky-200 bg-white p-3">
+                <div className="text-xs text-slate-500">{t("customer")}</div>
+                <div className="text-sm font-medium break-words">{current?.customer?.name || "—"}</div>
+              </div>
+              <div className="rounded-xl border border-sky-200 bg-white p-3">
+                <div className="text-xs text-slate-500">{t("last_updated")}</div>
+                <div className="text-sm font-medium">{current?.lastUpdated ? new Date(current.lastUpdated).toLocaleString() : "—"}</div>
               </div>
             </div>
-          )}
-        </div>
 
-        <p className="mt-4 text-xs leading-relaxed text-slate-500">{t("tip_camera")}</p>
-      </div>
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
+              <label className="text-sm text-slate-700 sm:col-span-1">{t("new_status")}</label>
+              <select
+                className="rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm sm:col-span-1"
+                value={newStatus}
+                onChange={(e) => setNewStatus(e.target.value)}
+              >
+                {CONFIG.statuses.map((s) => (
+                  <option key={s} value={s}>{t(`statuses.${s}`)}</option>
+                ))}
+              </select>
+              <button onClick={applyStatus} disabled={isApplying} className="btn btn-primary sm:col-span-1">
+                {isApplying ? <Loader2 className="h-5 w-5 animate-spin" /> : <Edit3 className="h-5 w-5" />}
+                {t("apply_status")}
+              </button>
+            </div>
+          </section>
+        )}
 
-      {/* Full-screen scanner overlay */}
-      {isScanning && (
-        <div className="fixed inset-0 z-50 bg-black/95 text-white">
-          <div className="absolute inset-0">
-            <div id={scannerDivId} className="h-full w-full" />
+        {toast && (
+          <div className={`mt-4 inline-flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-sm ${
+            toast.type === "success" ? "border-green-200 bg-green-50 text-green-700" : "border-red-200 bg-red-50 text-red-700"
+          }`}>
+            {toast.msg}
           </div>
-          <div className="absolute top-0 left-0 right-0 flex items-center justify-between gap-2 p-3">
-            <span className="font-semibold">{t("scan")}</span>
-            <button onClick={() => { setIsScanning(false); stopScanner(); }} className="btn btn-secondary bg-white/10 border-white/30 text-white">
-              <X className="h-5 w-5" /> {t("stop")}
-            </button>
-          </div>
-        </div>
-      )}
+        )}
+
+        <p className="mt-4 text-xs leading-relaxed text-slate-500">
+          {t("tip_camera")}
+        </p>
+      </main>
+
+      {/* Full-screen live scanner */}
+      <ScannerOverlay
+        visible={isScanning}
+        onClose={() => { setIsScanning(false); stopScanner(); }}
+        scannerDivId={scannerDivId}
+        title={t("scan")}
+      />
     </div>
   );
 }
