@@ -1,72 +1,41 @@
-name: Android APK (Capacitor)
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme">
 
-jobs:
-  build-android:
-    runs-on: ubuntu-latest
+        <activity
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode"
+            android:name=".MainActivity"
+            android:label="@string/title_activity_main"
+            android:theme="@style/AppTheme.NoActionBarLaunch"
+            android:launchMode="singleTask"
+            android:exported="true">
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
+        </activity>
 
-      - name: Install deps
-        run: npm ci || npm install
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths"></meta-data>
+        </provider>
+    </application>
 
-      - name: Build web (Vite)
-        run: npm run build
+    <!-- Permissions -->
 
-      - name: Ensure Android project exists
-        run: npx cap add android || true
-
-      - name: Sync Capacitor
-        run: npx cap sync android
-
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 21
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          api-level: 35
-          build-tools: "35.0.0"
-
-      - name: Make Gradle executable
-        run: chmod +x android/gradlew
-
-      - name: Force compile/target SDK 35
-        run: |
-          if [ -f android/variables.gradle ]; then
-            sed -i 's/compileSdkVersion = [0-9]\+/compileSdkVersion = 35/' android/variables.gradle
-            sed -i 's/targetSdkVersion = [0-9]\+/targetSdkVersion = 35/' android/variables.gradle
-          fi
-          sed -i 's/compileSdkVersion [0-9]\+/compileSdkVersion 35/' android/app/build.gradle || true
-          sed -i 's/targetSdkVersion [0-9]\+/targetSdkVersion 35/' android/app/build.gradle || true
-
-      - name: Add camera permission to Manifest (if missing)
-        run: |
-          MANIFEST=android/app/src/main/AndroidManifest.xml
-          if ! grep -q 'android.permission.CAMERA' "$MANIFEST"; then
-            sed -i '0,/<manifest>/s//<manifest>\n    <uses-permission android:name="android.permission.CAMERA" \/>/' "$MANIFEST"
-          fi
-
-      - name: Build debug APK
-        working-directory: android
-        run: ./gradlew assembleDebug
-
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-debug.apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+    <uses-permission android:name="android.permission.INTERNET" />
+</manifest>
