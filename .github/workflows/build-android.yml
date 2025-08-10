@@ -24,6 +24,7 @@ jobs:
       - name: Build web (Vite)
         run: npm run build
 
+      # Create android/ if missing (no Android Studio needed)
       - name: Ensure Android project exists
         run: npx cap add android || true
 
@@ -45,6 +46,7 @@ jobs:
       - name: Make Gradle executable
         run: chmod +x android/gradlew
 
+      # Make sure project compiles against Android 35
       - name: Force compile/target SDK 35
         run: |
           if [ -f android/variables.gradle ]; then
@@ -54,19 +56,21 @@ jobs:
           sed -i 's/compileSdkVersion [0-9]\+/compileSdkVersion 35/' android/app/build.gradle || true
           sed -i 's/targetSdkVersion [0-9]\+/targetSdkVersion 35/' android/app/build.gradle || true
 
+      # Quiet the AGP warning about compileSdk 35
       - name: Suppress unsupported compileSdk warning
         run: echo "android.suppressUnsupportedCompileSdk=35" >> android/gradle.properties
 
+      # ✔ SAFE camera permission insert (does not touch <manifest ...> line)
       - name: Ensure camera permission (safe insert)
         run: |
           MANIFEST=android/app/src/main/AndroidManifest.xml
           test -f "$MANIFEST" || (echo "Manifest missing"; exit 1)
           if ! grep -q 'android.permission.CAMERA' "$MANIFEST"; then
-            # insert before the closing </manifest> tag without touching its attributes
-            sed -i '/<\/manifest>/i\    <uses-permission android:name="android.permission.CAMERA" \/>' "$MANIFEST"
+            awk 'BEGIN{added=0} /<manifest/{print; if(!added){print "    <uses-permission android:name=\"android.permission.CAMERA\" />"; added=1; next}} {print}' "$MANIFEST" > "$MANIFEST.tmp"
+            mv "$MANIFEST.tmp" "$MANIFEST"
           fi
           echo "---- AndroidManifest.xml (head) ----"
-          head -n 30 "$MANIFEST"
+          head -n 40 "$MANIFEST"
 
       - name: Build debug APK
         working-directory: android
