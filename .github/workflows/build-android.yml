@@ -58,6 +58,11 @@ jobs:
 
       - name: Suppress unsupported compileSdk warning
         run: echo "android.suppressUnsupportedCompileSdk=35" >> android/gradle.properties
+      - name: Ensure CAMERA permission
+        run: |
+          MANIFEST=android/app/src/main/AndroidManifest.xml
+          sed -i '/<manifest[^>]*>/a\    <uses-permission android:name="android.permission.CAMERA" />' "$MANIFEST"
+
 
       - name: Show AndroidManifest first lines (sanity)
         run: |
