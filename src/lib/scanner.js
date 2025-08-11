@@ -1,55 +1,70 @@
+// scanner.js
 import { Camera } from "@capacitor/camera";
 import { App } from "@capacitor/app";
 
 export async function ensureCameraPermission() {
   try {
     const status = await Camera.checkPermissions();
-    if (status.camera === "granted") return { granted: true, canOpenSettings: false };
-    const req = await Camera.requestPermissions({ permissions: ["camera"] });
-    if (req.camera === "granted") return { granted: true, canOpenSettings: false };
-    return { granted: false, canOpenSettings: true };
-  } catch {
-    return { granted: false, canOpenSettings: true };
+    if (status.camera === "granted") return { granted: true };
+    
+    const request = await Camera.requestPermissions({ permissions: ["camera"] });
+    return { granted: request.camera === "granted" };
+  } catch (error) {
+    console.error("Permission error:", error);
+    return { granted: false };
   }
 }
 
 export async function openAppSettings() {
-  try { await App.openSettings(); } catch {}
+  try { 
+    await App.openSettings(); 
+  } catch (error) {
+    console.error("Failed to open settings:", error);
+  }
 }
 
-// Web QR scanner using html5-qrcode
 export async function startWebQrScanner(mountDivId, onDecoded, onError) {
   try {
     const { Html5Qrcode } = await import("html5-qrcode");
     const html5Qr = new Html5Qrcode(mountDivId, { verbose: false });
-    const config = { fps: 12, qrbox: { width: 280, height: 280 } };
+    
+    // Ensure the scanner element exists
+    const scannerElement = document.getElementById(mountDivId);
+    if (!scannerElement) {
+      throw new Error("Scanner element not found");
+    }
+    
     await html5Qr.start(
       { facingMode: "environment" },
-      config,
+      { fps: 10, qrbox: { width: 250, height: 250 } },
       (decoded) => onDecoded?.(decoded),
       () => {}
     );
-    return { stop: async () => { try { await html5Qr.stop(); await html5Qr.clear(); } catch {} } };
-  } catch (e) {
-    onError?.(e?.message || String(e));
-    return { stop: async () => {} };
+    
+    return {
+      stop: async () => {
+        try {
+          await html5Qr.stop();
+          await html5Qr.clear();
+        } catch (stopError) {
+          console.error("Error stopping scanner:", stopError);
+        }
+      }
+    };
+  } catch (error) {
+    console.error("Scanner initialization failed:", error);
+    onError?.(error.message || "Failed to initialize scanner");
+    return { stop: () => {} };
   }
 }
 
 export async function scanImageFile(file, onDecoded, onError) {
   try {
     const { Html5Qrcode } = await import("html5-qrcode");
-    const tempId = "one-shot-scanner";
-    const el = document.createElement("div");
-    el.id = tempId;
-    el.style.display = "none";
-    document.body.appendChild(el);
-    const html5Qr = new Html5Qrcode(tempId);
-    const result = await html5Qr.scanFile(file, true);
-    await html5Qr.clear();
-    el.remove();
+    const result = await Html5Qrcode.scanFile(file, true);
     onDecoded?.(result);
-  } catch (e) {
-    onError?.(e?.message || String(e));
+  } catch (error) {
+    console.error("Image scan error:", error);
+    onError?.(error.message || "Failed to scan image");
   }
 }

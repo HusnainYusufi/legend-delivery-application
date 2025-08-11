@@ -1,6 +1,5 @@
-// App.jsx
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Camera as CameraIcon, Loader2, QrCode, RefreshCcw, Edit3, XCircle, Moon, Sun } from "lucide-react";
+import { Camera as CameraIcon, Loader2, QrCode, RefreshCcw, Edit3, XCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import Navbar from "./components/Navbar.jsx";
 import Splash from "./components/Splash.jsx";
@@ -15,20 +14,16 @@ export default function App() {
   const [language, setLanguage] = useState(i18n.language);
   const [darkMode, setDarkMode] = useState(false);
 
-  // Apply dark mode class to body
   useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    document.documentElement.classList.toggle('dark', darkMode);
   }, [darkMode]);
 
-  // Splash
   const [showSplash, setShowSplash] = useState(true);
-  useEffect(() => { const tm = setTimeout(() => setShowSplash(false), 900); return () => clearTimeout(tm); }, []);
+  useEffect(() => { 
+    const tm = setTimeout(() => setShowSplash(false), 900); 
+    return () => clearTimeout(tm); 
+  }, []);
 
-  // State
   const [isScanning, setIsScanning] = useState(false);
   const [scanError, setScanError] = useState("");
   const [permDenied, setPermDenied] = useState(false);
@@ -41,90 +36,163 @@ export default function App() {
   const [newStatus, setNewStatus] = useState(CONFIG.statuses[0]);
   const [useMock, setUseMock] = useState(DEFAULT_MOCK_MODE);
 
-  // Scanner
   const scannerRef = useRef(null);
   const scannerDivId = "qr-scanner-region";
 
   const stopScanner = useCallback(async () => {
-    try { await scannerRef.current?.stop?.(); } catch {}
+    try { 
+      if (scannerRef.current?.stop) {
+        await scannerRef.current.stop(); 
+      }
+    } catch (e) {
+      console.error("Error stopping scanner:", e);
+    }
     scannerRef.current = null;
   }, []);
 
   const beginScan = useCallback(async () => {
-    setScanError(""); setRawScan(""); setPermDenied(false);
-    const perm = await ensureCameraPermission();
-    if (!perm.granted) {
-      setPermDenied(true);
-      setScanError("Camera permission denied. Tap 'Open Settings' and allow Camera.");
-      return;
+    setScanError(""); 
+    setRawScan(""); 
+    setPermDenied(false);
+    
+    try {
+      const perm = await ensureCameraPermission();
+      if (!perm.granted) {
+        setPermDenied(true);
+        setScanError("Camera permission denied. Please allow camera access in settings.");
+        return;
+      }
+      
+      setIsScanning(true);
+      
+      // Initialize scanner
+      const scanner = await startWebQrScanner(
+        scannerDivId,
+        (decoded) => {
+          const ord = parseOrderNumberFromScan(decoded);
+          if (ord) setOrderNumber(ord);
+          setRawScan(decoded);
+          setIsScanning(false);
+        },
+        (err) => { 
+          console.error("Scanner error:", err);
+          setScanError(err || "Failed to start camera. Try again later."); 
+          setIsScanning(false); 
+        }
+      );
+      
+      scannerRef.current = scanner;
+    } catch (err) {
+      console.error("Scanning failed:", err);
+      setScanError("Failed to start scanner. Please try again.");
+      setIsScanning(false);
     }
-    setIsScanning(true);
-    scannerRef.current = await startWebQrScanner(
-      scannerDivId,
-      (decoded) => {
-        const ord = parseOrderNumberFromScan(decoded);
-        if (ord) setOrderNumber(ord);
-        setRawScan(decoded);
-        setIsScanning(false);
-      },
-      (err) => { setScanError(err || "Camera failed to start."); setIsScanning(false); }
-    );
   }, []);
 
-  useEffect(() => () => { stopScanner(); }, [stopScanner]);
+  useEffect(() => {
+    return () => { 
+      stopScanner(); 
+    };
+  }, [stopScanner]);
 
-  // API
   const getStatus = useCallback(async () => {
-    if (!orderNumber) { setToast({ type: "error", msg: t("toast_need_order") }); return; }
-    setIsLoading(true); setToast(null);
+    if (!orderNumber) { 
+      setToast({ type: "error", msg: t("toast_need_order") }); 
+      return; 
+    }
+    
+    setIsLoading(true); 
+    setToast(null);
+    
     try {
-      const data = useMock ? await mockGetOrder(orderNumber) : await apiFetch(CONFIG.paths.getStatus(orderNumber));
+      const data = useMock 
+        ? await mockGetOrder(orderNumber) 
+        : await apiFetch(CONFIG.paths.getStatus(orderNumber));
+      
       setCurrent(data);
-      if (data?.status && CONFIG.statuses.includes(String(data.status))) setNewStatus(String(data.status));
+      if (data?.status && CONFIG.statuses.includes(String(data.status))) {
+        setNewStatus(String(data.status));
+      }
     } catch (err) {
-      setToast({ type: "error", msg: err.message || t("error_fetch_status") }); setCurrent(null);
-    } finally { setIsLoading(false); }
+      setToast({ type: "error", msg: err.message || t("error_fetch_status") }); 
+      setCurrent(null);
+    } finally { 
+      setIsLoading(false); 
+    }
   }, [orderNumber, useMock, t]);
 
   const applyStatus = useCallback(async () => {
-    if (!orderNumber) { setToast({ type: "error", msg: t("toast_need_order") }); return; }
+    if (!orderNumber) { 
+      setToast({ type: "error", msg: t("toast_need_order") }); 
+      return; 
+    }
+    
     if (!newStatus) return;
-    setIsApplying(true); setToast(null);
+    
+    setIsApplying(true); 
+    setToast(null);
+    
     try {
       const data = useMock
         ? await mockApplyStatus(orderNumber, newStatus)
-        : await apiFetch(CONFIG.paths.applyStatus(orderNumber), { method: "POST", body: JSON.stringify({ status: newStatus }) });
-      setToast({ type: "success", msg: t("toast_set_status", { status: t(`statuses.${newStatus}`) }) });
-      setCurrent((prev) => ({ ...(prev || {}), status: newStatus, lastUpdated: data?.lastUpdated || new Date().toISOString() }));
+        : await apiFetch(
+            CONFIG.paths.applyStatus(orderNumber), 
+            { method: "POST", body: JSON.stringify({ status: newStatus }) }
+          );
+      
+      setToast({ 
+        type: "success", 
+        msg: t("toast_set_status", { status: t(`statuses.${newStatus}`) }) 
+      });
+      
+      setCurrent(prev => ({ 
+        ...(prev || {}), 
+        status: newStatus, 
+        lastUpdated: data?.lastUpdated || new Date().toISOString() 
+      }));
     } catch (err) {
       setToast({ type: "error", msg: err.message || t("error_apply_status") });
-    } finally { setIsApplying(false); }
+    } finally { 
+      setIsApplying(false); 
+    }
   }, [orderNumber, newStatus, useMock, t]);
 
-  const reset = () => { setOrderNumber(""); setRawScan(""); setCurrent(null); };
-  useEffect(() => { if (language !== i18n.language) i18n.changeLanguage(language); }, [language, i18n]);
+  const reset = () => { 
+    setOrderNumber(""); 
+    setRawScan(""); 
+    setCurrent(null); 
+  };
+
+  useEffect(() => { 
+    if (language !== i18n.language) i18n.changeLanguage(language); 
+  }, [language, i18n]);
 
   const onPickImage = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    await scanImageFile(
-      file,
-      (decoded) => {
-        const ord = parseOrderNumberFromScan(decoded);
-        if (ord) setOrderNumber(ord);
-        setRawScan(decoded);
-        setToast({ type: "success", msg: t("scanned_payload") + " ✓" });
-      },
-      (err) => setToast({ type: "error", msg: err || "Could not read QR from image." })
-    );
-    e.target.value = "";
+    
+    try {
+      await scanImageFile(
+        file,
+        (decoded) => {
+          const ord = parseOrderNumberFromScan(decoded);
+          if (ord) setOrderNumber(ord);
+          setRawScan(decoded);
+          setToast({ type: "success", msg: t("scanned_payload") + " ✓" });
+        },
+        (err) => setToast({ type: "error", msg: err || t("error_scan_image") })
+      );
+    } catch (err) {
+      setToast({ type: "error", msg: "Failed to process image" });
+    } finally {
+      e.target.value = "";
+    }
   };
 
   return (
     <div className="app-shell min-h-screen bg-gradient-to-br from-sky-50 to-sky-100 dark:from-slate-900 dark:to-slate-800">
       {showSplash && <Splash />}
 
-      {/* Fixed top navbar with solid background and shadow */}
       <Navbar
         language={language}
         onChangeLanguage={setLanguage}
@@ -136,11 +204,10 @@ export default function App() {
         toggleDarkMode={() => setDarkMode(!darkMode)}
       />
 
-      {/* Content area below navbar */}
-      <main className="content safe-b max-w-3xl mx-auto px-4 pt-20">
-        {/* Primary task card */}
-        <section className="card bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6 mb-6 border border-slate-200 dark:border-slate-700">
-          <div className="flex items-center gap-3 mb-5">
+      <main className="content safe-b max-w-3xl mx-auto px-4 pt-16">
+        {/* Primary task card - Centered content */}
+        <section className="card bg-white dark:bg-slate-800 rounded-xl shadow-lg p-5 mb-6 border border-slate-200 dark:border-slate-700">
+          <div className="flex items-center gap-3 mb-4">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
               <QrCode className="h-5 w-5" />
             </div>
@@ -150,9 +217,11 @@ export default function App() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t("order_number")}</label>
+          <div className="grid grid-cols-1 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                {t("order_number")}
+              </label>
               <input
                 className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white px-4 py-3 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900"
                 placeholder={t("placeholder_order")}
@@ -163,27 +232,26 @@ export default function App() {
               />
             </div>
             
-            <div className="flex items-end gap-2">
+            <div className="grid grid-cols-2 gap-3">
               <button 
                 onClick={beginScan} 
-                className="flex-1 btn bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white flex items-center justify-center gap-2"
+                className="btn bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white flex items-center justify-center gap-2"
               >
-                <CameraIcon className="h-5 w-5" /> <span className="hidden sm:inline">{t("scan")}</span>
+                <CameraIcon className="h-5 w-5" /> {t("scan")}
               </button>
 
               <button 
                 onClick={reset} 
                 className="btn bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600"
-                title={t("reset")}
               >
-                <RefreshCcw className="h-5 w-5" />
+                <RefreshCcw className="h-5 w-5 mx-auto" />
               </button>
             </div>
 
             <button 
               onClick={getStatus} 
               disabled={isLoading} 
-              className="btn bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white sm:col-span-3 flex items-center justify-center gap-2"
+              className="btn bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white flex items-center justify-center gap-2"
             >
               {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <QrCode className="h-5 w-5" />}
               {t("load_status")}
@@ -196,7 +264,10 @@ export default function App() {
               <div>
                 {scanError}
                 {permDenied && (
-                  <button onClick={openAppSettings} className="ml-2 underline font-medium">
+                  <button 
+                    onClick={openAppSettings} 
+                    className="ml-2 underline font-medium"
+                  >
                     Open Settings
                   </button>
                 )}
@@ -212,40 +283,50 @@ export default function App() {
           )}
         </section>
 
-        {/* Details / status card */}
+        {/* Details card */}
         {current && (
-          <section className="card bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6 mb-6 border border-slate-200 dark:border-slate-700">
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-200 dark:border-slate-700">
+          <section className="card bg-white dark:bg-slate-800 rounded-xl shadow-lg p-5 mb-6 border border-slate-200 dark:border-slate-700">
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-4 pb-4 border-b border-slate-200 dark:border-slate-700">
               <div>
                 <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">{t("order_details")}</h2>
                 <div className="mt-1">
                   <span className="text-sm text-slate-500 dark:text-slate-400">{t("order")}: </span>
-                  <span className="font-semibold text-slate-800 dark:text-slate-200 break-words">{current.orderNumber || orderNumber}</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200 break-words">
+                    {current.orderNumber || orderNumber}
+                  </span>
                 </div>
               </div>
               <StatusBadge value={current.status} />
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/30 p-4">
-                <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("customer")}</div>
+            <div className="grid grid-cols-1 gap-3">
+              <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/30 p-3">
+                <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  {t("customer")}
+                </div>
                 <div className="text-sm font-medium text-slate-800 dark:text-slate-200 break-words mt-1">
                   {current?.customer?.name || "—"}
                 </div>
               </div>
-              <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/30 p-4">
-                <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("last_updated")}</div>
+              <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/30 p-3">
+                <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  {t("last_updated")}
+                </div>
                 <div className="text-sm font-medium text-slate-800 dark:text-slate-200 mt-1">
                   {current?.lastUpdated ? new Date(current.lastUpdated).toLocaleString() : "—"}
                 </div>
               </div>
             </div>
 
-            <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-700">
-              <h3 className="text-md font-bold text-slate-800 dark:text-slate-100 mb-3">{t("update_status")}</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
-                <div className="sm:col-span-1">
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t("new_status")}</label>
+            <div className="mt-5 pt-4 border-t border-slate-200 dark:border-slate-700">
+              <h3 className="text-md font-bold text-slate-800 dark:text-slate-100 mb-3">
+                {t("update_status")}
+              </h3>
+              <div className="grid grid-cols-1 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    {t("new_status")}
+                  </label>
                   <select
                     className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white px-4 py-3 text-sm transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900"
                     value={newStatus}
@@ -256,16 +337,14 @@ export default function App() {
                     ))}
                   </select>
                 </div>
-                <div className="sm:col-span-2">
-                  <button 
-                    onClick={applyStatus} 
-                    disabled={isApplying} 
-                    className="w-full btn bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white flex items-center justify-center gap-2"
-                  >
-                    {isApplying ? <Loader2 className="h-5 w-5 animate-spin" /> : <Edit3 className="h-5 w-5" />}
-                    {t("apply_status")}
-                  </button>
-                </div>
+                <button 
+                  onClick={applyStatus} 
+                  disabled={isApplying} 
+                  className="btn bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white flex items-center justify-center gap-2"
+                >
+                  {isApplying ? <Loader2 className="h-5 w-5 animate-spin" /> : <Edit3 className="h-5 w-5" />}
+                  {t("apply_status")}
+                </button>
               </div>
             </div>
           </section>
@@ -277,17 +356,21 @@ export default function App() {
               ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white" 
               : "bg-gradient-to-r from-red-500 to-rose-600 text-white"
           }`}>
-            <div className="font-medium">{toast.msg}</div>
+            <div className="font-medium text-sm">{toast.msg}</div>
           </div>
         )}
 
-        <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400 text-center mt-6">{t("tip_camera")}</p>
+        <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400 text-center mt-4">
+          {t("tip_camera")}
+        </p>
       </main>
 
-      {/* Full-screen scanner */}
       <ScannerOverlay
         visible={isScanning}
-        onClose={() => { setIsScanning(false); stopScanner(); }}
+        onClose={() => { 
+          setIsScanning(false); 
+          stopScanner(); 
+        }}
         scannerDivId={scannerDivId}
         title={t("scan")}
       />
