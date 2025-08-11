@@ -1,5 +1,6 @@
+// App.jsx
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Camera as CameraIcon, Loader2, QrCode, RefreshCcw, Edit3, XCircle } from "lucide-react";
+import { Camera as CameraIcon, Loader2, QrCode, RefreshCcw, Edit3, XCircle, Moon, Sun } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import Navbar from "./components/Navbar.jsx";
 import Splash from "./components/Splash.jsx";
@@ -12,6 +13,16 @@ import { ensureCameraPermission, startWebQrScanner, openAppSettings, scanImageFi
 export default function App() {
   const { t, i18n } = useTranslation();
   const [language, setLanguage] = useState(i18n.language);
+  const [darkMode, setDarkMode] = useState(false);
+
+  // Apply dark mode class to body
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [darkMode]);
 
   // Splash
   const [showSplash, setShowSplash] = useState(true);
@@ -110,7 +121,7 @@ export default function App() {
   };
 
   return (
-    <div className="app-shell">
+    <div className="app-shell min-h-screen bg-gradient-to-br from-sky-50 to-sky-100 dark:from-slate-900 dark:to-slate-800">
       {showSplash && <Splash />}
 
       {/* Fixed top navbar with solid background and shadow */}
@@ -121,107 +132,156 @@ export default function App() {
         onPickImage={onPickImage}
         useMock={useMock}
         onToggleMock={() => setUseMock(v => !v)}
+        darkMode={darkMode}
+        toggleDarkMode={() => setDarkMode(!darkMode)}
       />
 
-      {/* Content area below navbar (no horizontal scroll) */}
-      <main className="content safe-b">
+      {/* Content area below navbar */}
+      <main className="content safe-b max-w-3xl mx-auto px-4 pt-20">
         {/* Primary task card */}
-        <section className="card p-4">
-          <div className="text-sm text-slate-600 mb-3">{t("scan_or_enter")}</div>
+        <section className="card bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6 mb-6 border border-slate-200 dark:border-slate-700">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+              <QrCode className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">{t("track_order")}</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{t("scan_or_enter")}</p>
+            </div>
+          </div>
 
-          <div className="grid-actions">
-            <input
-              className="sm:col-span-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 outline-none ring-0 focus:border-slate-400"
-              placeholder={t("placeholder_order")}
-              value={orderNumber}
-              onChange={(e) => setOrderNumber(e.target.value)}
-              inputMode="text"
-              autoComplete="off"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t("order_number")}</label>
+              <input
+                className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white px-4 py-3 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900"
+                placeholder={t("placeholder_order")}
+                value={orderNumber}
+                onChange={(e) => setOrderNumber(e.target.value)}
+                inputMode="text"
+                autoComplete="off"
+              />
+            </div>
+            
+            <div className="flex items-end gap-2">
+              <button 
+                onClick={beginScan} 
+                className="flex-1 btn bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white flex items-center justify-center gap-2"
+              >
+                <CameraIcon className="h-5 w-5" /> <span className="hidden sm:inline">{t("scan")}</span>
+              </button>
 
-            <button onClick={beginScan} className="btn btn-secondary">
-              <CameraIcon className="h-5 w-5" /> {t("scan")}
-            </button>
+              <button 
+                onClick={reset} 
+                className="btn bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600"
+                title={t("reset")}
+              >
+                <RefreshCcw className="h-5 w-5" />
+              </button>
+            </div>
 
-            <button onClick={reset} className="btn btn-secondary" title={t("reset")}>
-              <RefreshCcw className="h-5 w-5" /> {t("reset")}
-            </button>
-
-            <button onClick={getStatus} disabled={isLoading} className="btn btn-primary sm:col-span-3">
+            <button 
+              onClick={getStatus} 
+              disabled={isLoading} 
+              className="btn bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white sm:col-span-3 flex items-center justify-center gap-2"
+            >
               {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <QrCode className="h-5 w-5" />}
               {t("load_status")}
             </button>
           </div>
 
           {!!scanError && (
-            <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-              {scanError}
-              {permDenied && (
-                <button onClick={openAppSettings} className="ml-2 underline">
-                  Open Settings
-                </button>
-              )}
+            <div className="mt-4 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-700 dark:text-red-200 flex items-start">
+              <XCircle className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
+              <div>
+                {scanError}
+                {permDenied && (
+                  <button onClick={openAppSettings} className="ml-2 underline font-medium">
+                    Open Settings
+                  </button>
+                )}
+              </div>
             </div>
           )}
+          
           {!!rawScan && (
-            <p className="mt-2 text-xs text-slate-500 break-words">
-              {t("scanned_payload")}: <span className="font-mono">{rawScan}</span>
-            </p>
+            <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
+              <p className="text-xs text-slate-500 dark:text-slate-400">{t("scanned_payload")}:</p>
+              <p className="text-sm font-mono break-words mt-1 text-slate-700 dark:text-slate-300">{rawScan}</p>
+            </div>
           )}
         </section>
 
         {/* Details / status card */}
         {current && (
-          <section className="card mt-4 p-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
+          <section className="card bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6 mb-6 border border-slate-200 dark:border-slate-700">
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-200 dark:border-slate-700">
               <div>
-                <div className="text-sm text-slate-500">{t("order")}</div>
-                <div className="font-semibold break-words">{current.orderNumber || orderNumber}</div>
+                <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">{t("order_details")}</h2>
+                <div className="mt-1">
+                  <span className="text-sm text-slate-500 dark:text-slate-400">{t("order")}: </span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200 break-words">{current.orderNumber || orderNumber}</span>
+                </div>
               </div>
               <StatusBadge value={current.status} />
             </div>
 
-            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="rounded-xl border border-sky-200 bg-white p-3">
-                <div className="text-xs text-slate-500">{t("customer")}</div>
-                <div className="text-sm font-medium break-words">{current?.customer?.name || "—"}</div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/30 p-4">
+                <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("customer")}</div>
+                <div className="text-sm font-medium text-slate-800 dark:text-slate-200 break-words mt-1">
+                  {current?.customer?.name || "—"}
+                </div>
               </div>
-              <div className="rounded-xl border border-sky-200 bg-white p-3">
-                <div className="text-xs text-slate-500">{t("last_updated")}</div>
-                <div className="text-sm font-medium">
+              <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/30 p-4">
+                <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t("last_updated")}</div>
+                <div className="text-sm font-medium text-slate-800 dark:text-slate-200 mt-1">
                   {current?.lastUpdated ? new Date(current.lastUpdated).toLocaleString() : "—"}
                 </div>
               </div>
             </div>
 
-            <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
-              <label className="text-sm text-slate-700 sm:col-span-1">{t("new_status")}</label>
-              <select
-                className="rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm sm:col-span-1"
-                value={newStatus}
-                onChange={(e) => setNewStatus(e.target.value)}
-              >
-                {CONFIG.statuses.map((s) => (
-                  <option key={s} value={s}>{t(`statuses.${s}`)}</option>
-                ))}
-              </select>
-              <button onClick={applyStatus} disabled={isApplying} className="btn btn-primary sm:col-span-1">
-                {isApplying ? <Loader2 className="h-5 w-5 animate-spin" /> : <Edit3 className="h-5 w-5" />}
-                {t("apply_status")}
-              </button>
+            <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-700">
+              <h3 className="text-md font-bold text-slate-800 dark:text-slate-100 mb-3">{t("update_status")}</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+                <div className="sm:col-span-1">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t("new_status")}</label>
+                  <select
+                    className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white px-4 py-3 text-sm transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900"
+                    value={newStatus}
+                    onChange={(e) => setNewStatus(e.target.value)}
+                  >
+                    {CONFIG.statuses.map((s) => (
+                      <option key={s} value={s}>{t(`statuses.${s}`)}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="sm:col-span-2">
+                  <button 
+                    onClick={applyStatus} 
+                    disabled={isApplying} 
+                    className="w-full btn bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white flex items-center justify-center gap-2"
+                  >
+                    {isApplying ? <Loader2 className="h-5 w-5 animate-spin" /> : <Edit3 className="h-5 w-5" />}
+                    {t("apply_status")}
+                  </button>
+                </div>
+              </div>
             </div>
           </section>
         )}
 
         {toast && (
-          <div className={`mt-4 inline-flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-sm ${
-            toast.type === "success" ? "border-green-200 bg-green-50 text-green-700" : "border-red-200 bg-red-50 text-red-700"
+          <div className={`fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 rounded-xl px-5 py-3 shadow-lg flex items-center transition-all ${
+            toast.type === "success" 
+              ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white" 
+              : "bg-gradient-to-r from-red-500 to-rose-600 text-white"
           }`}>
-            {toast.msg}
+            <div className="font-medium">{toast.msg}</div>
           </div>
         )}
 
-        <p className="mt-4 text-xs leading-relaxed text-slate-500">{t("tip_camera")}</p>
+        <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400 text-center mt-6">{t("tip_camera")}</p>
       </main>
 
       {/* Full-screen scanner */}
