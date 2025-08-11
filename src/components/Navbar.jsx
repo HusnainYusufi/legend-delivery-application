@@ -1,5 +1,5 @@
 import React from "react";
-import { QrCode, Camera, Image, Settings, Moon, Sun } from "lucide-react";
+import { QrCode, Camera, Image, Moon, Sun } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 export default function Navbar({
@@ -7,8 +7,6 @@ export default function Navbar({
   onChangeLanguage,
   onScan,
   onPickImage,
-  useMock,
-  onToggleMock,
   darkMode,
   toggleDarkMode
 }) {
@@ -46,22 +44,6 @@ export default function Navbar({
             <option value="en">EN</option>
             <option value="ar">AR</option>
           </select>
-
-          {onToggleMock && (
-            <button
-              type="button"
-              onClick={onToggleMock}
-              className={`hidden sm:inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs shadow-sm ${
-                useMock 
-                  ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white" 
-                  : "bg-gradient-to-r from-slate-600 to-slate-700 text-white"
-              }`}
-              title={useMock ? t("mock_api") : t("live_api")}
-            >
-              <Settings className="h-3 w-3" />
-              <span className="hidden md:inline text-xs">{useMock ? "Mock" : "Live"}</span>
-            </button>
-          )}
 
           <button 
             type="button" 

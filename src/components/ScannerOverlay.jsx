@@ -34,13 +34,10 @@ export default function ScannerOverlay({ visible, onClose, scannerDivId, title }
         </button>
       </div>
       
-      <div className="flex-1 flex flex-col items-center justify-center p-4 relative">
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="border-2 border-white border-dashed rounded-xl w-64 h-64" />
-        </div>
+      <div className="flex-1 flex flex-col items-center justify-center p-4">
         <div 
           id={scannerDivId} 
-          className="w-full max-w-xs h-64 rounded-xl overflow-hidden z-0"
+          className="w-full max-w-xs h-64 rounded-xl overflow-hidden"
         />
       </div>
       

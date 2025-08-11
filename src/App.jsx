@@ -1,17 +1,16 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Camera as CameraIcon, Loader2, QrCode, RefreshCcw, Edit3, XCircle } from "lucide-react";
+import { Camera as CameraIcon, Loader2, QrCode, RefreshCcw, XCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import Navbar from "./components/Navbar.jsx";
 import Splash from "./components/Splash.jsx";
 import ScannerOverlay from "./components/ScannerOverlay.jsx";
 import StatusBadge from "./components/StatusBadge.jsx";
-import { CONFIG, DEFAULT_MOCK_MODE, apiFetch, parseOrderNumberFromScan } from "./lib/api.js";
-import { mockApplyStatus, mockGetOrder } from "./lib/mock.js";
+import { CONFIG, apiFetch, parseOrderNumberFromScan } from "./lib/api.js";
 import { ensureCameraPermission, startWebQrScanner, openAppSettings, scanImageFile } from "./lib/scanner.js";
 
 export default function App() {
   const { t, i18n } = useTranslation();
-  const [language, setLanguage] = useState("ar"); // Default to Arabic
+  const [language, setLanguage] = useState("ar");
   const [darkMode, setDarkMode] = useState(false);
 
   useEffect(() => {
@@ -30,11 +29,8 @@ export default function App() {
   const [rawScan, setRawScan] = useState("");
   const [orderNumber, setOrderNumber] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isApplying, setIsApplying] = useState(false);
   const [current, setCurrent] = useState(null);
   const [toast, setToast] = useState(null);
-  const [newStatus, setNewStatus] = useState(CONFIG.statuses[0]);
-  const [useMock, setUseMock] = useState(DEFAULT_MOCK_MODE);
 
   const scannerRef = useRef(null);
   const scannerDivId = "qr-scanner-region";
@@ -65,7 +61,6 @@ export default function App() {
       
       setIsScanning(true);
       
-      // Small delay to ensure scanner element is rendered
       setTimeout(async () => {
         try {
           const scanner = await startWebQrScanner(
@@ -113,57 +108,15 @@ export default function App() {
     setToast(null);
     
     try {
-      const data = useMock 
-        ? await mockGetOrder(orderNumber) 
-        : await apiFetch(CONFIG.paths.getStatus(orderNumber));
-      
+      const data = await apiFetch(CONFIG.paths.getStatus(orderNumber));
       setCurrent(data);
-      if (data?.status && CONFIG.statuses.includes(String(data.status))) {
-        setNewStatus(String(data.status));
-      }
     } catch (err) {
       setToast({ type: "error", msg: err.message || t("error_fetch_status") }); 
       setCurrent(null);
     } finally { 
       setIsLoading(false); 
     }
-  }, [orderNumber, useMock, t]);
-
-  const applyStatus = useCallback(async () => {
-    if (!orderNumber) { 
-      setToast({ type: "error", msg: t("toast_need_order") }); 
-      return; 
-    }
-    
-    if (!newStatus) return;
-    
-    setIsApplying(true); 
-    setToast(null);
-    
-    try {
-      const data = useMock
-        ? await mockApplyStatus(orderNumber, newStatus)
-        : await apiFetch(
-            CONFIG.paths.applyStatus(orderNumber), 
-            { method: "POST", body: JSON.stringify({ status: newStatus }) 
-    });
-      
-      setToast({ 
-        type: "success", 
-        msg: t("toast_set_status", { status: t(`statuses.${newStatus}`) }) 
-      });
-      
-      setCurrent(prev => ({ 
-        ...(prev || {}), 
-        status: newStatus, 
-        lastUpdated: data?.lastUpdated || new Date().toISOString() 
-      }));
-    } catch (err) {
-      setToast({ type: "error", msg: err.message || t("error_apply_status") });
-    } finally { 
-      setIsApplying(false); 
-    }
-  }, [orderNumber, newStatus, useMock, t]);
+  }, [orderNumber, t]);
 
   const reset = () => { 
     setOrderNumber(""); 
@@ -206,8 +159,6 @@ export default function App() {
         onChangeLanguage={setLanguage}
         onScan={beginScan}
         onPickImage={onPickImage}
-        useMock={useMock}
-        onToggleMock={() => setUseMock(v => !v)}
         darkMode={darkMode}
         toggleDarkMode={() => setDarkMode(!darkMode)}
       />
@@ -291,7 +242,7 @@ export default function App() {
           )}
         </section>
 
-        {/* Details card */}
+        {/* Order details */}
         {current && (
           <section className="card bg-white dark:bg-slate-800 rounded-xl shadow-lg p-5 mb-6 border border-slate-200 dark:border-slate-700 mx-auto">
             <div className="flex flex-wrap items-center justify-between gap-4 mb-4 pb-4 border-b border-slate-200 dark:border-slate-700">
@@ -300,59 +251,110 @@ export default function App() {
                 <div className="mt-1">
                   <span className="text-sm text-slate-500 dark:text-slate-400">{t("order")}: </span>
                   <span className="font-semibold text-slate-800 dark:text-slate-200 break-words">
-                    {current.orderNumber || orderNumber}
+                    {current.orderNo}
+                  </span>
+                </div>
+                <div className="mt-1">
+                  <span className="text-sm text-slate-500 dark:text-slate-400">{t("tracking_number")}: </span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200 break-words">
+                    {current.trackingNumber}
                   </span>
                 </div>
               </div>
-              <StatusBadge value={current.status} />
+              <StatusBadge value={current.currentStatus} />
             </div>
 
-            <div className="grid grid-cols-1 gap-3">
-              <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/30 p-3">
-                <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                  {t("customer")}
-                </div>
-                <div className="text-sm font-medium text-slate-800 dark:text-slate-200 break-words mt-1">
-                  {current?.customer?.name || "—"}
-                </div>
-              </div>
-              <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/30 p-3">
-                <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                  {t("last_updated")}
-                </div>
-                <div className="text-sm font-medium text-slate-800 dark:text-slate-200 mt-1">
-                  {current?.lastUpdated ? new Date(current.lastUpdated).toLocaleString() : "—"}
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-5 pt-4 border-t border-slate-200 dark:border-slate-700">
+            {/* Status steps */}
+            <div className="mb-6">
               <h3 className="text-md font-bold text-slate-800 dark:text-slate-100 mb-3">
-                {t("update_status")}
+                {t("status_steps")}
               </h3>
-              <div className="grid grid-cols-1 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    {t("new_status")}
-                  </label>
-                  <select
-                    className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white px-4 py-3 text-sm transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900"
-                    value={newStatus}
-                    onChange={(e) => setNewStatus(e.target.value)}
+              <div className="space-y-2">
+                {current.steps.map((step) => {
+                  const isCurrent = step.current;
+                  const isDone = step.done;
+                  const isNextSuggested = current.nextAllowed.includes(step.code) && !isDone;
+                  
+                  let stepClass = "bg-slate-50 dark:bg-slate-700/30";
+                  let textClass = "text-slate-800 dark:text-slate-200";
+                  let borderClass = "border-slate-200 dark:border-slate-700";
+                  
+                  if (isDone) {
+                    stepClass = "bg-green-50 dark:bg-green-900/20";
+                    textClass = "text-green-700 dark:text-green-300";
+                    borderClass = "border-green-200 dark:border-green-800";
+                  } else if (isCurrent) {
+                    stepClass = "bg-blue-50 dark:bg-blue-900/20";
+                    textClass = "text-blue-700 dark:text-blue-300";
+                    borderClass = "border-blue-200 dark:border-blue-800";
+                  } else if (isNextSuggested) {
+                    stepClass = "bg-amber-50 dark:bg-amber-900/20";
+                    textClass = "text-amber-700 dark:text-amber-300";
+                    borderClass = "border-amber-200 dark:border-amber-800";
+                  }
+                  
+                  return (
+                    <div 
+                      key={step.code} 
+                      className={`p-3 rounded-lg border ${borderClass} ${stepClass} flex items-center gap-3`}
+                    >
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDone ? "bg-green-500 text-white" : "bg-slate-200 dark:bg-slate-600"}`}>
+                        {isDone ? "✓" : step.code.charAt(0)}
+                      </div>
+                      <div className={`flex-1 ${textClass}`}>
+                        <div className="font-medium">{t(`statuses.${step.code}`)}</div>
+                        {step.at && (
+                          <div className="text-xs mt-1">
+                            {new Date(step.at).toLocaleString()}
+                          </div>
+                        )}
+                      </div>
+                      {isCurrent && (
+                        <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs rounded">
+                          {t("current")}
+                        </span>
+                      )}
+                      {isNextSuggested && !isCurrent && (
+                        <span className="px-2 py-1 bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200 text-xs rounded">
+                          {t("next_suggested")}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Special statuses */}
+            <div>
+              <h3 className="text-md font-bold text-slate-800 dark:text-slate-100 mb-3">
+                {t("special_statuses")}
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {current.special.map((status) => (
+                  <div 
+                    key={status.code} 
+                    className={`p-3 rounded-lg border ${
+                      status.occurred 
+                        ? "border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300"
+                        : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/30 text-slate-700 dark:text-slate-300"
+                    }`}
                   >
-                    {CONFIG.statuses.map((s) => (
-                      <option key={s} value={s}>{t(`statuses.${s}`)}</option>
-                    ))}
-                  </select>
-                </div>
-                <button 
-                  onClick={applyStatus} 
-                  disabled={isApplying} 
-                  className="btn bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white flex items-center justify-center gap-2"
-                >
-                  {isApplying ? <Loader2 className="h-5 w-5 animate-spin" /> : <Edit3 className="h-5 w-5" />}
-                  {t("apply_status")}
-                </button>
+                    <div className="font-medium">
+                      {t(`statuses.${status.code}`)}
+                      {status.occurred && (
+                        <span className="ml-2 text-xs bg-red-100 dark:bg-red-800 text-red-800 dark:text-red-200 px-2 py-1 rounded">
+                          {t("occurred")}
+                        </span>
+                      )}
+                    </div>
+                    {status.at && (
+                      <div className="text-xs mt-1">
+                        {new Date(status.at).toLocaleString()}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           </section>

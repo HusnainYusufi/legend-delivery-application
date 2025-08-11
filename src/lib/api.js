@@ -1,33 +1,28 @@
 const CONFIG = {
-  API_BASE_URL: import.meta?.env?.VITE_API_BASE_URL || "https://api.example.com",
-  API_TOKEN: import.meta?.env?.VITE_API_TOKEN || "",
+  API_BASE_URL: "https://apidelivery.devmedialm.com",
   paths: {
-    getStatus: (orderNumber) => `/orders/${encodeURIComponent(orderNumber)}`,
-    applyStatus: (orderNumber) => `/orders/${encodeURIComponent(orderNumber)}/status`,
+    getStatus: (orderNumber) => `/orders/${encodeURIComponent(orderNumber)}/status-overview`,
   },
-  statuses: [
-    "pending","processing","packed","shipped",
-    "out_for_delivery","delivered","cancelled","returned",
-  ],
 };
-
-const DEFAULT_MOCK_MODE = CONFIG.API_BASE_URL.includes("example.com");
 
 async function apiFetch(path, options = {}) {
   const url = `${CONFIG.API_BASE_URL}${path}`;
   const headers = {
-    ...(CONFIG.API_TOKEN ? { Authorization: `Bearer ${CONFIG.API_TOKEN}` } : {}),
     ...(options.body ? { "Content-Type": "application/json" } : {}),
     ...options.headers,
   };
-  const res = await fetch(url, { ...options, headers });
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`API ${res.status}: ${text || res.statusText}`);
+  
+  try {
+    const res = await fetch(url, { ...options, headers });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`API ${res.status}: ${text || res.statusText}`);
+    }
+    return res.json();
+  } catch (err) {
+    console.error("API error:", err);
+    throw new Error("Failed to fetch data. Please try again.");
   }
-  const ct = res.headers.get("content-type") || "";
-  if (ct.includes("application/json")) return res.json();
-  return res.text();
 }
 
 function parseOrderNumberFromScan(payload) {
@@ -47,4 +42,4 @@ function parseOrderNumberFromScan(payload) {
   return tokens[0] || "";
 }
 
-export { CONFIG, DEFAULT_MOCK_MODE, apiFetch, parseOrderNumberFromScan };
+export { CONFIG, apiFetch, parseOrderNumberFromScan };

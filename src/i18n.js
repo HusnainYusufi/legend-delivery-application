@@ -1,4 +1,3 @@
-// i18n.js
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 
@@ -10,20 +9,17 @@ const resources = {
       scan_or_enter: "Scan QR or enter order number",
       placeholder_order: "e.g. ORD-12345",
       scan: "Scan",
-      stop: "Stop",
-      reset: "Reset",
       load_status: "Load Status",
       order: "Order",
-      customer: "Customer",
+      tracking_number: "Tracking Number",
       last_updated: "Last updated",
-      new_status: "New status",
-      apply_status: "Apply Status",
-      mock_api: "Mock API",
-      live_api: "Live API",
+      order_steps: "Status Steps",
+      special_statuses: "Special Statuses",
+      next_suggested: "Next Suggested",
+      current: "Current",
+      occurred: "Occurred",
       tip_camera: "Tip: On device, camera scanning needs HTTPS + permission.",
       toast_need_order: "Enter or scan an order number.",
-      toast_set_status: "Status set to \"{{status}}\"",
-      error_apply_status: "Failed to apply status",
       error_fetch_status: "Failed to fetch status",
       scanned_payload: "Scanned payload",
       language: "Language",
@@ -32,17 +28,19 @@ const resources = {
       error_scan_image: "Could not read QR from image",
       open_settings: "Open Settings",
       order_details: "Order Details",
-      update_status: "Update Status",
       track_order: "Track Order",
       statuses: {
-        pending: "Pending",
-        processing: "Processing",
-        packed: "Packed",
-        shipped: "Shipped",
-        out_for_delivery: "Out for delivery",
-        delivered: "Delivered",
-        cancelled: "Cancelled",
-        returned: "Returned"
+        PENDING: "Pending",
+        PREPARING: "Preparing",
+        PREPARED: "Prepared",
+        AWAITING_PICKUP: "Awaiting Pickup",
+        IN_TRANSIT: "In Transit",
+        OUT_FOR_DELIVERY: "Out for Delivery",
+        DELIVERED: "Delivered",
+        DELIVERY_FAILED: "Delivery Failed",
+        ON_HOLD: "On Hold",
+        RETURNED: "Returned",
+        CANCELLED: "Cancelled"
       }
     }
   },
@@ -53,20 +51,17 @@ const resources = {
       scan_or_enter: "امسح رمز QR أو أدخل رقم الطلب",
       placeholder_order: "مثال: ORD-12345",
       scan: "مسح",
-      stop: "إيقاف",
-      reset: "إعادة تعيين",
       load_status: "عرض الحالة",
       order: "الطلب",
-      customer: "العميل",
+      tracking_number: "رقم التتبع",
       last_updated: "آخر تحديث",
-      new_status: "حالة جديدة",
-      apply_status: "تطبيق الحالة",
-      mock_api: "واجهة تجريبية",
-      live_api: "واجهة حية",
+      order_steps: "خطوات الحالة",
+      special_statuses: "حالات خاصة",
+      next_suggested: "مقترح التالي",
+      current: "حالي",
+      occurred: "حدث",
       tip_camera: "ملاحظة: على الجهاز، المسح يحتاج HTTPS + إذن.",
       toast_need_order: "أدخل أو امسح رقم الطلب.",
-      toast_set_status: "تم ضبط الحالة إلى \"{{status}}\"",
-      error_apply_status: "تعذر تطبيق الحالة",
       error_fetch_status: "تعذر جلب الحالة",
       scanned_payload: "البيانات الممسوحة",
       language: "اللغة",
@@ -75,17 +70,19 @@ const resources = {
       error_scan_image: "تعذر قراءة رمز الاستجابة السريعة من الصورة",
       open_settings: "فتح الإعدادات",
       order_details: "تفاصيل الطلب",
-      update_status: "تحديث الحالة",
       track_order: "تتبع الطلب",
       statuses: {
-        pending: "قيد الانتظار",
-        processing: "قيد المعالجة",
-        packed: "مُغلف",
-        shipped: "تم الشحن",
-        out_for_delivery: "خارج للتسليم",
-        delivered: "تم التسليم",
-        cancelled: "أُلغي",
-        returned: "مُرتجع"
+        PENDING: "قيد الانتظار",
+        PREPARING: "قيد التحضير",
+        PREPARED: "تم التحضير",
+        AWAITING_PICKUP: "بانتظار الاستلام",
+        IN_TRANSIT: "قيد النقل",
+        OUT_FOR_DELIVERY: "خارج للتسليم",
+        DELIVERED: "تم التسليم",
+        DELIVERY_FAILED: "فشل التسليم",
+        ON_HOLD: "معلق",
+        RETURNED: "مرتجع",
+        CANCELLED: "ملغى"
       }
     }
   }
@@ -93,7 +90,7 @@ const resources = {
 
 i18n.use(initReactI18next).init({
   resources, 
-  lng: "ar", // Default to Arabic
+  lng: "ar",
   fallbackLng: "ar",
   interpolation: { escapeValue: false },
 });

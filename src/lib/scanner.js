@@ -1,4 +1,3 @@
-// scanner.js
 import { Camera } from "@capacitor/camera";
 import { App } from "@capacitor/app";
 
