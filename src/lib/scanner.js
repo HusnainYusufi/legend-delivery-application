@@ -25,6 +25,11 @@ export async function openAppSettings() {
 
 export async function startWebQrScanner(mountDivId, onDecoded, onError) {
   try {
+    // Check if we're on HTTPS
+    if (window.location.protocol !== "https:" && !window.location.hostname.includes("localhost")) {
+      throw new Error("Camera requires HTTPS connection");
+    }
+    
     const { Html5Qrcode } = await import("html5-qrcode");
     const html5Qr = new Html5Qrcode(mountDivId, { verbose: false });
     
@@ -36,7 +41,13 @@ export async function startWebQrScanner(mountDivId, onDecoded, onError) {
     
     await html5Qr.start(
       { facingMode: "environment" },
-      { fps: 10, qrbox: { width: 250, height: 250 } },
+      { 
+        fps: 10, 
+        qrbox: { 
+          width: Math.min(250, scannerElement.clientWidth - 40), 
+          height: Math.min(250, scannerElement.clientHeight - 40) 
+        } 
+      },
       (decoded) => onDecoded?.(decoded),
       () => {}
     );

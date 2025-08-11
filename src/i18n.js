@@ -1,3 +1,4 @@
+// i18n.js
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 
@@ -26,6 +27,13 @@ const resources = {
       error_fetch_status: "Failed to fetch status",
       scanned_payload: "Scanned payload",
       language: "Language",
+      camera_permission_denied: "Camera permission denied. Please allow camera access in settings.",
+      camera_init_failed: "Failed to start camera. Ensure you're on HTTPS and have camera permission.",
+      error_scan_image: "Could not read QR from image",
+      open_settings: "Open Settings",
+      order_details: "Order Details",
+      update_status: "Update Status",
+      track_order: "Track Order",
       statuses: {
         pending: "Pending",
         processing: "Processing",
@@ -62,6 +70,13 @@ const resources = {
       error_fetch_status: "تعذر جلب الحالة",
       scanned_payload: "البيانات الممسوحة",
       language: "اللغة",
+      camera_permission_denied: "تم رفض إذن الكاميرا. يرجى السماح بالوصول إلى الكاميرا في الإعدادات.",
+      camera_init_failed: "فشل بدء الكاميرا. تأكد من أنك على HTTPS ولديك إذن الكاميرا.",
+      error_scan_image: "تعذر قراءة رمز الاستجابة السريعة من الصورة",
+      open_settings: "فتح الإعدادات",
+      order_details: "تفاصيل الطلب",
+      update_status: "تحديث الحالة",
+      track_order: "تتبع الطلب",
       statuses: {
         pending: "قيد الانتظار",
         processing: "قيد المعالجة",
@@ -77,7 +92,9 @@ const resources = {
 };
 
 i18n.use(initReactI18next).init({
-  resources, lng: "en", fallbackLng: "en",
+  resources, 
+  lng: "ar", // Default to Arabic
+  fallbackLng: "ar",
   interpolation: { escapeValue: false },
 });
 

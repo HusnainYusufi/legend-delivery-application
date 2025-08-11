@@ -11,7 +11,7 @@ import { ensureCameraPermission, startWebQrScanner, openAppSettings, scanImageFi
 
 export default function App() {
   const { t, i18n } = useTranslation();
-  const [language, setLanguage] = useState(i18n.language);
+  const [language, setLanguage] = useState("ar"); // Default to Arabic
   const [darkMode, setDarkMode] = useState(false);
 
   useEffect(() => {
@@ -59,35 +59,43 @@ export default function App() {
       const perm = await ensureCameraPermission();
       if (!perm.granted) {
         setPermDenied(true);
-        setScanError("Camera permission denied. Please allow camera access in settings.");
+        setScanError(t("camera_permission_denied"));
         return;
       }
       
       setIsScanning(true);
       
-      // Initialize scanner
-      const scanner = await startWebQrScanner(
-        scannerDivId,
-        (decoded) => {
-          const ord = parseOrderNumberFromScan(decoded);
-          if (ord) setOrderNumber(ord);
-          setRawScan(decoded);
+      // Small delay to ensure scanner element is rendered
+      setTimeout(async () => {
+        try {
+          const scanner = await startWebQrScanner(
+            scannerDivId,
+            (decoded) => {
+              const ord = parseOrderNumberFromScan(decoded);
+              if (ord) setOrderNumber(ord);
+              setRawScan(decoded);
+              setIsScanning(false);
+            },
+            (err) => { 
+              console.error("Scanner error:", err);
+              setScanError(err || t("camera_init_failed")); 
+              setIsScanning(false); 
+            }
+          );
+          
+          scannerRef.current = scanner;
+        } catch (err) {
+          console.error("Scanning failed:", err);
+          setScanError(t("camera_init_failed"));
           setIsScanning(false);
-        },
-        (err) => { 
-          console.error("Scanner error:", err);
-          setScanError(err || "Failed to start camera. Try again later."); 
-          setIsScanning(false); 
         }
-      );
-      
-      scannerRef.current = scanner;
+      }, 100);
     } catch (err) {
       console.error("Scanning failed:", err);
-      setScanError("Failed to start scanner. Please try again.");
+      setScanError(t("camera_init_failed"));
       setIsScanning(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     return () => { 
@@ -137,8 +145,8 @@ export default function App() {
         ? await mockApplyStatus(orderNumber, newStatus)
         : await apiFetch(
             CONFIG.paths.applyStatus(orderNumber), 
-            { method: "POST", body: JSON.stringify({ status: newStatus }) }
-          );
+            { method: "POST", body: JSON.stringify({ status: newStatus }) 
+    });
       
       setToast({ 
         type: "success", 
@@ -204,9 +212,9 @@ export default function App() {
         toggleDarkMode={() => setDarkMode(!darkMode)}
       />
 
-      <main className="content safe-b max-w-3xl mx-auto px-4 pt-16">
-        {/* Primary task card - Centered content */}
-        <section className="card bg-white dark:bg-slate-800 rounded-xl shadow-lg p-5 mb-6 border border-slate-200 dark:border-slate-700">
+      <main className="content safe-b max-w-3xl mx-auto px-4 pt-20 pb-6">
+        {/* Centered card */}
+        <section className="card bg-white dark:bg-slate-800 rounded-xl shadow-lg p-5 mb-6 border border-slate-200 dark:border-slate-700 mx-auto">
           <div className="flex items-center gap-3 mb-4">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
               <QrCode className="h-5 w-5" />
@@ -268,7 +276,7 @@ export default function App() {
                     onClick={openAppSettings} 
                     className="ml-2 underline font-medium"
                   >
-                    Open Settings
+                    {t("open_settings")}
                   </button>
                 )}
               </div>
@@ -285,7 +293,7 @@ export default function App() {
 
         {/* Details card */}
         {current && (
-          <section className="card bg-white dark:bg-slate-800 rounded-xl shadow-lg p-5 mb-6 border border-slate-200 dark:border-slate-700">
+          <section className="card bg-white dark:bg-slate-800 rounded-xl shadow-lg p-5 mb-6 border border-slate-200 dark:border-slate-700 mx-auto">
             <div className="flex flex-wrap items-center justify-between gap-4 mb-4 pb-4 border-b border-slate-200 dark:border-slate-700">
               <div>
                 <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">{t("order_details")}</h2>

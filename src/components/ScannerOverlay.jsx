@@ -1,11 +1,30 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { X } from "lucide-react";
 
 export default function ScannerOverlay({ visible, onClose, scannerDivId, title }) {
+  const overlayRef = useRef(null);
+  
+  // Prevent body scroll when scanner is open
+  useEffect(() => {
+    if (visible) {
+      document.body.classList.add('scanner-open');
+    } else {
+      document.body.classList.remove('scanner-open');
+    }
+    
+    return () => {
+      document.body.classList.remove('scanner-open');
+    };
+  }, [visible]);
+
   if (!visible) return null;
+  
   return (
-    <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex flex-col">
-      <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
+    <div 
+      ref={overlayRef}
+      className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex flex-col"
+    >
+      <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-10">
         <span className="font-semibold text-white text-base">{title}</span>
         <button 
           onClick={onClose} 
@@ -15,8 +34,18 @@ export default function ScannerOverlay({ visible, onClose, scannerDivId, title }
         </button>
       </div>
       
-      <div className="flex-1 flex items-center justify-center p-4">
-        <div id={scannerDivId} className="w-full max-w-md h-80 rounded-xl overflow-hidden" />
+      <div className="flex-1 flex flex-col items-center justify-center p-4 relative">
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="border-2 border-white border-dashed rounded-xl w-64 h-64" />
+        </div>
+        <div 
+          id={scannerDivId} 
+          className="w-full max-w-xs h-64 rounded-xl overflow-hidden z-0"
+        />
+      </div>
+      
+      <div className="text-center text-white text-sm pb-6">
+        Point camera at QR code to scan
       </div>
     </div>
   );

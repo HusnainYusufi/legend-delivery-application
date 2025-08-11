@@ -16,7 +16,7 @@ export default function Navbar({
   return (
     <nav className="navbar fixed top-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 shadow-md px-4">
       <div className="navbar-inner max-w-3xl mx-auto py-2 flex items-center justify-between">
-        {/* Brand - Reduced size */}
+        {/* Compact brand */}
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
             <QrCode className="h-4 w-4" />
@@ -27,7 +27,7 @@ export default function Navbar({
           </div>
         </div>
 
-        {/* Actions - Better spacing */}
+        {/* Compact actions */}
         <div className="flex items-center gap-1">
           <button 
             onClick={toggleDarkMode}
@@ -47,7 +47,6 @@ export default function Navbar({
             <option value="ar">AR</option>
           </select>
 
-          {/* Mock toggle - Smaller */}
           {onToggleMock && (
             <button
               type="button"
@@ -64,7 +63,6 @@ export default function Navbar({
             </button>
           )}
 
-          {/* Scan buttons - Better alignment */}
           <button 
             type="button" 
             onClick={onScan} 
