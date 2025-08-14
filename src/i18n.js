@@ -55,6 +55,7 @@ const resources = {
       login_error: "Invalid email or password. Please try again.",
       forgot_password: "Forgot your password?",
       reset_here: "Reset here",
+      menu: "Menu"
     }
   },
   ar: {
@@ -110,6 +111,7 @@ const resources = {
       login_error: "بريد إلكتروني أو كلمة مرور غير صحيحة. حاول مرة أخرى.",
       forgot_password: "نسيت كلمة المرور؟",
       reset_here: "إعادة تعيين هنا",
+      menu: "القائمة"
     }
   }
 };

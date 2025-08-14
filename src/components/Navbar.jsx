@@ -1,5 +1,5 @@
 import React from "react";
-import { QrCode, Camera, Image, Moon, Sun } from "lucide-react";
+import { QrCode, Camera, Image, Moon, Sun, Menu } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 export default function Navbar({
@@ -9,24 +9,32 @@ export default function Navbar({
   onPickImage,
   darkMode,
   toggleDarkMode,
-  isAuthenticated
+  isAuthenticated,
+  onMenuClick
 }) {
   const { t } = useTranslation();
   return (
     <nav className="navbar fixed top-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 shadow-md px-4">
       <div className="navbar-inner max-w-3xl mx-auto py-2 flex items-center justify-between">
-        {/* Compact brand */}
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
-            <QrCode className="h-4 w-4" />
-          </div>
-          <div className="leading-tight">
-            <div className="text-sm font-bold tracking-tight text-slate-800 dark:text-white">LEGEND DELIVERY</div>
-            <div className="text-[10px] text-slate-500 dark:text-slate-400">QR Status</div>
+          <button 
+            onClick={onMenuClick}
+            className="icon-btn bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 p-1.5"
+            aria-label={t("menu")}
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+              <QrCode className="h-4 w-4" />
+            </div>
+            <div className="leading-tight">
+              <div className="text-sm font-bold tracking-tight text-slate-800 dark:text-white">LEGEND DELIVERY</div>
+              <div className="text-[10px] text-slate-500 dark:text-slate-400">QR Status</div>
+            </div>
           </div>
         </div>
 
-        {/* Compact actions */}
         <div className="flex items-center gap-1">
           {isAuthenticated && (
             <div className="h-2 w-2 rounded-full bg-green-500 mr-1" title="Authenticated"></div>

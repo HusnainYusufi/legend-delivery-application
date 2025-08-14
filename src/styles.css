@@ -19,7 +19,7 @@ body {
   transition: background-color 0.3s ease;
 }
 
-body.scanner-open {
+body.scanner-open, body.overflow-hidden {
   overflow: hidden;
 }
 
@@ -95,15 +95,19 @@ body.scanner-open {
   .card {
     @apply p-4;
   }
-  
-  /* Adjust sidebar width on mobile */
-  .content {
-    margin-left: 4rem;
-  }
 }
 
 /* Added spinner animation */
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+/* Drawer animation */
+.drawer-content {
+  transition: transform 0.3s ease-out;
+  transform: translateX(100%);
+}
+.drawer-content.open {
+  transform: translateX(0);
 }

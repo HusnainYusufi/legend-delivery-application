@@ -6,7 +6,7 @@ import Navbar from "./components/Navbar.jsx";
 import Splash from "./components/Splash.jsx";
 import ScannerOverlay from "./components/ScannerOverlay.jsx";
 import StatusBadge from "./components/StatusBadge.jsx";
-import Sidebar from "./components/Sidebar";
+import Drawer from "./components/Drawer";
 import LoginModal from "./components/LoginModal";
 
 import { CONFIG, apiFetch, parseOrderNumberFromScan } from "./lib/api.js";
@@ -53,13 +53,16 @@ export default function App() {
   // Authentication state
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const handleLogin = () => {
     setIsAuthenticated(true);
+    setIsDrawerOpen(false);
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
+    setIsDrawerOpen(false);
   };
 
   // Stop any active scanner instance
@@ -174,16 +177,9 @@ export default function App() {
   };
 
   return (
-    <div className="app-shell min-h-screen bg-gradient-to-br from-sky-50 to-sky-100 dark:from-slate-900 dark:to-slate-800">
+    <div className="app-shell min-h-screen bg-gradient-to-br from-sky-50 to-sky-100 dark:from-slate-900 dark:to-slate-800 relative">
       {showSplash && <Splash />}
       
-      {/* Added Sidebar */}
-      <Sidebar 
-        isAuthenticated={isAuthenticated}
-        onLoginClick={() => setIsLoginModalOpen(true)}
-        onLogout={handleLogout}
-      />
-
       <Navbar
         language={language}
         onChangeLanguage={setLanguage}
@@ -192,9 +188,20 @@ export default function App() {
         darkMode={darkMode}
         toggleDarkMode={() => setDarkMode(!darkMode)}
         isAuthenticated={isAuthenticated}
+        onMenuClick={() => setIsDrawerOpen(true)}
       />
 
-      {/* Added login modal */}
+      <Drawer 
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        isAuthenticated={isAuthenticated}
+        onLoginClick={() => {
+          setIsDrawerOpen(false);
+          setIsLoginModalOpen(true);
+        }}
+        onLogout={handleLogout}
+      />
+
       {isLoginModalOpen && (
         <LoginModal 
           onClose={() => setIsLoginModalOpen(false)} 
@@ -202,8 +209,7 @@ export default function App() {
         />
       )}
 
-      {/* Updated main content with left margin */}
-      <main className="content safe-b max-w-3xl mx-auto px-4 pt-20 pb-6 ml-16 md:ml-20">
+      <main className="content safe-b max-w-3xl mx-auto px-4 pt-20 pb-6">
         {/* Scanner + input card */}
         <section className="card bg-white dark:bg-slate-800 rounded-xl shadow-lg p-5 mb-6 border border-slate-200 dark:border-slate-700 mx-auto">
           <div className="flex items-center gap-3 mb-4">
