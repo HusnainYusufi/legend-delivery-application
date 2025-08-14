@@ -7,9 +7,11 @@ export default function Drawer({
   onClose, 
   isAuthenticated, 
   onLoginClick, 
-  onLogout 
+  onLogout,
+  language
 }) {
   const { t } = useTranslation();
+  const isRTL = language === 'ar';
   
   // Close drawer when clicking outside
   useEffect(() => {
@@ -33,12 +35,12 @@ export default function Drawer({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-40">
+    <div className="fixed inset-0 z-50">
       {/* Overlay */}
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm"></div>
+      <div className={`fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0'}`}></div>
       
       {/* Drawer */}
-      <div className="fixed top-0 right-0 h-full w-64 md:w-72 bg-white dark:bg-slate-800 shadow-xl z-50 drawer-content transform transition-transform translate-x-0">
+      <div className={`fixed top-0 ${isRTL ? 'left-0' : 'right-0'} h-full w-64 md:w-72 bg-white dark:bg-slate-800 shadow-xl z-50 drawer-content transform transition-transform duration-300 ${isOpen ? 'translate-x-0' : (isRTL ? '-translate-x-full' : 'translate-x-full')}`}>
         <div className="p-4 flex justify-between items-center border-b border-slate-200 dark:border-slate-700">
           <h2 className="text-xl font-bold text-slate-800 dark:text-white">{t('menu')}</h2>
           <button 

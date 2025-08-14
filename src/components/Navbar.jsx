@@ -19,7 +19,7 @@ export default function Navbar({
         <div className="flex items-center gap-2">
           <button 
             onClick={onMenuClick}
-            className="icon-btn bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 p-1.5"
+            className="icon-btn bg-gradient-to-r from-blue-500 to-indigo-500 text-white p-2.5 rounded-lg"
             aria-label={t("menu")}
           >
             <Menu className="h-5 w-5" />

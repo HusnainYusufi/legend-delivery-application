@@ -200,6 +200,7 @@ export default function App() {
           setIsLoginModalOpen(true);
         }}
         onLogout={handleLogout}
+        language={language}
       />
 
       {isLoginModalOpen && (

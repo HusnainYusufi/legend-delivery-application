@@ -98,16 +98,28 @@ body.scanner-open, body.overflow-hidden {
 }
 
 /* Added spinner animation */
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
+/* ... existing styles ... */
 
 /* Drawer animation */
 .drawer-content {
   transition: transform 0.3s ease-out;
-  transform: translateX(100%);
 }
-.drawer-content.open {
-  transform: translateX(0);
+
+/* Fixed z-index issue */
+.navbar {
+  z-index: 60;
+}
+
+.drawer-content {
+  z-index: 70;
+}
+
+/* Fixed body overflow */
+body.overflow-hidden {
+  overflow: hidden;
+}
+
+/* Drawer overlay fade animation */
+.bg-black\/50 {
+  transition: opacity 0.3s ease;
 }
