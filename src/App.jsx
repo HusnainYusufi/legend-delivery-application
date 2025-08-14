@@ -183,10 +183,7 @@ export default function App() {
       <Navbar
         language={language}
         onChangeLanguage={setLanguage}
-        onScan={beginScan}
-        onPickImage={onPickImage}
         darkMode={darkMode}
-        toggleDarkMode={() => setDarkMode(!darkMode)}
         isAuthenticated={isAuthenticated}
         onMenuClick={() => setIsDrawerOpen(true)}
       />
@@ -226,7 +223,7 @@ export default function App() {
           <div className="grid grid-cols-1 gap-3">
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                {t("order_number")}
+                {t("order")}
               </label>
               <input
                 className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white px-4 py-3 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900"
@@ -258,7 +255,7 @@ export default function App() {
               onClick={getStatus}
               disabled={isLoading}
               className="btn bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white flex items-center justify-center gap-2"
-            >
+              >
               {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <QrCode className="h-5 w-5" />}
               {t("load_status")}
             </button>

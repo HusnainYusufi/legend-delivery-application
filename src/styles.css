@@ -97,21 +97,9 @@ body.scanner-open, body.overflow-hidden {
   }
 }
 
-/* Added spinner animation */
-/* ... existing styles ... */
-
-/* Drawer animation */
+/* Drawer animations */
 .drawer-content {
   transition: transform 0.3s ease-out;
-}
-
-/* Fixed z-index issue */
-.navbar {
-  z-index: 60;
-}
-
-.drawer-content {
-  z-index: 70;
 }
 
 /* Fixed body overflow */

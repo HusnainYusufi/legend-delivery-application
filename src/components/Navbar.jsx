@@ -1,14 +1,10 @@
 import React from "react";
-import { QrCode, Camera, Image, Moon, Sun, Menu } from "lucide-react";
+import { QrCode, Menu } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 export default function Navbar({
   language,
   onChangeLanguage,
-  onScan,
-  onPickImage,
-  darkMode,
-  toggleDarkMode,
   isAuthenticated,
   onMenuClick
 }) {
@@ -35,18 +31,10 @@ export default function Navbar({
           </div>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center">
           {isAuthenticated && (
-            <div className="h-2 w-2 rounded-full bg-green-500 mr-1" title="Authenticated"></div>
+            <div className="h-2 w-2 rounded-full bg-green-500 mr-2" title="Authenticated"></div>
           )}
-          
-          <button 
-            onClick={toggleDarkMode}
-            className="icon-btn bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 p-1.5"
-            aria-label={darkMode ? "Light mode" : "Dark mode"}
-          >
-            {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </button>
           
           <select
             aria-label={t("language")}
@@ -57,22 +45,6 @@ export default function Navbar({
             <option value="en">EN</option>
             <option value="ar">AR</option>
           </select>
-
-          <button 
-            type="button" 
-            onClick={onScan} 
-            className="icon-btn bg-gradient-to-r from-blue-500 to-indigo-500 text-white p-1.5"
-            aria-label={t("scan")}
-          >
-            <Camera className="h-4 w-4" />
-          </button>
-          <label 
-            className="icon-btn bg-gradient-to-r from-slate-600 to-slate-700 text-white p-1.5 cursor-pointer" 
-            aria-label="Scan Photo"
-          >
-            <input type="file" accept="image/*" className="hidden" onChange={onPickImage} />
-            <Image className="h-4 w-4" />
-          </label>
         </div>
       </div>
     </nav>
