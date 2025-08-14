@@ -13,29 +13,50 @@ export default function Drawer({
   const { t } = useTranslation();
   const isRTL = language === 'ar';
   const drawerRef = useRef(null);
+  const overlayRef = useRef(null);
   
-  // Close drawer when clicking outside
+  // Handle both mobile and desktop interactions
   useEffect(() => {
     if (!isOpen) return;
-    
-    const handleClickOutside = (e) => {
-      if (drawerRef.current && !drawerRef.current.contains(e.target)) {
+
+    const handleOutsideClick = (e) => {
+      // Check if click is outside drawer but on overlay
+      if (overlayRef.current && overlayRef.current.contains(e.target)) {
         onClose();
       }
     };
-    
+
     const handleEscape = (e) => {
       if (e.key === 'Escape') onClose();
     };
-    
-    document.addEventListener('click', handleClickOutside);
+
+    // Use both mouse and touch events for maximum compatibility
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('touchstart', handleOutsideClick);
     document.addEventListener('keydown', handleEscape);
     document.body.classList.add('overflow-hidden');
-    
+
     return () => {
-      document.removeEventListener('click', handleClickOutside);
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('touchstart', handleOutsideClick);
       document.removeEventListener('keydown', handleEscape);
       document.body.classList.remove('overflow-hidden');
+    };
+  }, [isOpen, onClose]);
+
+  // Add Capacitor-specific touch handling
+  useEffect(() => {
+    if (!window.Capacitor || !isOpen) return;
+
+    const handleBackButton = () => {
+      onClose();
+      return true; // Prevent default back behavior
+    };
+
+    window.Capacitor.Plugins.App.addListener('backButton', handleBackButton);
+
+    return () => {
+      window.Capacitor.Plugins.App.removeListener('backButton', handleBackButton);
     };
   }, [isOpen, onClose]);
 
@@ -43,17 +64,19 @@ export default function Drawer({
 
   return (
     <div className="fixed inset-0 z-[100]">
-      {/* Overlay */}
+      {/* Overlay with separate ref */}
       <div 
+        ref={overlayRef}
         className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300"
         onClick={onClose}
+        role="presentation"
       />
       
-      {/* Drawer */}
+      {/* Drawer with platform-agnostic styling */}
       <div 
         ref={drawerRef}
-        className={`fixed top-0 ${isRTL ? 'left-0' : 'right-0'} h-full w-64 bg-white dark:bg-slate-800 shadow-xl transform transition-transform duration-300 z-[101] ${
-          isOpen ? 'translate-x-0' : (isRTL ? '-translate-x-full' : 'translate-x-full')
+        className={`fixed top-0 ${isRTL ? 'left-0' : 'right-0'} h-full w-64 bg-white dark:bg-slate-800 shadow-xl z-[101] ${
+          isOpen ? 'animate-slide-in' : (isRTL ? 'animate-slide-out-left' : 'animate-slide-out-right')
         }`}
       >
         <div className="p-4 flex justify-between items-center border-b border-slate-200 dark:border-slate-700">
@@ -61,6 +84,7 @@ export default function Drawer({
           <button 
             onClick={onClose}
             className="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
+            aria-label={t('close')}
           >
             <X className="h-6 w-6" />
           </button>
