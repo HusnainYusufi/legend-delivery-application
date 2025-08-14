@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { X, User, Lock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -12,14 +12,14 @@ export default function Drawer({
 }) {
   const { t } = useTranslation();
   const isRTL = language === 'ar';
+  const drawerRef = useRef(null);
   
   // Close drawer when clicking outside
   useEffect(() => {
     if (!isOpen) return;
     
     const handleClickOutside = (e) => {
-      const drawer = document.querySelector('.drawer-content');
-      if (drawer && !drawer.contains(e.target)) {
+      if (drawerRef.current && !drawerRef.current.contains(e.target)) {
         onClose();
       }
     };
@@ -51,7 +51,8 @@ export default function Drawer({
       
       {/* Drawer */}
       <div 
-        className={`fixed top-0 ${isRTL ? 'left-0' : 'right-0'} h-full w-64 bg-white dark:bg-slate-800 shadow-xl drawer-content transform transition-transform duration-300 z-[101] ${
+        ref={drawerRef}
+        className={`fixed top-0 ${isRTL ? 'left-0' : 'right-0'} h-full w-64 bg-white dark:bg-slate-800 shadow-xl transform transition-transform duration-300 z-[101] ${
           isOpen ? 'translate-x-0' : (isRTL ? '-translate-x-full' : 'translate-x-full')
         }`}
       >
