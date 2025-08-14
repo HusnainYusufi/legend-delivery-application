@@ -41,7 +41,20 @@ const resources = {
         ON_HOLD: "On Hold",
         RETURNED: "Returned",
         CANCELLED: "Cancelled"
-      }
+      },
+      // New translations
+      login: "Login",
+      logout: "Logout",
+      login_title: "Welcome Back",
+      login_subtitle: "Sign in to your account",
+      email: "Email",
+      password: "Password",
+      email_placeholder: "your.email@example.com",
+      password_placeholder: "••••••••",
+      login_button: "Sign In",
+      login_error: "Invalid email or password. Please try again.",
+      forgot_password: "Forgot your password?",
+      reset_here: "Reset here",
     }
   },
   ar: {
@@ -83,7 +96,20 @@ const resources = {
         ON_HOLD: "معلق",
         RETURNED: "مرتجع",
         CANCELLED: "ملغى"
-      }
+      },
+      // New translations
+      login: "تسجيل الدخول",
+      logout: "تسجيل الخروج",
+      login_title: "مرحبًا بعودتك",
+      login_subtitle: "سجل الدخول إلى حسابك",
+      email: "البريد الإلكتروني",
+      password: "كلمة المرور",
+      email_placeholder: "بريدك@example.com",
+      password_placeholder: "••••••••",
+      login_button: "تسجيل الدخول",
+      login_error: "بريد إلكتروني أو كلمة مرور غير صحيحة. حاول مرة أخرى.",
+      forgot_password: "نسيت كلمة المرور؟",
+      reset_here: "إعادة تعيين هنا",
     }
   }
 };

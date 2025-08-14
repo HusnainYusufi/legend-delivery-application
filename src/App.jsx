@@ -6,6 +6,8 @@ import Navbar from "./components/Navbar.jsx";
 import Splash from "./components/Splash.jsx";
 import ScannerOverlay from "./components/ScannerOverlay.jsx";
 import StatusBadge from "./components/StatusBadge.jsx";
+import Sidebar from "./components/Sidebar";
+import LoginModal from "./components/LoginModal";
 
 import { CONFIG, apiFetch, parseOrderNumberFromScan } from "./lib/api.js";
 import {
@@ -47,6 +49,18 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [current, setCurrent] = useState(null);
   const [toast, setToast] = useState(null);
+
+  // Authentication state
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+
+  const handleLogin = () => {
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+  };
 
   // Stop any active scanner instance
   const stopScanner = useCallback(async () => {
@@ -162,6 +176,13 @@ export default function App() {
   return (
     <div className="app-shell min-h-screen bg-gradient-to-br from-sky-50 to-sky-100 dark:from-slate-900 dark:to-slate-800">
       {showSplash && <Splash />}
+      
+      {/* Added Sidebar */}
+      <Sidebar 
+        isAuthenticated={isAuthenticated}
+        onLoginClick={() => setIsLoginModalOpen(true)}
+        onLogout={handleLogout}
+      />
 
       <Navbar
         language={language}
@@ -170,9 +191,19 @@ export default function App() {
         onPickImage={onPickImage}
         darkMode={darkMode}
         toggleDarkMode={() => setDarkMode(!darkMode)}
+        isAuthenticated={isAuthenticated}
       />
 
-      <main className="content safe-b max-w-3xl mx-auto px-4 pt-20 pb-6">
+      {/* Added login modal */}
+      {isLoginModalOpen && (
+        <LoginModal 
+          onClose={() => setIsLoginModalOpen(false)} 
+          onLogin={handleLogin}
+        />
+      )}
+
+      {/* Updated main content with left margin */}
+      <main className="content safe-b max-w-3xl mx-auto px-4 pt-20 pb-6 ml-16 md:ml-20">
         {/* Scanner + input card */}
         <section className="card bg-white dark:bg-slate-800 rounded-xl shadow-lg p-5 mb-6 border border-slate-200 dark:border-slate-700 mx-auto">
           <div className="flex items-center gap-3 mb-4">

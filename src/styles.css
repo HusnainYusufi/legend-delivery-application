@@ -1,4 +1,3 @@
-/* styles.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -96,4 +95,15 @@ body.scanner-open {
   .card {
     @apply p-4;
   }
+  
+  /* Adjust sidebar width on mobile */
+  .content {
+    margin-left: 4rem;
+  }
+}
+
+/* Added spinner animation */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }

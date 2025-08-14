@@ -8,7 +8,8 @@ export default function Navbar({
   onScan,
   onPickImage,
   darkMode,
-  toggleDarkMode
+  toggleDarkMode,
+  isAuthenticated
 }) {
   const { t } = useTranslation();
   return (
@@ -27,6 +28,10 @@ export default function Navbar({
 
         {/* Compact actions */}
         <div className="flex items-center gap-1">
+          {isAuthenticated && (
+            <div className="h-2 w-2 rounded-full bg-green-500 mr-1" title="Authenticated"></div>
+          )}
+          
           <button 
             onClick={toggleDarkMode}
             className="icon-btn bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 p-1.5"
