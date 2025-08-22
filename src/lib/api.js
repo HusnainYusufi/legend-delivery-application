@@ -10,7 +10,7 @@ const CONFIG = {
 };
 
 // ----- NEW: auth base + login request -----
-const AUTH_BASE_URL = "http://localhost:3265";
+const AUTH_BASE_URL = "https://apidelivery.devmedialm.com";
 
 /**
  * POST /auth/login
