@@ -38,7 +38,7 @@ export default function App() {
     return () => clearTimeout(tm);
   }, []);
 
-  // Navigation (simple view switch)
+  // Navigation
   const [view, setView] = useState("home"); // "home" | "orders"
 
   // Scanner state
@@ -51,7 +51,7 @@ export default function App() {
   const scannerDivId = "qr-scanner-region";
   const [scannerKey, setScannerKey] = useState(0);
 
-  // Order/status state (home screen)
+  // Order/status state (home)
   const [orderNumber, setOrderNumber] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [current, setCurrent] = useState(null);
@@ -219,6 +219,10 @@ export default function App() {
           setIsLoginModalOpen(true);
         }}
         onLogout={handleLogout}
+        onOrdersClick={() => {
+          setView("orders");
+          setIsDrawerOpen(false);
+        }}
         language={language}
       />
 
