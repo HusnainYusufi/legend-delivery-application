@@ -2,8 +2,22 @@
 import React, { useEffect, useState } from "react";
 import { RefreshCcw, Loader2, PackageOpen, ChevronDown } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { fetchAssignedOrders } from "../lib/api.js";
+import { fetchAssignedOrders, AUTH_BASE_URL } from "../lib/api.js";
 import StatusBadge from "./StatusBadge.jsx";
+
+// Safe text renderer to avoid [object Object]
+const safeText = (v, { fallback = "-" } = {}) => {
+  if (v == null) return fallback;
+  if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") {
+    return String(v);
+  }
+  try {
+    const json = JSON.stringify(v);
+    return json.length > 120 ? json.slice(0, 117) + "…" : json;
+  } catch {
+    return fallback;
+  }
+};
 
 export default function OrdersList() {
   const { t } = useTranslation();
@@ -20,27 +34,29 @@ export default function OrdersList() {
   const load = async ({ reset = false } = {}) => {
     try {
       setError("");
-      if (reset) {
-        setLoading(true);
-      } else {
-        setLoadingMore(true);
-      }
+      if (reset) setLoading(true);
+      else setLoadingMore(true);
+
       const res = await fetchAssignedOrders({
         page: reset ? 1 : page,
         limit,
         sortBy: "orderDate",
         sortDir: "desc",
       });
+
       setCount(res.count || 0);
+      const next = Array.isArray(res.orders) ? res.orders : [];
+
       if (reset) {
-        setOrders(res.orders || []);
+        setOrders(next);
         setPage(2);
       } else {
-        setOrders((prev) => [...prev, ...(res.orders || [])]);
+        setOrders((prev) => [...prev, ...next]);
         setPage((p) => p + 1);
       }
     } catch (e) {
-      setError(e?.message || "Failed to load orders");
+      console.error("Orders load error:", e);
+      setError(`${e?.message || "Failed to load orders"} [AUTH_BASE=${AUTH_BASE_URL}]`);
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -83,65 +99,71 @@ export default function OrdersList() {
         </div>
       ) : (
         <div className="space-y-3">
-          {orders.map((o) => (
-            <article
-              key={o._id}
-              className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-700/30 p-4"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="text-sm text-slate-500 dark:text-slate-400">{t("order")}</div>
-                  <div className="text-base font-semibold text-slate-800 dark:text-white break-all">
-                    {o.orderNo}
+          {orders.map((o) => {
+            const statusVal = o.currentStatus || o.orderStatus;
+            return (
+              <article
+                key={safeText(o._id)}
+                className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-700/30 p-4"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="text-sm text-slate-500 dark:text-slate-400">{t("order")}</div>
+                    <div className="text-base font-semibold text-slate-800 dark:text-white break-all">
+                      {safeText(o.orderNo)}
+                    </div>
                   </div>
+                  <StatusBadge value={statusVal} />
                 </div>
-                <StatusBadge value={o.currentStatus || o.orderStatus} />
-              </div>
 
-              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                <div className="rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3">
-                  <div className="text-slate-500 dark:text-slate-400">{t("customer")}</div>
-                  <div className="font-medium text-slate-800 dark:text-slate-100">{o.customerName || "-"}</div>
-                </div>
-                <div className="rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3">
-                  <div className="text-slate-500 dark:text-slate-400">{t("city")}</div>
-                  <div className="font-medium text-slate-800 dark:text-slate-100">
-                    {o.city || "-"}{o.country ? `, ${o.country}` : ""}
+                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                  <div className="rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3">
+                    <div className="text-slate-500 dark:text-slate-400">{t("customer")}</div>
+                    <div className="font-medium text-slate-800 dark:text-slate-100">
+                      {safeText(o.customerName)}
+                    </div>
+                  </div>
+                  <div className="rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3">
+                    <div className="text-slate-500 dark:text-slate-400">{t("city")}</div>
+                    <div className="font-medium text-slate-800 dark:text-slate-100">
+                      {safeText(o.city)}
+                      {o.country ? `, ${safeText(o.country)}` : ""}
+                    </div>
+                  </div>
+                  <div className="rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3">
+                    <div className="text-slate-500 dark:text-slate-400">{t("order_date")}</div>
+                    <div className="font-medium text-slate-800 dark:text-slate-100">
+                      {o.orderDate ? new Date(o.orderDate).toLocaleString() : "-"}
+                    </div>
+                  </div>
+                  <div className="rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3">
+                    <div className="text-slate-500 dark:text-slate-400">{t("tracking_number")}</div>
+                    <div className="font-medium text-slate-800 dark:text-slate-100 break-all">
+                      {safeText(o.trackingNumber)}
+                    </div>
                   </div>
                 </div>
-                <div className="rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3">
-                  <div className="text-slate-500 dark:text-slate-400">{t("order_date")}</div>
-                  <div className="font-medium text-slate-800 dark:text-slate-100">
-                    {o.orderDate ? new Date(o.orderDate).toLocaleString() : "-"}
-                  </div>
-                </div>
-                <div className="rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3">
-                  <div className="text-slate-500 dark:text-slate-400">{t("tracking_number")}</div>
-                  <div className="font-medium text-slate-800 dark:text-slate-100 break-all">
-                    {o.trackingNumber || "-"}
-                  </div>
-                </div>
-              </div>
 
-              {Array.isArray(o.items) && o.items.length > 0 && (
-                <div className="mt-3 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3">
-                  <div className="text-slate-500 dark:text-slate-400 text-sm mb-1">{t("items")}</div>
-                  <ul className="list-disc pl-5 space-y-1">
-                    {o.items.slice(0, 3).map((it, idx) => (
-                      <li key={idx} className="text-sm text-slate-700 dark:text-slate-200">
-                        {it.productName || it.sku} × {it.quantity ?? 1}
-                      </li>
-                    ))}
-                    {o.items.length > 3 && (
-                      <li className="text-xs text-slate-500 dark:text-slate-400">
-                        +{o.items.length - 3} {t("more")}
-                      </li>
-                    )}
-                  </ul>
-                </div>
-              )}
-            </article>
-          ))}
+                {Array.isArray(o.items) && o.items.length > 0 && (
+                  <div className="mt-3 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3">
+                    <div className="text-slate-500 dark:text-slate-400 text-sm mb-1">{t("items")}</div>
+                    <ul className="list-disc pl-5 space-y-1">
+                      {o.items.slice(0, 3).map((it, idx) => (
+                        <li key={idx} className="text-sm text-slate-700 dark:text-slate-200">
+                          {safeText(it.productName || it.sku)} × {safeText(it.quantity ?? 1)}
+                        </li>
+                      ))}
+                      {o.items.length > 3 && (
+                        <li className="text-xs text-slate-500 dark:text-slate-400">
+                          +{o.items.length - 3} {t("more")}
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+                )}
+              </article>
+            );
+          })}
         </div>
       )}
 

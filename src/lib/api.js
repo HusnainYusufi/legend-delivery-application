@@ -1,22 +1,28 @@
 // src/lib/api.js
 import { getAuth } from "./auth.js";
 
+// Use your main API for all endpoints
+const API_BASE = "https://apidelivery.devmedialm.com";
+
+// Exported for debugging/messages elsewhere
+export const AUTH_BASE_URL = API_BASE;
+
 const CONFIG = {
-  API_BASE_URL: "https://apidelivery.devmedialm.com",
+  API_BASE_URL: API_BASE,
   paths: {
     getStatus: (orderNumber) =>
       `/orders/${encodeURIComponent(orderNumber)}/status-overview`,
   },
 };
 
-// Use env for dev/prod switching. Example .env:
-// VITE_AUTH_BASE_URL=http://192.168.X.Y:3265
-const LOCAL_API_BASE_URL =
-  import.meta.env.VITE_AUTH_BASE_URL?.trim() || "https://apidelivery.devmedialm.com";
-
-// ----- AUTH -----
+// ---------- AUTH ----------
+/**
+ * POST /auth/login
+ * Body: { email, password }
+ * Response: { status: 200, token, role, warehouseId }
+ */
 async function loginRequest(email, password) {
-  const url = `${LOCAL_API_BASE_URL}/auth/login`;
+  const url = `${AUTH_BASE_URL}/auth/login`;
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -34,13 +40,18 @@ async function loginRequest(email, password) {
     const msg =
       data?.message ||
       data?.error ||
-      `Login failed (${res.status}${res.statusText ? `: ${res.statusText}` : ""})`;
+      `Login failed (${res.status}${res.statusText ? `: ${res.statusText}` : ""}) [AUTH_BASE=${AUTH_BASE_URL}]`;
     throw new Error(msg);
   }
   return data; // { status, token, role, warehouseId }
 }
 
-// ----- ORDERS (POST with JWT) -----
+// ---------- ORDERS (POST with JWT) ----------
+/**
+ * POST /orders/my-assigned?page=&limit=&sortBy=&sortDir=
+ * Headers: Authorization: Bearer <token>
+ * Body: {}  (empty payload is OK)
+ */
 async function fetchAssignedOrders({
   page = 1,
   limit = 15,
@@ -48,7 +59,7 @@ async function fetchAssignedOrders({
   sortDir = "desc",
 } = {}) {
   const auth = getAuth();
-  const url = `${LOCAL_API_BASE_URL}/orders/my-assigned?page=${page}&limit=${limit}&sortBy=${encodeURIComponent(
+  const url = `${AUTH_BASE_URL}/orders/my-assigned?page=${page}&limit=${limit}&sortBy=${encodeURIComponent(
     sortBy
   )}&sortDir=${encodeURIComponent(sortDir)}`;
 
@@ -58,7 +69,7 @@ async function fetchAssignedOrders({
       "Content-Type": "application/json",
       ...(auth?.token ? { Authorization: `Bearer ${auth.token}` } : {}),
     },
-    body: JSON.stringify({}), // body not specified by API; sending empty object
+    body: JSON.stringify({}),
   });
 
   let data = {};
@@ -70,13 +81,13 @@ async function fetchAssignedOrders({
     const msg =
       data?.message ||
       data?.error ||
-      `Orders fetch failed (${res.status}${res.statusText ? `: ${res.statusText}` : ""})`;
+      `Orders fetch failed (${res.status}${res.statusText ? `: ${res.statusText}` : ""}) [AUTH_BASE=${AUTH_BASE_URL}]`;
     throw new Error(msg);
   }
   return data; // { status, role, page, limit, count, orders: [...] }
 }
 
-// ----- existing fetch with auth header injection for main API -----
+// ---------- PUBLIC API (Bearer auto-attached) ----------
 async function apiFetch(path, options = {}) {
   const url = `${CONFIG.API_BASE_URL}${path}`;
 
@@ -85,11 +96,8 @@ async function apiFetch(path, options = {}) {
     ...options.headers,
   };
 
-  // Attach Bearer token if present
   const auth = getAuth();
-  if (auth?.token) {
-    headers.Authorization = `Bearer ${auth.token}`;
-  }
+  if (auth?.token) headers.Authorization = `Bearer ${auth.token}`;
 
   try {
     const res = await fetch(url, { ...options, headers });
@@ -104,6 +112,7 @@ async function apiFetch(path, options = {}) {
   }
 }
 
+// ---------- QR helper ----------
 function parseOrderNumberFromScan(payload) {
   if (!payload) return "";
   try {
