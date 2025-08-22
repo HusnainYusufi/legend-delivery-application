@@ -1,19 +1,21 @@
+// src/components/Navbar.jsx
 import React from "react";
-import { QrCode, Menu } from "lucide-react";
+import { QrCode, Menu, ListChecks } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 export default function Navbar({
   language,
   onChangeLanguage,
   isAuthenticated,
-  onMenuClick
+  onMenuClick,
+  onOrdersClick,
 }) {
   const { t } = useTranslation();
   return (
     <nav className="navbar fixed top-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 shadow-md px-4">
       <div className="navbar-inner max-w-3xl mx-auto py-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <button 
+          <button
             onClick={onMenuClick}
             className="icon-btn bg-gradient-to-r from-blue-500 to-indigo-500 text-white p-2.5 rounded-lg"
             aria-label={t("menu")}
@@ -31,11 +33,20 @@ export default function Navbar({
           </div>
         </div>
 
-        <div className="flex items-center">
+        <div className="flex items-center gap-2">
           {isAuthenticated && (
-            <div className="h-2 w-2 rounded-full bg-green-500 mr-2" title="Authenticated"></div>
+            <>
+              <div className="h-2 w-2 rounded-full bg-green-500" title="Authenticated"></div>
+              <button
+                onClick={onOrdersClick}
+                className="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium rounded-lg border border-slate-300 dark:border-slate-600 px-2.5 py-1.5 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-600"
+              >
+                <ListChecks className="h-4 w-4" />
+                {t("orders_nav")}
+              </button>
+            </>
           )}
-          
+
           <select
             aria-label={t("language")}
             className="rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white px-2 py-1 text-xs shadow-sm"

@@ -9,35 +9,24 @@ const CONFIG = {
   },
 };
 
-// ----- NEW: auth base + login request -----
-const AUTH_BASE_URL = "https://apidelivery.devmedialm.com";
+// Use env for dev/prod switching. Example .env:
+// VITE_AUTH_BASE_URL=http://192.168.X.Y:3265
+const LOCAL_API_BASE_URL =
+  import.meta.env.VITE_AUTH_BASE_URL?.trim() || "https://apidelivery.devmedialm.com";
 
-/**
- * POST /auth/login
- * Body: { email, password }
- * Success payload (example):
- * {
- *   "status":200,
- *   "token":"<jwt>",
- *   "role":"user",
- *   "warehouseId":"68a3137ccd71d32a1dbc8433"
- * }
- */
+// ----- AUTH -----
 async function loginRequest(email, password) {
-  const url = `${AUTH_BASE_URL}/auth/login`;
+  const url = `${LOCAL_API_BASE_URL}/auth/login`;
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
   });
 
-  // Try to parse JSON either way
   let data = {};
   try {
     data = await res.json();
-  } catch {
-    // ignore parsing error; we'll error below
-  }
+  } catch {}
 
   const okByBody = typeof data?.status === "number" ? data.status === 200 : true;
 
@@ -51,7 +40,43 @@ async function loginRequest(email, password) {
   return data; // { status, token, role, warehouseId }
 }
 
-// ----- existing fetch with auth header injection -----
+// ----- ORDERS (POST with JWT) -----
+async function fetchAssignedOrders({
+  page = 1,
+  limit = 15,
+  sortBy = "orderDate",
+  sortDir = "desc",
+} = {}) {
+  const auth = getAuth();
+  const url = `${LOCAL_API_BASE_URL}/orders/my-assigned?page=${page}&limit=${limit}&sortBy=${encodeURIComponent(
+    sortBy
+  )}&sortDir=${encodeURIComponent(sortDir)}`;
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(auth?.token ? { Authorization: `Bearer ${auth.token}` } : {}),
+    },
+    body: JSON.stringify({}), // body not specified by API; sending empty object
+  });
+
+  let data = {};
+  try {
+    data = await res.json();
+  } catch {}
+
+  if (!res.ok || data?.status !== 200) {
+    const msg =
+      data?.message ||
+      data?.error ||
+      `Orders fetch failed (${res.status}${res.statusText ? `: ${res.statusText}` : ""})`;
+    throw new Error(msg);
+  }
+  return data; // { status, role, page, limit, count, orders: [...] }
+}
+
+// ----- existing fetch with auth header injection for main API -----
 async function apiFetch(path, options = {}) {
   const url = `${CONFIG.API_BASE_URL}${path}`;
 
@@ -99,4 +124,10 @@ function parseOrderNumberFromScan(payload) {
   return tokens[0] || "";
 }
 
-export { CONFIG, apiFetch, parseOrderNumberFromScan, loginRequest };
+export {
+  CONFIG,
+  apiFetch,
+  parseOrderNumberFromScan,
+  loginRequest,
+  fetchAssignedOrders,
+};

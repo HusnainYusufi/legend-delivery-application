@@ -1,6 +1,6 @@
 // src/components/LoginModal.jsx
 import React, { useState } from "react";
-import { X, User, Lock } from "lucide-react";
+import { X, User, Lock, Eye, EyeOff } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { loginRequest } from "../lib/api.js";
 import { decodeJwt } from "../lib/auth.js";
@@ -9,6 +9,7 @@ export default function LoginModal({ onClose, onLogin }) {
   const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPw, setShowPw] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -19,13 +20,11 @@ export default function LoginModal({ onClose, onLogin }) {
 
     try {
       const data = await loginRequest(email, password);
-      // Build the auth object we will store for later use
       const payload = decodeJwt(data.token) || {};
       const auth = {
         token: data.token,
         role: data.role ?? payload.userType ?? null,
         warehouseId: data.warehouseId ?? null,
-        // helpful decoded fields (if present in JWT)
         userId: payload.user ?? null,
         email: payload.email ?? email,
         name: payload.name ?? null,
@@ -34,7 +33,7 @@ export default function LoginModal({ onClose, onLogin }) {
         exp: payload.exp ?? null,
       };
 
-      onLogin?.(auth); // App will persist + update global state
+      onLogin?.(auth);
       onClose?.();
     } catch (err) {
       setError(err?.message || t("login_error"));
@@ -49,6 +48,7 @@ export default function LoginModal({ onClose, onLogin }) {
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
+          aria-label={t("close")}
         >
           <X className="h-6 w-6" />
         </button>
@@ -96,14 +96,22 @@ export default function LoginModal({ onClose, onLogin }) {
                 <Lock className="h-5 w-5 text-slate-400" />
               </div>
               <input
-                type="password"
+                type={showPw ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white pl-10 pr-4 py-3 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900"
+                className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white pl-10 pr-12 py-3 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900"
                 placeholder={t("password_placeholder")}
                 required
                 autoComplete="current-password"
               />
+              <button
+                type="button"
+                onClick={() => setShowPw((s) => !s)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-700 dark:text-slate-300 dark:hover:text-slate-100"
+                aria-label={showPw ? t("hide_password") : t("show_password")}
+              >
+                {showPw ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
             </div>
           </div>
 

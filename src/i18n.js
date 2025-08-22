@@ -1,3 +1,4 @@
+// src/i18n.js
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 
@@ -29,6 +30,7 @@ const resources = {
       open_settings: "Open Settings",
       order_details: "Order Details",
       track_order: "Track Order",
+      // statuses
       statuses: {
         PENDING: "Pending",
         PREPARING: "Preparing",
@@ -40,9 +42,9 @@ const resources = {
         DELIVERY_FAILED: "Delivery Failed",
         ON_HOLD: "On Hold",
         RETURNED: "Returned",
-        CANCELLED: "Cancelled"
+        CANCELLED: "Cancelled",
       },
-      // New translations
+      // Auth
       login: "Login",
       logout: "Logout",
       login_title: "Welcome Back",
@@ -55,8 +57,22 @@ const resources = {
       login_error: "Invalid email or password. Please try again.",
       forgot_password: "Forgot your password?",
       reset_here: "Reset here",
-      menu: "Menu"
-    }
+      menu: "Menu",
+      close: "Close",
+      show_password: "Show password",
+      hide_password: "Hide password",
+      // Orders
+      orders_nav: "Orders",
+      orders_title: "My Orders",
+      customer: "Customer",
+      city: "City",
+      order_date: "Order date",
+      items: "Items",
+      more: "more",
+      load_more: "Load more",
+      no_orders: "No orders found",
+      loading: "Loading...",
+    },
   },
   ar: {
     translation: {
@@ -85,6 +101,7 @@ const resources = {
       open_settings: "فتح الإعدادات",
       order_details: "تفاصيل الطلب",
       track_order: "تتبع الطلب",
+      // statuses
       statuses: {
         PENDING: "قيد الانتظار",
         PREPARING: "قيد التحضير",
@@ -96,9 +113,9 @@ const resources = {
         DELIVERY_FAILED: "فشل التسليم",
         ON_HOLD: "معلق",
         RETURNED: "مرتجع",
-        CANCELLED: "ملغى"
+        CANCELLED: "ملغى",
       },
-      // New translations
+      // Auth
       login: "تسجيل الدخول",
       logout: "تسجيل الخروج",
       login_title: "مرحبًا بعودتك",
@@ -111,13 +128,27 @@ const resources = {
       login_error: "بريد إلكتروني أو كلمة مرور غير صحيحة. حاول مرة أخرى.",
       forgot_password: "نسيت كلمة المرور؟",
       reset_here: "إعادة تعيين هنا",
-      menu: "القائمة"
-    }
-  }
+      menu: "القائمة",
+      close: "إغلاق",
+      show_password: "إظهار كلمة المرور",
+      hide_password: "إخفاء كلمة المرور",
+      // Orders
+      orders_nav: "الطلبات",
+      orders_title: "طلباتي",
+      customer: "العميل",
+      city: "المدينة",
+      order_date: "تاريخ الطلب",
+      items: "العناصر",
+      more: "أخرى",
+      load_more: "تحميل المزيد",
+      no_orders: "لا توجد طلبات",
+      loading: "جارٍ التحميل...",
+    },
+  },
 };
 
 i18n.use(initReactI18next).init({
-  resources, 
+  resources,
   lng: "ar",
   fallbackLng: "ar",
   interpolation: { escapeValue: false },

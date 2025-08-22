@@ -1,3 +1,4 @@
+/* src/styles.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -29,10 +30,12 @@ body.scanner-open, body.overflow-hidden {
   flex-direction: column;
 }
 
+/* --------- NAVBAR + SAFE AREA FIX --------- */
 .navbar { 
   @apply fixed top-0 inset-x-0 z-50 bg-white shadow-md border-b border-slate-200 dark:bg-slate-900 dark:border-slate-800;
-  padding-top: env(safe-area-inset-top);
-  height: calc(env(safe-area-inset-top) + 3.5rem);
+  /* Add a small constant bump (+12px) so even notchless phones don't overlap the status bar */
+  padding-top: calc(env(safe-area-inset-top) + 12px);
+  height: calc(env(safe-area-inset-top) + 3.75rem + 12px);
 }
 
 .navbar-inner { 
@@ -40,10 +43,11 @@ body.scanner-open, body.overflow-hidden {
   height: 100%;
 }
 
+/* content top padding mirrors the navbar height + a little extra spacing */
 .content { 
-  @apply max-w-3xl mx-auto px-4 pt-20 pb-6;
+  @apply max-w-3xl mx-auto px-4 pb-6;
   flex: 1;
-  padding-top: calc(env(safe-area-inset-top) + 4rem);
+  padding-top: calc(env(safe-area-inset-top) + 4.25rem + 12px);
   padding-bottom: env(safe-area-inset-bottom);
   width: 100%;
   overflow-y: auto;
@@ -89,7 +93,7 @@ body.scanner-open, body.overflow-hidden {
   }
   
   .content {
-    padding-top: calc(env(safe-area-inset-top) + 3.5rem);
+    padding-top: calc(env(safe-area-inset-top) + 3.75rem + 12px);
   }
   
   .card {
@@ -111,7 +115,8 @@ body.overflow-hidden {
 .bg-black\/50 {
   transition: opacity 0.3s ease;
 }
-/* Add to your styles.css */
+
+/* slide animations for Drawer */
 @keyframes slide-in {
   from { transform: translateX(100%); }
   to { transform: translateX(0); }

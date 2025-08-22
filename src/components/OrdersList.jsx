@@ -1,0 +1,162 @@
+// src/components/OrdersList.jsx
+import React, { useEffect, useState } from "react";
+import { RefreshCcw, Loader2, PackageOpen, ChevronDown } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { fetchAssignedOrders } from "../lib/api.js";
+import StatusBadge from "./StatusBadge.jsx";
+
+export default function OrdersList() {
+  const { t } = useTranslation();
+  const [orders, setOrders] = useState([]);
+  const [page, setPage] = useState(1);
+  const [limit] = useState(15);
+  const [count, setCount] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState("");
+
+  const hasMore = orders.length < count;
+
+  const load = async ({ reset = false } = {}) => {
+    try {
+      setError("");
+      if (reset) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
+      const res = await fetchAssignedOrders({
+        page: reset ? 1 : page,
+        limit,
+        sortBy: "orderDate",
+        sortDir: "desc",
+      });
+      setCount(res.count || 0);
+      if (reset) {
+        setOrders(res.orders || []);
+        setPage(2);
+      } else {
+        setOrders((prev) => [...prev, ...(res.orders || [])]);
+        setPage((p) => p + 1);
+      }
+    } catch (e) {
+      setError(e?.message || "Failed to load orders");
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  useEffect(() => {
+    load({ reset: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <section className="card bg-white dark:bg-slate-800 rounded-xl shadow-lg p-5 mb-6 border border-slate-200 dark:border-slate-700 mx-auto">
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">{t("orders_title")}</h2>
+        <button
+          onClick={() => load({ reset: true })}
+          disabled={loading}
+          className="btn bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600 px-3 py-2"
+        >
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
+        </button>
+      </div>
+
+      {error && (
+        <div className="mb-4 rounded-lg border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-700 dark:text-red-200">
+          {error}
+        </div>
+      )}
+
+      {loading && orders.length === 0 ? (
+        <div className="py-8 flex items-center justify-center text-slate-500 dark:text-slate-400">
+          <Loader2 className="h-5 w-5 animate-spin mr-2" />
+          {t("loading")}
+        </div>
+      ) : orders.length === 0 ? (
+        <div className="py-10 text-center text-slate-500 dark:text-slate-400">
+          <PackageOpen className="h-8 w-8 mx-auto mb-2 opacity-70" />
+          {t("no_orders")}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {orders.map((o) => (
+            <article
+              key={o._id}
+              className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-700/30 p-4"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="text-sm text-slate-500 dark:text-slate-400">{t("order")}</div>
+                  <div className="text-base font-semibold text-slate-800 dark:text-white break-all">
+                    {o.orderNo}
+                  </div>
+                </div>
+                <StatusBadge value={o.currentStatus || o.orderStatus} />
+              </div>
+
+              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                <div className="rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3">
+                  <div className="text-slate-500 dark:text-slate-400">{t("customer")}</div>
+                  <div className="font-medium text-slate-800 dark:text-slate-100">{o.customerName || "-"}</div>
+                </div>
+                <div className="rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3">
+                  <div className="text-slate-500 dark:text-slate-400">{t("city")}</div>
+                  <div className="font-medium text-slate-800 dark:text-slate-100">
+                    {o.city || "-"}{o.country ? `, ${o.country}` : ""}
+                  </div>
+                </div>
+                <div className="rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3">
+                  <div className="text-slate-500 dark:text-slate-400">{t("order_date")}</div>
+                  <div className="font-medium text-slate-800 dark:text-slate-100">
+                    {o.orderDate ? new Date(o.orderDate).toLocaleString() : "-"}
+                  </div>
+                </div>
+                <div className="rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3">
+                  <div className="text-slate-500 dark:text-slate-400">{t("tracking_number")}</div>
+                  <div className="font-medium text-slate-800 dark:text-slate-100 break-all">
+                    {o.trackingNumber || "-"}
+                  </div>
+                </div>
+              </div>
+
+              {Array.isArray(o.items) && o.items.length > 0 && (
+                <div className="mt-3 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3">
+                  <div className="text-slate-500 dark:text-slate-400 text-sm mb-1">{t("items")}</div>
+                  <ul className="list-disc pl-5 space-y-1">
+                    {o.items.slice(0, 3).map((it, idx) => (
+                      <li key={idx} className="text-sm text-slate-700 dark:text-slate-200">
+                        {it.productName || it.sku} × {it.quantity ?? 1}
+                      </li>
+                    ))}
+                    {o.items.length > 3 && (
+                      <li className="text-xs text-slate-500 dark:text-slate-400">
+                        +{o.items.length - 3} {t("more")}
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              )}
+            </article>
+          ))}
+        </div>
+      )}
+
+      {hasMore && (
+        <div className="mt-4 flex justify-center">
+          <button
+            onClick={() => load({ reset: false })}
+            disabled={loadingMore}
+            className="btn bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600 px-4 py-2"
+          >
+            {loadingMore ? <Loader2 className="h-4 w-4 animate-spin" /> : <ChevronDown className="h-4 w-4" />}
+            <span className="ml-2">{t("load_more")}</span>
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}
