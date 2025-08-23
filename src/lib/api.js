@@ -1,7 +1,7 @@
 // src/lib/api.js
 import { getAuth } from "./auth.js";
 
-// Use your main API for all endpoints
+// Use your main API for ALL endpoints
 const API_BASE = "https://apidelivery.devmedialm.com";
 
 // Exported for debugging/messages elsewhere
@@ -25,22 +25,34 @@ async function loginRequest(email, password) {
   const url = `${AUTH_BASE_URL}/auth/login`;
   const res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
     body: JSON.stringify({ email, password }),
   });
 
-  let data = {};
+  // Read both JSON (if any) and raw text to craft a helpful error
+  const rawTextPromise = res.clone().text().catch(() => "");
+  let data = null;
   try {
     data = await res.json();
-  } catch {}
+  } catch {
+    /* not JSON */
+  }
+  const rawText = await rawTextPromise;
 
-  const okByBody = typeof data?.status === "number" ? data.status === 200 : true;
+  const okByBody =
+    typeof data?.status === "number" ? data.status === 200 : res.ok;
 
   if (!res.ok || !okByBody || !data?.token) {
-    const msg =
-      data?.message ||
-      data?.error ||
-      `Login failed (${res.status}${res.statusText ? `: ${res.statusText}` : ""}) [AUTH_BASE=${AUTH_BASE_URL}]`;
+    const serverMsg =
+      (data && (data.message || data.error)) ||
+      (rawText && rawText.slice(0, 300)) ||
+      "";
+    const msg = `Login failed (HTTP ${res.status}${
+      res.statusText ? ` ${res.statusText}` : ""
+    }) ${serverMsg ? `- ${serverMsg}` : ""} [AUTH_BASE=${AUTH_BASE_URL}]`;
     throw new Error(msg);
   }
   return data; // { status, token, role, warehouseId }
@@ -59,6 +71,12 @@ async function fetchAssignedOrders({
   sortDir = "desc",
 } = {}) {
   const auth = getAuth();
+  if (!auth?.token) {
+    throw new Error(
+      `No auth token found. Please log in again. [AUTH_BASE=${AUTH_BASE_URL}]`
+    );
+  }
+
   const url = `${AUTH_BASE_URL}/orders/my-assigned?page=${page}&limit=${limit}&sortBy=${encodeURIComponent(
     sortBy
   )}&sortDir=${encodeURIComponent(sortDir)}`;
@@ -67,24 +85,45 @@ async function fetchAssignedOrders({
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(auth?.token ? { Authorization: `Bearer ${auth.token}` } : {}),
+      Accept: "application/json",
+      Authorization: `Bearer ${auth.token}`,
     },
     body: JSON.stringify({}),
   });
 
-  let data = {};
+  // Read both JSON (if any) and raw text for clear errors
+  const rawTextPromise = res.clone().text().catch(() => "");
+  let data = null;
   try {
     data = await res.json();
-  } catch {}
+  } catch {
+    /* not JSON */
+  }
+  const rawText = await rawTextPromise;
 
-  if (!res.ok || data?.status !== 200) {
-    const msg =
-      data?.message ||
-      data?.error ||
-      `Orders fetch failed (${res.status}${res.statusText ? `: ${res.statusText}` : ""}) [AUTH_BASE=${AUTH_BASE_URL}]`;
+  const bodyStatusOK =
+    typeof data?.status === "number" ? data.status === 200 : res.ok;
+
+  if (!res.ok || !bodyStatusOK) {
+    const serverMsg =
+      (data && (data.message || data.error)) ||
+      (rawText && rawText.slice(0, 300)) ||
+      "";
+    const msg = `Orders fetch failed (HTTP ${res.status}${
+      res.statusText ? ` ${res.statusText}` : ""
+    }) ${serverMsg ? `- ${serverMsg}` : ""} [AUTH_BASE=${AUTH_BASE_URL}]`;
     throw new Error(msg);
   }
-  return data; // { status, role, page, limit, count, orders: [...] }
+
+  // Make sure we always return a well-formed object
+  return {
+    status: 200,
+    role: data?.role,
+    page: data?.page ?? page,
+    limit: data?.limit ?? limit,
+    count: data?.count ?? (Array.isArray(data?.orders) ? data.orders.length : 0),
+    orders: Array.isArray(data?.orders) ? data.orders : [],
+  };
 }
 
 // ---------- PUBLIC API (Bearer auto-attached) ----------
@@ -93,6 +132,7 @@ async function apiFetch(path, options = {}) {
 
   const headers = {
     ...(options.body ? { "Content-Type": "application/json" } : {}),
+    Accept: "application/json",
     ...options.headers,
   };
 
@@ -102,8 +142,12 @@ async function apiFetch(path, options = {}) {
   try {
     const res = await fetch(url, { ...options, headers });
     if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`API ${res.status}${text ? `: ${text}` : `: ${res.statusText}`}`);
+      const raw = await res.text().catch(() => "");
+      throw new Error(
+        `API ${res.status}${res.statusText ? ` ${res.statusText}` : ""}${
+          raw ? ` - ${raw.slice(0, 300)}` : ""
+        } [BASE=${CONFIG.API_BASE_URL}]`
+      );
     }
     return res.json();
   } catch (err) {
@@ -117,7 +161,14 @@ function parseOrderNumberFromScan(payload) {
   if (!payload) return "";
   try {
     const url = new URL(payload);
-    const candidates = ["order", "orderId", "order_id", "ordernumber", "orderNumber", "o"];
+    const candidates = [
+      "order",
+      "orderId",
+      "order_id",
+      "ordernumber",
+      "orderNumber",
+      "o",
+    ];
     for (const key of candidates) {
       const v = url.searchParams.get(key);
       if (v) return v.trim();
