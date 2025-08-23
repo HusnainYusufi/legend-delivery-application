@@ -58,11 +58,10 @@ async function loginRequest(email, password) {
   return data; // { status, token, role, warehouseId }
 }
 
-// ---------- ORDERS (POST with JWT) ----------
+// ---------- ORDERS (GET with JWT) ----------
 /**
- * POST /orders/my-assigned?page=&limit=&sortBy=&sortDir=
+ * GET /orders/my-assigned?page=&limit=&sortBy=&sortDir=
  * Headers: Authorization: Bearer <token>
- * Body: {}  (empty payload is OK)
  */
 async function fetchAssignedOrders({
   page = 1,
@@ -72,50 +71,45 @@ async function fetchAssignedOrders({
 } = {}) {
   const auth = getAuth();
   if (!auth?.token) {
-    throw new Error(
-      `No auth token found. Please log in again. [AUTH_BASE=${AUTH_BASE_URL}]`
-    );
+    throw new Error("No auth token found. Please log in again.");
   }
 
   const url = `${AUTH_BASE_URL}/orders/my-assigned?page=${page}&limit=${limit}&sortBy=${encodeURIComponent(
     sortBy
   )}&sortDir=${encodeURIComponent(sortDir)}`;
 
+  // NOTE: GET (no body, no Content-Type) avoids CORS preflight.
   const res = await fetch(url, {
-    method: "POST",
+    method: "GET",
     headers: {
-      "Content-Type": "application/json",
       Accept: "application/json",
       Authorization: `Bearer ${auth.token}`,
     },
-    body: JSON.stringify({}),
   });
 
-  // Read both JSON (if any) and raw text for clear errors
-  const rawTextPromise = res.clone().text().catch(() => "");
+  // Try both JSON and raw text to craft a helpful error if needed
   let data = null;
+  let rawText = "";
   try {
-    data = await res.json();
-  } catch {
-    /* not JSON */
-  }
-  const rawText = await rawTextPromise;
+    data = await res.clone().json();
+  } catch {}
+  try {
+    rawText = await res.text();
+  } catch {}
 
-  const bodyStatusOK =
-    typeof data?.status === "number" ? data.status === 200 : res.ok;
-
-  if (!res.ok || !bodyStatusOK) {
+  const okByBody = typeof data?.status === "number" ? data.status === 200 : res.ok;
+  if (!res.ok || !okByBody) {
     const serverMsg =
       (data && (data.message || data.error)) ||
       (rawText && rawText.slice(0, 300)) ||
       "";
-    const msg = `Orders fetch failed (HTTP ${res.status}${
-      res.statusText ? ` ${res.statusText}` : ""
-    }) ${serverMsg ? `- ${serverMsg}` : ""} [AUTH_BASE=${AUTH_BASE_URL}]`;
-    throw new Error(msg);
+    throw new Error(
+      `Orders fetch failed (HTTP ${res.status}${res.statusText ? ` ${res.statusText}` : ""})${
+        serverMsg ? ` - ${serverMsg}` : ""
+      }`
+    );
   }
 
-  // Make sure we always return a well-formed object
   return {
     status: 200,
     role: data?.role,
@@ -125,6 +119,7 @@ async function fetchAssignedOrders({
     orders: Array.isArray(data?.orders) ? data.orders : [],
   };
 }
+
 
 // ---------- PUBLIC API (Bearer auto-attached) ----------
 async function apiFetch(path, options = {}) {
