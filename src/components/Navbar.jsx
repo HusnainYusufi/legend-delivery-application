@@ -1,6 +1,6 @@
 // src/components/Navbar.jsx
 import React from "react";
-import { QrCode, Menu, ListChecks } from "lucide-react";
+import { QrCode, Menu, ListChecks, Truck } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 export default function Navbar({
@@ -9,8 +9,12 @@ export default function Navbar({
   isAuthenticated,
   onMenuClick,
   onOrdersClick,
+  onPoolClick,
+  role, // <-- new
 }) {
   const { t } = useTranslation();
+  const isDriver = isAuthenticated && role === "driver";
+
   return (
     <nav className="navbar fixed top-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 shadow-md px-4">
       <div className="navbar-inner max-w-3xl mx-auto py-2 flex items-center justify-between">
@@ -37,6 +41,7 @@ export default function Navbar({
           {isAuthenticated && (
             <>
               <div className="h-2 w-2 rounded-full bg-green-500" title="Authenticated"></div>
+
               <button
                 onClick={onOrdersClick}
                 className="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium rounded-lg border border-slate-300 dark:border-slate-600 px-2.5 py-1.5 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-600"
@@ -44,6 +49,16 @@ export default function Navbar({
                 <ListChecks className="h-4 w-4" />
                 {t("orders_nav")}
               </button>
+
+              {isDriver && (
+                <button
+                  onClick={onPoolClick}
+                  className="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium rounded-lg border border-slate-300 dark:border-slate-600 px-2.5 py-1.5 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-600"
+                >
+                  <Truck className="h-4 w-4" />
+                  {t("pool_nav")}
+                </button>
+              )}
             </>
           )}
 

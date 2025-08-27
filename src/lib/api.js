@@ -32,16 +32,13 @@ async function loginRequest(email, password) {
     body: JSON.stringify({ email, password }),
   });
 
-  // Read both JSON (if any) and raw text to craft a helpful error
   const rawTextPromise = res.clone().text().catch(() => "");
   let data = null;
   try {
     data = await res.json();
-  } catch {
-    /* not JSON */
-  }
-  const rawText = await rawTextPromise;
+  } catch {}
 
+  const rawText = await rawTextPromise;
   const okByBody =
     typeof data?.status === "number" ? data.status === 200 : res.ok;
 
@@ -58,7 +55,7 @@ async function loginRequest(email, password) {
   return data; // { status, token, role, warehouseId }
 }
 
-// ---------- ORDERS (GET with JWT) ----------
+// ---------- ORDERS: Assigned to me ----------
 /**
  * GET /orders/my-assigned?page=&limit=&sortBy=&sortDir=
  * Headers: Authorization: Bearer <token>
@@ -78,7 +75,6 @@ async function fetchAssignedOrders({
     sortBy
   )}&sortDir=${encodeURIComponent(sortDir)}`;
 
-  // NOTE: GET (no body, no Content-Type) avoids CORS preflight.
   const res = await fetch(url, {
     method: "GET",
     headers: {
@@ -87,7 +83,6 @@ async function fetchAssignedOrders({
     },
   });
 
-  // Try both JSON and raw text to craft a helpful error if needed
   let data = null;
   let rawText = "";
   try {
@@ -97,16 +92,17 @@ async function fetchAssignedOrders({
     rawText = await res.text();
   } catch {}
 
-  const okByBody = typeof data?.status === "number" ? data.status === 200 : res.ok;
+  const okByBody =
+    typeof data?.status === "number" ? data.status === 200 : res.ok;
   if (!res.ok || !okByBody) {
     const serverMsg =
       (data && (data.message || data.error)) ||
       (rawText && rawText.slice(0, 300)) ||
       "";
     throw new Error(
-      `Orders fetch failed (HTTP ${res.status}${res.statusText ? ` ${res.statusText}` : ""})${
-        serverMsg ? ` - ${serverMsg}` : ""
-      }`
+      `Orders fetch failed (HTTP ${res.status}${
+        res.statusText ? ` ${res.statusText}` : ""
+      })${serverMsg ? ` - ${serverMsg}` : ""}`
     );
   }
 
@@ -115,11 +111,130 @@ async function fetchAssignedOrders({
     role: data?.role,
     page: data?.page ?? page,
     limit: data?.limit ?? limit,
-    count: data?.count ?? (Array.isArray(data?.orders) ? data.orders.length : 0),
+    count:
+      data?.count ?? (Array.isArray(data?.orders) ? data.orders.length : 0),
     orders: Array.isArray(data?.orders) ? data.orders : [],
   };
 }
 
+// ---------- DRIVER: Awaiting Pickup Pool ----------
+/**
+ * GET /orders/awaiting-pickup?unassigned=true&page=&limit=
+ * Headers: Authorization: Bearer <token>
+ */
+async function fetchAwaitingPickupOrders({
+  page = 1,
+  limit = 15,
+  unassigned = true,
+} = {}) {
+  const auth = getAuth();
+  if (!auth?.token) throw new Error("No auth token. Please log in.");
+
+  const url = `${AUTH_BASE_URL}/orders/awaiting-pickup?unassigned=${
+    unassigned ? "true" : "false"
+  }&page=${page}&limit=${limit}`;
+
+  const res = await fetch(url, {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      Authorization: `Bearer ${auth.token}`,
+    },
+  });
+
+  let data = null;
+  let raw = "";
+  try {
+    data = await res.clone().json();
+  } catch {}
+  try {
+    raw = await res.text();
+  } catch {}
+
+  const okBody =
+    typeof data?.status === "number" ? data.status === 200 : res.ok;
+  if (!res.ok || !okBody) {
+    const serverMsg =
+      (data && (data.message || data.error)) || (raw && raw.slice(0, 300)) || "";
+    throw new Error(
+      `Pickup pool failed (HTTP ${res.status}${
+        res.statusText ? " " + res.statusText : ""
+      })${serverMsg ? " - " + serverMsg : ""}`
+    );
+  }
+
+  return {
+    status: 200,
+    role: data?.role,
+    page: data?.page ?? page,
+    limit: data?.limit ?? limit,
+    count:
+      data?.count ?? (Array.isArray(data?.orders) ? data.orders.length : 0),
+    orders: Array.isArray(data?.orders) ? data.orders : [],
+  };
+}
+
+// ---------- DRIVER: Claim Order (configure your real endpoint!) ----------
+/**
+ * TODO: Replace with your exact claim URL/method/body.
+ * The button calls this; if backend path differs, you’ll get a clear error to adjust.
+ */
+async function claimOrder(orderId, extras = {}) {
+  const auth = getAuth();
+  if (!auth?.token) throw new Error("No auth token. Please log in.");
+
+  // Try two common patterns; replace with your real one once known.
+  const attempts = [
+    { url: `${AUTH_BASE_URL}/orders/claim`, method: "POST", body: { orderId, ...extras } },
+    { url: `${AUTH_BASE_URL}/orders/assign-to-me`, method: "POST", body: { orderId, ...extras } },
+  ];
+
+  let lastErr = null;
+
+  for (const a of attempts) {
+    try {
+      const res = await fetch(a.url, {
+        method: a.method,
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: `Bearer ${auth.token}`,
+        },
+        body: JSON.stringify(a.body),
+      });
+
+      let data = null;
+      let raw = "";
+      try { data = await res.clone().json(); } catch {}
+      try { raw = await res.text(); } catch {}
+
+      const okByBody =
+        typeof data?.status === "number" ? data.status === 200 : res.ok;
+
+      if (!res.ok || !okByBody) {
+        const serverMsg =
+          (data && (data.message || data.error)) ||
+          (raw && raw.slice(0, 300)) ||
+          "";
+        throw new Error(
+          `Claim failed (HTTP ${res.status}${
+            res.statusText ? " " + res.statusText : ""
+          })${serverMsg ? " - " + serverMsg : ""}`
+        );
+      }
+
+      return data || { status: 200 };
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+
+  throw new Error(
+    `Claim endpoint not configured. Share the exact URL/method/body and I'll wire it. Last error: ${
+      lastErr?.message || lastErr
+    }`
+  );
+}
 
 // ---------- PUBLIC API (Bearer auto-attached) ----------
 async function apiFetch(path, options = {}) {
@@ -185,4 +300,6 @@ export {
   parseOrderNumberFromScan,
   loginRequest,
   fetchAssignedOrders,
+  fetchAwaitingPickupOrders,
+  claimOrder,
 };
