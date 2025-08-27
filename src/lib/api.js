@@ -188,14 +188,63 @@ const fetchAwaitingPickupMine = (opts = {}) =>
  * Headers: Authorization: Bearer <token>
  * Body: {}
  */
+// async function claimPickupByOrderNo(orderNo) {
+//   const auth = getAuth();
+//   if (!auth?.token) throw new Error("No auth token. Please log in.");
+//   if (!orderNo) throw new Error("Missing order number from QR.");
+
+//   const url = `${AUTH_BASE_URL}/orders/${encodeURIComponent(
+//     orderNo
+//   )}/claim-pickup`;
+
+//   const res = await fetch(url, {
+//     method: "POST",
+//     headers: {
+//       "Content-Type": "application/json",
+//       Accept: "application/json",
+//       Authorization: `Bearer ${auth.token}`,
+//     },
+//     body: JSON.stringify({}),
+//   });
+
+//   let data = null;
+//   let raw = "";
+//   try {
+//     data = await res.clone().json();
+//   } catch {}
+//   try {
+//     raw = await res.text();
+//   } catch {}
+
+//   const okByBody =
+//     typeof data?.status === "number" ? data.status === 200 : res.ok;
+
+//   if (!res.ok || !okByBody) {
+//     const serverMsg =
+//       (data && (data.message || data.error)) || (raw && raw.slice(0, 300)) || "";
+//     throw new Error(
+//       `Claim failed (HTTP ${res.status}${
+//         res.statusText ? " " + res.statusText : ""
+//       })${serverMsg ? " - " + serverMsg : ""}`
+//     );
+//   }
+
+//   return data || { status: 200 };
+// }
+
+// ---------- PUBLIC API (Bearer auto-attached) ----------
+// ---------- DRIVER: Claim by scanned orderNo ----------
+/**
+ * POST /orders/:orderNo/claim-pickup
+ * Headers: Authorization: Bearer <token>
+ * Body: { verifyLabel: false, advance: true }
+ */
 async function claimPickupByOrderNo(orderNo) {
   const auth = getAuth();
   if (!auth?.token) throw new Error("No auth token. Please log in.");
   if (!orderNo) throw new Error("Missing order number from QR.");
 
-  const url = `${AUTH_BASE_URL}/orders/${encodeURIComponent(
-    orderNo
-  )}/claim-pickup`;
+  const url = `${AUTH_BASE_URL}/orders/${encodeURIComponent(orderNo)}/claim-pickup`;
 
   const res = await fetch(url, {
     method: "POST",
@@ -204,35 +253,30 @@ async function claimPickupByOrderNo(orderNo) {
       Accept: "application/json",
       Authorization: `Bearer ${auth.token}`,
     },
-    body: JSON.stringify({}),
+    // Always send both keys
+    body: JSON.stringify({
+      verifyLabel: false,
+      advance: true,
+    }),
   });
 
   let data = null;
   let raw = "";
-  try {
-    data = await res.clone().json();
-  } catch {}
-  try {
-    raw = await res.text();
-  } catch {}
+  try { data = await res.clone().json(); } catch {}
+  try { raw = await res.text(); } catch {}
 
-  const okByBody =
-    typeof data?.status === "number" ? data.status === 200 : res.ok;
-
+  const okByBody = typeof data?.status === "number" ? data.status === 200 : res.ok;
   if (!res.ok || !okByBody) {
     const serverMsg =
       (data && (data.message || data.error)) || (raw && raw.slice(0, 300)) || "";
     throw new Error(
-      `Claim failed (HTTP ${res.status}${
-        res.statusText ? " " + res.statusText : ""
-      })${serverMsg ? " - " + serverMsg : ""}`
+      `Claim failed (HTTP ${res.status}${res.statusText ? " " + res.statusText : ""})${serverMsg ? " - " + serverMsg : ""}`
     );
   }
 
   return data || { status: 200 };
 }
 
-// ---------- PUBLIC API (Bearer auto-attached) ----------
 async function apiFetch(path, options = {}) {
   const url = `${CONFIG.API_BASE_URL}${path}`;
 
