@@ -10,7 +10,7 @@ import StatusBadge from "./components/StatusBadge.jsx";
 import Drawer from "./components/Drawer";
 import LoginModal from "./components/LoginModal";
 import OrdersList from "./components/OrdersList.jsx";
-import PickupPool from "./components/PickupPool.jsx"; // NEW
+import PickupPool from "./components/PickupPool.jsx";
 
 import { CONFIG, apiFetch, parseOrderNumberFromScan } from "./lib/api.js";
 import {
@@ -61,7 +61,7 @@ export default function App() {
   // Authentication state
   const [auth, setAuthState] = useState(null);
   const isAuthenticated = !!auth?.token;
-  const role = auth?.role || null; // <-- used to show Driver Pool
+  const role = auth?.role || null;
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
@@ -81,7 +81,6 @@ export default function App() {
     setToast({ type: "success", msg: "Logged in ✓" });
     setTimeout(() => setToast(null), 1500);
 
-    // Optional: jump drivers straight to pool
     if (authData?.role === "driver") setView("pool");
   };
 
@@ -142,9 +141,7 @@ export default function App() {
 
   // Cleanup on unmount
   useEffect(() => {
-    return () => {
-      stopScanner();
-    };
+    return () => { stopScanner(); };
   }, [stopScanner]);
 
   // Fetch status (home)
@@ -213,8 +210,8 @@ export default function App() {
         isAuthenticated={isAuthenticated}
         onMenuClick={() => setIsDrawerOpen(true)}
         onOrdersClick={() => setView("orders")}
-        onPoolClick={() => setView("pool")} // NEW
-        role={role}                           // NEW
+        onPoolClick={() => setView("pool")}
+        role={role}
       />
 
       <Drawer
@@ -230,12 +227,12 @@ export default function App() {
           setView("orders");
           setIsDrawerOpen(false);
         }}
-        onPoolClick={() => {                 // NEW
+        onPoolClick={() => {
           setView("pool");
           setIsDrawerOpen(false);
         }}
         language={language}
-        role={role}                           // NEW
+        role={role}
       />
 
       {isLoginModalOpen && (
@@ -344,16 +341,15 @@ export default function App() {
                   </div>
                   <StatusBadge value={current.currentStatus} />
                 </div>
-                {/* steps & special unchanged */}
+                {/* steps/special existing */}
               </section>
             )}
           </>
         )}
 
         {view === "orders" && <OrdersList />}
-
         {view === "pool" && <PickupPool />}
-        
+
         {toast && (
           <div
             className={`fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 rounded-xl px-5 py-3 shadow-lg flex items-center transition-all ${

@@ -65,14 +65,21 @@ const resources = {
       pool_nav: "Pickup Pool",
       pickup_pool_title: "Pickup Pool",
       pickup_pool_sub: "Unassigned orders awaiting pickup.",
+      pickup_mine_sub: "Orders you have claimed.",
+      tab_pool: "Pool",
+      tab_mine: "My Claimed",
       pickup_search_placeholder: "Search by order no, name, city, phone, tracking…",
       no_pool_orders: "No pickup orders available",
+      no_mine_orders: "You have no claimed orders",
       no_matches: "No matches",
       address: "Address",
       boxes: "Boxes",
       weight: "Weight",
       call_customer: "Call",
       claim: "Claim",
+      scan_to_claim: "Scan order QR to claim",
+      scan_no_order: "QR did not include an order number.",
+      scanning_claiming: "Claiming…",
 
       statuses: {
         PENDING: "Pending",
@@ -87,6 +94,9 @@ const resources = {
         RETURNED: "Returned",
         CANCELLED: "Cancelled",
       },
+
+      claim_success: "Order claimed ✓",
+      claim_failed: "Claim failed",
     },
   },
   ar: {
@@ -151,14 +161,21 @@ const resources = {
       pool_nav: "طلبات الاستلام",
       pickup_pool_title: "طلبات بانتظار الاستلام",
       pickup_pool_sub: "طلبات غير مُعيّنة بانتظار الاستلام.",
+      pickup_mine_sub: "الطلبات التي استلمتها.",
+      tab_pool: "المجمع",
+      tab_mine: "طلباتي",
       pickup_search_placeholder: "ابحث برقم الطلب أو الاسم أو المدينة أو الهاتف أو التتبع…",
       no_pool_orders: "لا توجد طلبات للاستلام",
+      no_mine_orders: "لا توجد طلبات مستلمة",
       no_matches: "لا توجد نتائج",
       address: "العنوان",
       boxes: "الصناديق",
       weight: "الوزن",
       call_customer: "اتصال",
       claim: "استلام",
+      scan_to_claim: "امسح QR الخاص بالطلب للاستلام",
+      scan_no_order: "رمز QR لا يحتوي على رقم طلب.",
+      scanning_claiming: "جارٍ الاستلام…",
 
       statuses: {
         PENDING: "قيد الانتظار",
@@ -173,6 +190,9 @@ const resources = {
         RETURNED: "مرتجع",
         CANCELLED: "ملغى",
       },
+
+      claim_success: "تم الاستلام ✓",
+      claim_failed: "فشل الاستلام",
     },
   },
 };

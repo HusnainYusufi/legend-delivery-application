@@ -56,10 +56,6 @@ async function loginRequest(email, password) {
 }
 
 // ---------- ORDERS: Assigned to me ----------
-/**
- * GET /orders/my-assigned?page=&limit=&sortBy=&sortDir=
- * Headers: Authorization: Bearer <token>
- */
 async function fetchAssignedOrders({
   page = 1,
   limit = 15,
@@ -117,22 +113,31 @@ async function fetchAssignedOrders({
   };
 }
 
-// ---------- DRIVER: Awaiting Pickup Pool ----------
+// ---------- DRIVER: Awaiting Pickup (pool + mine) ----------
 /**
- * GET /orders/awaiting-pickup?unassigned=true&page=&limit=
+ * GET /orders/awaiting-pickup?unassigned=true|false&mine=true|false&page=&limit=&q=&city=
  * Headers: Authorization: Bearer <token>
  */
 async function fetchAwaitingPickupOrders({
   page = 1,
   limit = 15,
-  unassigned = true,
+  unassigned,
+  mine,
+  q,
+  city,
 } = {}) {
   const auth = getAuth();
   if (!auth?.token) throw new Error("No auth token. Please log in.");
 
-  const url = `${AUTH_BASE_URL}/orders/awaiting-pickup?unassigned=${
-    unassigned ? "true" : "false"
-  }&page=${page}&limit=${limit}`;
+  const params = new URLSearchParams();
+  params.set("page", String(page));
+  params.set("limit", String(limit));
+  if (unassigned === true) params.set("unassigned", "true");
+  if (mine === true) params.set("mine", "true");
+  if (q) params.set("q", q);
+  if (city) params.set("city", city);
+
+  const url = `${AUTH_BASE_URL}/orders/awaiting-pickup?${params.toString()}`;
 
   const res = await fetch(url, {
     method: "GET",
@@ -157,7 +162,7 @@ async function fetchAwaitingPickupOrders({
     const serverMsg =
       (data && (data.message || data.error)) || (raw && raw.slice(0, 300)) || "";
     throw new Error(
-      `Pickup pool failed (HTTP ${res.status}${
+      `Pickup fetch failed (HTTP ${res.status}${
         res.statusText ? " " + res.statusText : ""
       })${serverMsg ? " - " + serverMsg : ""}`
     );
@@ -174,66 +179,57 @@ async function fetchAwaitingPickupOrders({
   };
 }
 
-// ---------- DRIVER: Claim Order (configure your real endpoint!) ----------
+const fetchAwaitingPickupMine = (opts = {}) =>
+  fetchAwaitingPickupOrders({ ...opts, mine: true, unassigned: false });
+
+// ---------- DRIVER: Claim by scanned orderNo ----------
 /**
- * TODO: Replace with your exact claim URL/method/body.
- * The button calls this; if backend path differs, you’ll get a clear error to adjust.
+ * POST /orders/:orderNo/claim-pickup
+ * Headers: Authorization: Bearer <token>
+ * Body: {}
  */
-async function claimOrder(orderId, extras = {}) {
+async function claimPickupByOrderNo(orderNo) {
   const auth = getAuth();
   if (!auth?.token) throw new Error("No auth token. Please log in.");
+  if (!orderNo) throw new Error("Missing order number from QR.");
 
-  // Try two common patterns; replace with your real one once known.
-  const attempts = [
-    { url: `${AUTH_BASE_URL}/orders/claim`, method: "POST", body: { orderId, ...extras } },
-    { url: `${AUTH_BASE_URL}/orders/assign-to-me`, method: "POST", body: { orderId, ...extras } },
-  ];
+  const url = `${AUTH_BASE_URL}/orders/${encodeURIComponent(
+    orderNo
+  )}/claim-pickup`;
 
-  let lastErr = null;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      Authorization: `Bearer ${auth.token}`,
+    },
+    body: JSON.stringify({}),
+  });
 
-  for (const a of attempts) {
-    try {
-      const res = await fetch(a.url, {
-        method: a.method,
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          Authorization: `Bearer ${auth.token}`,
-        },
-        body: JSON.stringify(a.body),
-      });
+  let data = null;
+  let raw = "";
+  try {
+    data = await res.clone().json();
+  } catch {}
+  try {
+    raw = await res.text();
+  } catch {}
 
-      let data = null;
-      let raw = "";
-      try { data = await res.clone().json(); } catch {}
-      try { raw = await res.text(); } catch {}
+  const okByBody =
+    typeof data?.status === "number" ? data.status === 200 : res.ok;
 
-      const okByBody =
-        typeof data?.status === "number" ? data.status === 200 : res.ok;
-
-      if (!res.ok || !okByBody) {
-        const serverMsg =
-          (data && (data.message || data.error)) ||
-          (raw && raw.slice(0, 300)) ||
-          "";
-        throw new Error(
-          `Claim failed (HTTP ${res.status}${
-            res.statusText ? " " + res.statusText : ""
-          })${serverMsg ? " - " + serverMsg : ""}`
-        );
-      }
-
-      return data || { status: 200 };
-    } catch (e) {
-      lastErr = e;
-    }
+  if (!res.ok || !okByBody) {
+    const serverMsg =
+      (data && (data.message || data.error)) || (raw && raw.slice(0, 300)) || "";
+    throw new Error(
+      `Claim failed (HTTP ${res.status}${
+        res.statusText ? " " + res.statusText : ""
+      })${serverMsg ? " - " + serverMsg : ""}`
+    );
   }
 
-  throw new Error(
-    `Claim endpoint not configured. Share the exact URL/method/body and I'll wire it. Last error: ${
-      lastErr?.message || lastErr
-    }`
-  );
+  return data || { status: 200 };
 }
 
 // ---------- PUBLIC API (Bearer auto-attached) ----------
@@ -301,5 +297,6 @@ export {
   loginRequest,
   fetchAssignedOrders,
   fetchAwaitingPickupOrders,
-  claimOrder,
+  fetchAwaitingPickupMine,
+  claimPickupByOrderNo,
 };

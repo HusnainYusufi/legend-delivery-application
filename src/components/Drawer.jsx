@@ -11,9 +11,9 @@ export default function Drawer({
   onLoginClick,
   onLogout,
   onOrdersClick,
-  onPoolClick, // <-- new
+  onPoolClick, // new
   language,
-  role,        // <-- new
+  role,        // new
 }) {
   const { t } = useTranslation();
   const isRTL = language === "ar";
@@ -21,12 +21,10 @@ export default function Drawer({
 
   useEffect(() => {
     if (!isOpen) return;
-
     const onEsc = (e) => e.key === "Escape" && onClose();
     document.addEventListener("keydown", onEsc);
     document.body.classList.add("overflow-hidden");
     const sub = CapApp.addListener("backButton", () => onClose());
-
     return () => {
       document.removeEventListener("keydown", onEsc);
       document.body.classList.remove("overflow-hidden");
@@ -67,10 +65,7 @@ export default function Drawer({
           {isAuthenticated ? (
             <>
               <button
-                onClick={() => {
-                  onOrdersClick?.();
-                  onClose();
-                }}
+                onClick={() => { onOrdersClick?.(); onClose(); }}
                 className="w-full flex items-center gap-3 p-3 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
               >
                 <ListChecks className="h-5 w-5" />
@@ -79,10 +74,7 @@ export default function Drawer({
 
               {isDriver && (
                 <button
-                  onClick={() => {
-                    onPoolClick?.();
-                    onClose();
-                  }}
+                  onClick={() => { onPoolClick?.(); onClose(); }}
                   className="w-full flex items-center gap-3 p-3 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                 >
                   <Truck className="h-5 w-5" />
@@ -91,10 +83,7 @@ export default function Drawer({
               )}
 
               <button
-                onClick={() => {
-                  onLogout?.();
-                  onClose();
-                }}
+                onClick={() => { onLogout?.(); onClose(); }}
                 className="w-full flex items-center gap-3 p-3 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
               >
                 <Lock className="h-5 w-5" />
@@ -103,9 +92,7 @@ export default function Drawer({
             </>
           ) : (
             <button
-              onClick={() => {
-                onLoginClick?.();
-              }}
+              onClick={() => { onLoginClick?.(); }}
               className="w-full flex items-center gap-3 p-3 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
             >
               <User className="h-5 w-5" />
