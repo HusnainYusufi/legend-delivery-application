@@ -4,7 +4,7 @@ import { initReactI18next } from "react-i18next";
 const resources = {
   en: {
     translation: {
-      brand: "LEGEND DELIVERY",
+      brand: "SHAHEEN",
       splash_tagline: "Fast. Simple. Reliable.",
       scan_or_enter: "Scan QR or enter order number",
       placeholder_order: "e.g. ORD-12345",
@@ -18,7 +18,6 @@ const resources = {
       next_suggested: "Next Suggested",
       current: "Current",
       occurred: "Occurred",
-      // tip_camera removed as requested
       toast_need_order: "Enter or scan an order number.",
       error_fetch_status: "Failed to fetch status",
       scanned_payload: "Scanned payload",
@@ -30,7 +29,6 @@ const resources = {
       order_details: "Order Details",
       track_order: "Track Order",
 
-      // Auth
       login: "Login",
       logout: "Logout",
       login_title: "Welcome Back",
@@ -47,7 +45,6 @@ const resources = {
       show_password: "Show password",
       hide_password: "Hide password",
 
-      // Orders page
       orders_title: "Orders",
       orders_nav: "Orders",
       loading: "Loading…",
@@ -58,7 +55,6 @@ const resources = {
       more: "more",
       order_date: "Order Date",
 
-      // Pickup Pool
       pickup_pool: "Pickup Pool",
       tab_pool: "Pool",
       tab_mine: "My Claimed",
@@ -70,7 +66,7 @@ const resources = {
   },
   ar: {
     translation: {
-      brand: "ليجند ديلفري",
+      brand: "شاهين",
       splash_tagline: "سريع. بسيط. موثوق.",
       scan_or_enter: "امسح رمز QR أو أدخل رقم الطلب",
       placeholder_order: "مثال: ORD-12345",
@@ -84,7 +80,6 @@ const resources = {
       next_suggested: "مقترح التالي",
       current: "حالي",
       occurred: "حدث",
-      // tip removed
       toast_need_order: "أدخل أو امسح رقم الطلب.",
       error_fetch_status: "تعذر جلب الحالة",
       scanned_payload: "البيانات الممسوحة",
@@ -96,7 +91,6 @@ const resources = {
       order_details: "تفاصيل الطلب",
       track_order: "تتبع الطلب",
 
-      // Auth
       login: "تسجيل الدخول",
       logout: "تسجيل الخروج",
       login_title: "مرحبًا بعودتك",
@@ -113,7 +107,6 @@ const resources = {
       show_password: "إظهار كلمة المرور",
       hide_password: "إخفاء كلمة المرور",
 
-      // Orders page
       orders_title: "الطلبات",
       orders_nav: "الطلبات",
       loading: "جارٍ التحميل…",
@@ -124,7 +117,6 @@ const resources = {
       more: "أخرى",
       order_date: "تاريخ الطلب",
 
-      // Pickup Pool
       pickup_pool: "طلبات بانتظار الاستلام",
       tab_pool: "المسبح",
       tab_mine: "طلباتـي",
@@ -143,7 +135,7 @@ i18n.use(initReactI18next).init({
   interpolation: { escapeValue: false },
 });
 
-function syncDir(lng) {
+function syncDir(lng){
   const dir = lng === "ar" ? "rtl" : "ltr";
   document.documentElement.setAttribute("dir", dir);
   document.documentElement.setAttribute("lang", lng);

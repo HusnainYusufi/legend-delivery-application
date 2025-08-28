@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Loader2, RefreshCcw, ChevronDown, ChevronUp, QrCode, Search, PackageOpen } from "lucide-react";
 import ScannerOverlay from "./ScannerOverlay.jsx";
@@ -6,11 +6,11 @@ import StatusBadge from "./StatusBadge.jsx";
 import { ensureCameraPermission, startWebQrScanner } from "../lib/scanner.js";
 import { parseOrderNumberFromScan, fetchAwaitingPickupOrders, fetchAwaitingPickupMine, claimPickupByOrderNo } from "../lib/api.js";
 
-// safe text helper
+/* util */
 const safeText = (v, { fallback = "-" } = {}) => {
   if (v == null) return fallback;
   if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") return String(v);
-  try { const json = JSON.stringify(v); return json.length > 160 ? json.slice(0,157) + "…" : json; } catch { return fallback; }
+  try { const j = JSON.stringify(v); return j.length > 160 ? j.slice(0,157)+"…" : j; } catch { return fallback; }
 };
 
 function Row({ order, collapsedDefault = true, rightEl, t }) {
@@ -20,21 +20,34 @@ function Row({ order, collapsedDefault = true, rightEl, t }) {
   return (
     <article className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
       {/* collapsed header */}
-      <button
-        onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-3 py-2"
-      >
-        <div className="flex items-center gap-2 text-sm sm:text-base">
-          <span className="font-semibold text-slate-900 dark:text-slate-100">{safeText(order.orderNo)}</span>
-          <StatusBadge value={statusVal} />
-        </div>
-        <div className="flex items-center gap-2">
-          {rightEl}
-          {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-        </div>
-      </button>
+      <div className="w-full flex items-stretch justify-between px-3 py-2">
+        {/* scrollable single-line left segment */}
+        <button
+          onClick={() => setOpen(o => !o)}
+          className="min-w-0 flex-1 text-left"
+        >
+          <div className="overflow-x-auto no-scrollbar whitespace-nowrap pr-2">
+            <span className="font-semibold text-slate-900 dark:text-slate-100">{safeText(order.orderNo)}</span>
+            <span className="inline-block align-middle ml-2">
+              <StatusBadge value={statusVal} />
+            </span>
+          </div>
+        </button>
 
-      {/* expanded details */}
+        {/* right controls stay visible */}
+        <div className="flex items-center gap-2 pl-2">
+          {rightEl}
+          <button
+            onClick={() => setOpen(o => !o)}
+            className="icon-btn px-2 py-1"
+            aria-label={open ? "Collapse" : "Expand"}
+          >
+            {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </button>
+        </div>
+      </div>
+
+      {/* expanded */}
       {open && (
         <div className="px-3 pb-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
@@ -66,7 +79,7 @@ function Row({ order, collapsedDefault = true, rightEl, t }) {
             <div className="mt-3 rounded-lg bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-700 p-3">
               <div className="text-slate-500 dark:text-slate-400 text-sm mb-1">{t("items")}</div>
               <ul className="list-disc pl-5 space-y-1">
-                {order.items.slice(0, 5).map((it, idx) => (
+                {order.items.slice(0,5).map((it, idx) => (
                   <li key={idx} className="text-sm text-slate-700 dark:text-slate-200">
                     {safeText(it.productName || it.sku)} × {safeText(it.quantity ?? 1)}
                   </li>
@@ -105,10 +118,10 @@ export default function PickupPool() {
   const hasMoreMine = mine.items.length < mine.count;
 
   const loadPool = useCallback(async ({ reset = false } = {}) => {
-    try {
+    try{
       setError("");
-      if (reset) setPool(s => ({ ...s, loading: true }));
-      else setPool(s => ({ ...s, moreLoading: true }));
+      if (reset) setPool(s => ({ ...s, loading:true }));
+      else setPool(s => ({ ...s, moreLoading:true }));
 
       const res = await fetchAwaitingPickupOrders({
         page: reset ? 1 : pool.page,
@@ -118,23 +131,23 @@ export default function PickupPool() {
       });
 
       const next = Array.isArray(res.orders) ? res.orders : [];
-      if (reset) {
-        setPool({ items: next, page: 2, limit: pool.limit, count: res.count || next.length, loading: false, moreLoading: false });
-      } else {
-        setPool(s => ({ ...s, items: [...s.items, ...next], page: s.page + 1, count: res.count || s.count, moreLoading: false, loading: false }));
+      if (reset){
+        setPool({ items: next, page: 2, limit: pool.limit, count: res.count || next.length, loading:false, moreLoading:false });
+      }else{
+        setPool(s => ({ ...s, items:[...s.items, ...next], page:s.page+1, count: res.count || s.count, moreLoading:false, loading:false }));
       }
-    } catch (e) {
+    }catch(e){
       setError(e?.message || "Failed to load pool");
-      setPool(s => ({ ...s, loading: false, moreLoading: false }));
+      setPool(s => ({ ...s, loading:false, moreLoading:false }));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, pool.page, pool.limit]);
 
   const loadMine = useCallback(async ({ reset = false } = {}) => {
-    try {
+    try{
       setError("");
-      if (reset) setMine(s => ({ ...s, loading: true }));
-      else setMine(s => ({ ...s, moreLoading: true }));
+      if (reset) setMine(s => ({ ...s, loading:true }));
+      else setMine(s => ({ ...s, moreLoading:true }));
 
       const res = await fetchAwaitingPickupMine({
         page: reset ? 1 : mine.page,
@@ -143,52 +156,39 @@ export default function PickupPool() {
       });
 
       const next = Array.isArray(res.orders) ? res.orders : [];
-      if (reset) {
-        setMine({ items: next, page: 2, limit: mine.limit, count: res.count || next.length, loading: false, moreLoading: false });
-      } else {
-        setMine(s => ({ ...s, items: [...s.items, ...next], page: s.page + 1, count: res.count || s.count, moreLoading: false, loading: false }));
+      if (reset){
+        setMine({ items: next, page: 2, limit: mine.limit, count: res.count || next.length, loading:false, moreLoading:false });
+      }else{
+        setMine(s => ({ ...s, items:[...s.items, ...next], page:s.page+1, count: res.count || s.count, moreLoading:false, loading:false }));
       }
-    } catch (e) {
+    }catch(e){
       setError(e?.message || "Failed to load my claimed");
-      setMine(s => ({ ...s, loading: false, moreLoading: false }));
+      setMine(s => ({ ...s, loading:false, moreLoading:false }));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, mine.page, mine.limit]);
 
-  // initial load
   useEffect(() => {
-    loadPool({ reset: true });
-    loadMine({ reset: true });
+    loadPool({ reset:true });
+    loadMine({ reset:true });
   }, []); // eslint-disable-line
 
-  // refresh lists when changing search
   const onSearch = (e) => {
     e?.preventDefault?.();
-    if (tab === "pool") loadPool({ reset: true });
-    else loadMine({ reset: true });
-  };
-
-  // CLAIM: open scanner -> decode -> API -> update lists
-  const onClaimClick = (order) => {
-    pendingOrderToClaim.current = order?.orderNo || null;
-    setScannerKey(k => k + 1);
-    setScanOpen(true);
+    if (tab === "pool") loadPool({ reset:true });
+    else loadMine({ reset:true });
   };
 
   const stopScanner = useCallback(async () => {
-    try { await scannerRef.current?.stop?.(); } catch {}
+    try{ await scannerRef.current?.stop?.(); }catch{}
     scannerRef.current = null;
   }, []);
 
   const beginScan = useCallback(async () => {
     const perm = await ensureCameraPermission();
-    if (!perm.granted) {
-      setError(t("camera_permission_denied"));
-      setScanOpen(false);
-      return;
-    }
+    if (!perm.granted){ setError(t("camera_permission_denied")); setScanOpen(false); return; }
     setTimeout(async () => {
-      try {
+      try{
         const s = await startWebQrScanner(
           scannerDivId,
           async (decoded) => {
@@ -198,24 +198,20 @@ export default function PickupPool() {
             const orderNo = ordFromQr || pendingOrderToClaim.current;
             if (!orderNo) return;
 
-            try {
+            try{
               await claimPickupByOrderNo(orderNo);
-              setToast({ type: "success", msg: t("claimed_success") });
+              setToast({ type:"success", msg:t("claimed_success") });
               setTimeout(() => setToast(null), 1200);
-              // refresh lists
-              await loadPool({ reset: true });
-              await loadMine({ reset: true });
-            } catch (err) {
+              await loadPool({ reset:true });
+              await loadMine({ reset:true });
+            }catch(err){
               setError(err?.message || "Claim failed");
             }
           },
-          (err) => {
-            setError(err || t("camera_init_failed"));
-            setScanOpen(false);
-          }
+          (err) => { setError(err || t("camera_init_failed")); setScanOpen(false); }
         );
         scannerRef.current = s;
-      } catch {
+      }catch{
         setError(t("camera_init_failed"));
         setScanOpen(false);
       }
@@ -236,10 +232,7 @@ export default function PickupPool() {
         <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">{t("pickup_pool")}</h2>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => {
-              if (tab === "pool") loadPool({ reset: true });
-              else loadMine({ reset: true });
-            }}
+            onClick={() => { if (tab==="pool") loadPool({ reset:true }); else loadMine({ reset:true }); }}
             disabled={currentList.loading}
             className="btn bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600 px-3 py-2"
           >
@@ -308,7 +301,7 @@ export default function PickupPool() {
                 tab === "pool" ? (
                   <button
                     type="button"
-                    onClick={(e) => { e.stopPropagation(); onClaimClick(o); }}
+                    onClick={() => { pendingOrderToClaim.current = o?.orderNo || null; setScannerKey(k=>k+1); setScanOpen(true); }}
                     className="inline-flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium text-white brand-gradient"
                     title={t("scan_to_claim")}
                   >
@@ -323,10 +316,10 @@ export default function PickupPool() {
       )}
 
       {/* Load more */}
-      {hasMore && (
+      {((tab==="pool" && hasMorePool) || (tab==="mine" && hasMoreMine)) && (
         <div className="mt-4 flex justify-center">
           <button
-            onClick={() => (tab === "pool" ? loadPool({ reset: false }) : loadMine({ reset: false }))}
+            onClick={() => (tab === "pool" ? loadPool({ reset:false }) : loadMine({ reset:false }))}
             disabled={currentList.moreLoading}
             className="btn bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600 px-4 py-2"
           >
@@ -347,10 +340,7 @@ export default function PickupPool() {
       <ScannerOverlay
         key={scannerKey}
         visible={scanOpen}
-        onClose={async () => {
-          await stopScanner();
-          setScanOpen(false);
-        }}
+        onClose={async () => { await stopScanner(); setScanOpen(false); }}
         scannerDivId={scannerDivId}
         title={t("scan_to_claim")}
       />

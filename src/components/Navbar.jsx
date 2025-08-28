@@ -14,8 +14,8 @@ export default function Navbar({
   const { t } = useTranslation();
 
   return (
-    <nav className="navbar fixed top-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 shadow-md px-4">
-      <div className="navbar-inner max-w-3xl mx-auto py-2 flex items-center justify-between">
+    <nav className="navbar px-4">
+      <div className="navbar-inner">
         <div className="flex items-center gap-2">
           <button
             onClick={onMenuClick}
@@ -29,7 +29,9 @@ export default function Navbar({
               <QrCode className="h-4 w-4" />
             </div>
             <div className="leading-tight">
-              <div className="text-sm font-bold tracking-tight text-slate-800 dark:text-white">LEGEND DELIVERY</div>
+              <div className="text-sm font-bold tracking-tight text-slate-800 dark:text-white">
+                {t("brand")}
+              </div>
               <div className="text-[10px] text-slate-500 dark:text-slate-400">QR Status</div>
             </div>
           </div>
