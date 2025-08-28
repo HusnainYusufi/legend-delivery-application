@@ -53,7 +53,7 @@ export default function LoginModal({ onClose, onLogin }) {
         </button>
 
         <div className="flex justify-center mb-6">
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: "linear-gradient(135deg,#072c41,#0a3b57)" }}>
+          <div className="brand-gradient w-16 h-16 rounded-2xl flex items-center justify-center">
             <User className="h-8 w-8 text-white" />
           </div>
         </div>
@@ -78,7 +78,7 @@ export default function LoginModal({ onClose, onLogin }) {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white pl-10 pr-4 py-3 outline-none transition-all focus:border-slate-400 focus:ring-2 focus:ring-slate-100 dark:focus:ring-slate-900"
+                className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white pl-10 pr-4 py-3 outline-none transition-all focus:border-[var(--brand-500)] focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900"
                 placeholder={t("email_placeholder")}
                 required
                 autoComplete="username"
@@ -98,7 +98,7 @@ export default function LoginModal({ onClose, onLogin }) {
                 type={showPw ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white pl-10 pr-12 py-3 outline-none transition-all focus:border-slate-400 focus:ring-2 focus:ring-slate-100 dark:focus:ring-slate-900"
+                className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white pl-10 pr-12 py-3 outline-none transition-all focus:border-[var(--brand-500)] focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900"
                 placeholder={t("password_placeholder")}
                 required
                 autoComplete="current-password"
@@ -114,16 +114,16 @@ export default function LoginModal({ onClose, onLogin }) {
             </div>
           </div>
 
-        {error && (
-          <div className="mb-6 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-700 dark:text-red-200 flex items-center">
-            {error}
-          </div>
-        )}
+          {error && (
+            <div className="mb-6 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-700 dark:text-red-200 flex items-center">
+              {error}
+            </div>
+          )}
 
           <button
             type="submit"
             disabled={isLoading}
-            className="btn btn-brand w-full py-3.5 rounded-xl font-medium flex items-center justify-center gap-2"
+            className="btn text-white w-full py-3.5 rounded-xl font-medium flex items-center justify-center gap-2 brand-gradient"
           >
             {isLoading ? (
               <div className="border-2 border-white border-t-transparent rounded-full w-5 h-5 animate-spin"></div>
@@ -135,7 +135,7 @@ export default function LoginModal({ onClose, onLogin }) {
 
           <div className="mt-4 text-center text-sm text-slate-500 dark:text-slate-400">
             {t("forgot_password")}
-            <button type="button" className="text-slate-700 dark:text-slate-300 font-medium ml-1">
+            <button type="button" className="text-[var(--brand-500)] font-medium ml-1">
               {t("reset_here")}
             </button>
           </div>

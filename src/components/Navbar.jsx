@@ -1,28 +1,31 @@
 import React from "react";
-import { QrCode, Menu, ListChecks } from "lucide-react";
+import { QrCode, Menu, ListChecks, Truck } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 export default function Navbar({
   language,
   onChangeLanguage,
   isAuthenticated,
+  isDriver = false,
   onMenuClick,
   onOrdersClick,
+  onPickupClick,
 }) {
   const { t } = useTranslation();
+
   return (
     <nav className="navbar fixed top-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 shadow-md px-4">
       <div className="navbar-inner max-w-3xl mx-auto py-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <button
             onClick={onMenuClick}
-            className="icon-btn-brand p-2.5 rounded-lg"
+            className="icon-btn text-white p-2.5 rounded-lg brand-gradient"
             aria-label={t("menu")}
           >
             <Menu className="h-5 w-5" />
           </button>
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl brand-chip">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl text-white brand-gradient">
               <QrCode className="h-4 w-4" />
             </div>
             <div className="leading-tight">
@@ -36,6 +39,7 @@ export default function Navbar({
           {isAuthenticated && (
             <>
               <div className="h-2 w-2 rounded-full bg-green-500" title="Authenticated"></div>
+
               <button
                 onClick={onOrdersClick}
                 className="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium rounded-lg border border-slate-300 dark:border-slate-600 px-2.5 py-1.5 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-600"
@@ -43,6 +47,16 @@ export default function Navbar({
                 <ListChecks className="h-4 w-4" />
                 {t("orders_nav")}
               </button>
+
+              {isDriver && (
+                <button
+                  onClick={onPickupClick}
+                  className="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium rounded-lg border border-slate-300 dark:border-slate-600 px-2.5 py-1.5 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-600"
+                >
+                  <Truck className="h-4 w-4" />
+                  {t("pickup_pool")}
+                </button>
+              )}
             </>
           )}
 

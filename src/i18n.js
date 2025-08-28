@@ -1,4 +1,3 @@
-// src/i18n.js
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 
@@ -19,7 +18,7 @@ const resources = {
       next_suggested: "Next Suggested",
       current: "Current",
       occurred: "Occurred",
-      tip_camera: "Tip: On device, camera scanning needs HTTPS + permission.",
+      // tip_camera removed as requested
       toast_need_order: "Enter or scan an order number.",
       error_fetch_status: "Failed to fetch status",
       scanned_payload: "Scanned payload",
@@ -30,22 +29,8 @@ const resources = {
       open_settings: "Open Settings",
       order_details: "Order Details",
       track_order: "Track Order",
-      menu: "Menu",
-      close: "Close",
 
-      // Orders list
-      orders_title: "My Orders",
-      orders_nav: "Orders",
-      loading: "Loading…",
-      no_orders: "No orders found",
-      order_date: "Order Date",
-      items: "Items",
-      more: "more",
-      load_more: "Load more",
-      customer: "Customer",
-      city: "City",
-
-      // Login
+      // Auth
       login: "Login",
       logout: "Logout",
       login_title: "Welcome Back",
@@ -58,46 +43,30 @@ const resources = {
       login_error: "Invalid email or password. Please try again.",
       forgot_password: "Forgot your password?",
       reset_here: "Reset here",
+      menu: "Menu",
       show_password: "Show password",
       hide_password: "Hide password",
 
-      // Driver pickup pool
-      pool_nav: "Pickup Pool",
-      pickup_pool_title: "Pickup Pool",
-      pickup_pool_sub: "Unassigned orders awaiting pickup.",
-      pickup_mine_sub: "Orders you have claimed.",
+      // Orders page
+      orders_title: "Orders",
+      orders_nav: "Orders",
+      loading: "Loading…",
+      no_orders: "No orders found.",
+      customer: "Customer",
+      city: "City",
+      items: "Items",
+      more: "more",
+      order_date: "Order Date",
+
+      // Pickup Pool
+      pickup_pool: "Pickup Pool",
       tab_pool: "Pool",
       tab_mine: "My Claimed",
-      pickup_search_placeholder: "Search by order no, name, city, phone, tracking…",
-      no_pool_orders: "No pickup orders available",
-      no_mine_orders: "You have no claimed orders",
-      no_matches: "No matches",
-      address: "Address",
-      boxes: "Boxes",
-      weight: "Weight",
-      call_customer: "Call",
+      search_orders: "Search by order number",
       claim: "Claim",
-      scan_to_claim: "Scan order QR to claim",
-      scan_no_order: "QR did not include an order number.",
-      scanning_claiming: "Claiming…",
-
-      statuses: {
-        PENDING: "Pending",
-        PREPARING: "Preparing",
-        PREPARED: "Prepared",
-        AWAITING_PICKUP: "Awaiting Pickup",
-        IN_TRANSIT: "In Transit",
-        OUT_FOR_DELIVERY: "Out for Delivery",
-        DELIVERED: "Delivered",
-        DELIVERY_FAILED: "Delivery Failed",
-        ON_HOLD: "On Hold",
-        RETURNED: "Returned",
-        CANCELLED: "Cancelled",
-      },
-
-      claim_success: "Order claimed ✓",
-      claim_failed: "Claim failed",
-    },
+      scan_to_claim: "Scan & Claim",
+      claimed_success: "Order claimed ✓",
+    }
   },
   ar: {
     translation: {
@@ -115,7 +84,7 @@ const resources = {
       next_suggested: "مقترح التالي",
       current: "حالي",
       occurred: "حدث",
-      tip_camera: "ملاحظة: على الجهاز، المسح يحتاج HTTPS + إذن.",
+      // tip removed
       toast_need_order: "أدخل أو امسح رقم الطلب.",
       error_fetch_status: "تعذر جلب الحالة",
       scanned_payload: "البيانات الممسوحة",
@@ -126,22 +95,8 @@ const resources = {
       open_settings: "فتح الإعدادات",
       order_details: "تفاصيل الطلب",
       track_order: "تتبع الطلب",
-      menu: "القائمة",
-      close: "إغلاق",
 
-      // Orders list
-      orders_title: "طلباتي",
-      orders_nav: "الطلبات",
-      loading: "جارٍ التحميل…",
-      no_orders: "لا توجد طلبات",
-      order_date: "تاريخ الطلب",
-      items: "العناصر",
-      more: "أخرى",
-      load_more: "تحميل المزيد",
-      customer: "العميل",
-      city: "المدينة",
-
-      // Login
+      // Auth
       login: "تسجيل الدخول",
       logout: "تسجيل الخروج",
       login_title: "مرحبًا بعودتك",
@@ -151,50 +106,34 @@ const resources = {
       email_placeholder: "بريدك@example.com",
       password_placeholder: "••••••••",
       login_button: "تسجيل الدخول",
-      login_error: "بريد إلكتروني أو كلمة مرور غير صحيحة.",
+      login_error: "بريد إلكتروني أو كلمة مرور غير صحيحة. حاول مرة أخرى.",
       forgot_password: "نسيت كلمة المرور؟",
-      reset_here: "إعادة التعيين من هنا",
+      reset_here: "إعادة تعيين هنا",
+      menu: "القائمة",
       show_password: "إظهار كلمة المرور",
       hide_password: "إخفاء كلمة المرور",
 
-      // Driver pickup pool
-      pool_nav: "طلبات الاستلام",
-      pickup_pool_title: "طلبات بانتظار الاستلام",
-      pickup_pool_sub: "طلبات غير مُعيّنة بانتظار الاستلام.",
-      pickup_mine_sub: "الطلبات التي استلمتها.",
-      tab_pool: "المجمع",
-      tab_mine: "طلباتي",
-      pickup_search_placeholder: "ابحث برقم الطلب أو الاسم أو المدينة أو الهاتف أو التتبع…",
-      no_pool_orders: "لا توجد طلبات للاستلام",
-      no_mine_orders: "لا توجد طلبات مستلمة",
-      no_matches: "لا توجد نتائج",
-      address: "العنوان",
-      boxes: "الصناديق",
-      weight: "الوزن",
-      call_customer: "اتصال",
+      // Orders page
+      orders_title: "الطلبات",
+      orders_nav: "الطلبات",
+      loading: "جارٍ التحميل…",
+      no_orders: "لا توجد طلبات.",
+      customer: "العميل",
+      city: "المدينة",
+      items: "العناصر",
+      more: "أخرى",
+      order_date: "تاريخ الطلب",
+
+      // Pickup Pool
+      pickup_pool: "طلبات بانتظار الاستلام",
+      tab_pool: "المسبح",
+      tab_mine: "طلباتـي",
+      search_orders: "ابحث برقم الطلب",
       claim: "استلام",
-      scan_to_claim: "امسح QR الخاص بالطلب للاستلام",
-      scan_no_order: "رمز QR لا يحتوي على رقم طلب.",
-      scanning_claiming: "جارٍ الاستلام…",
-
-      statuses: {
-        PENDING: "قيد الانتظار",
-        PREPARING: "قيد التحضير",
-        PREPARED: "تم التحضير",
-        AWAITING_PICKUP: "بانتظار الاستلام",
-        IN_TRANSIT: "قيد النقل",
-        OUT_FOR_DELIVERY: "خارج للتسليم",
-        DELIVERED: "تم التسليم",
-        DELIVERY_FAILED: "فشل التسليم",
-        ON_HOLD: "معلق",
-        RETURNED: "مرتجع",
-        CANCELLED: "ملغى",
-      },
-
-      claim_success: "تم الاستلام ✓",
-      claim_failed: "فشل الاستلام",
-    },
-  },
+      scan_to_claim: "مسح للاستلام",
+      claimed_success: "تم الاستلام ✓",
+    }
+  }
 };
 
 i18n.use(initReactI18next).init({

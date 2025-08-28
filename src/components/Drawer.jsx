@@ -1,4 +1,3 @@
-// src/components/Drawer.jsx
 import React, { useEffect, useRef } from "react";
 import { X, User, Lock, ListChecks, Truck } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -8,12 +7,12 @@ export default function Drawer({
   isOpen,
   onClose,
   isAuthenticated,
+  isDriver = false,
   onLoginClick,
   onLogout,
   onOrdersClick,
-  onPoolClick, // new
+  onPickupClick,
   language,
-  role,        // new
 }) {
   const { t } = useTranslation();
   const isRTL = language === "ar";
@@ -24,17 +23,19 @@ export default function Drawer({
     const onEsc = (e) => e.key === "Escape" && onClose();
     document.addEventListener("keydown", onEsc);
     document.body.classList.add("overflow-hidden");
-    const sub = CapApp.addListener("backButton", () => onClose());
     return () => {
       document.removeEventListener("keydown", onEsc);
       document.body.classList.remove("overflow-hidden");
-      sub?.remove();
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (!isOpen) return;
+    const sub = CapApp.addListener("backButton", () => onClose());
+    return () => sub?.remove();
+  }, [isOpen, onClose]);
 
-  const isDriver = isAuthenticated && role === "driver";
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-[100]">
@@ -44,7 +45,6 @@ export default function Drawer({
         onClick={onClose}
         role="presentation"
       />
-
       <div
         className={`fixed top-0 ${isRTL ? "left-0" : "right-0"} h-full w-64 bg-white dark:bg-slate-800 shadow-xl z-[101] ${
           isOpen ? "animate-slide-in" : isRTL ? "animate-slide-out-left" : "animate-slide-out-right"
@@ -65,7 +65,10 @@ export default function Drawer({
           {isAuthenticated ? (
             <>
               <button
-                onClick={() => { onOrdersClick?.(); onClose(); }}
+                onClick={() => {
+                  onOrdersClick?.();
+                  onClose();
+                }}
                 className="w-full flex items-center gap-3 p-3 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
               >
                 <ListChecks className="h-5 w-5" />
@@ -74,16 +77,22 @@ export default function Drawer({
 
               {isDriver && (
                 <button
-                  onClick={() => { onPoolClick?.(); onClose(); }}
+                  onClick={() => {
+                    onPickupClick?.();
+                    onClose();
+                  }}
                   className="w-full flex items-center gap-3 p-3 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                 >
                   <Truck className="h-5 w-5" />
-                  <span className="text-base">{t("pool_nav")}</span>
+                  <span className="text-base">{t("pickup_pool")}</span>
                 </button>
               )}
 
               <button
-                onClick={() => { onLogout?.(); onClose(); }}
+                onClick={() => {
+                  onLogout?.();
+                  onClose();
+                }}
                 className="w-full flex items-center gap-3 p-3 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
               >
                 <Lock className="h-5 w-5" />
@@ -92,7 +101,9 @@ export default function Drawer({
             </>
           ) : (
             <button
-              onClick={() => { onLoginClick?.(); }}
+              onClick={() => {
+                onLoginClick?.();
+              }}
               className="w-full flex items-center gap-3 p-3 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
             >
               <User className="h-5 w-5" />
