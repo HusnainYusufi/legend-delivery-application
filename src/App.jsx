@@ -1,4 +1,3 @@
-// src/App.jsx
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Camera as CameraIcon, Loader2, QrCode, RefreshCcw, XCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -21,9 +20,6 @@ import {
 
 import { getAuth as loadAuth, setAuth as persistAuth, clearAuth as purgeAuth } from "./lib/auth.js";
 
-// NEW: enable framer-motion presence for splash exit fade
-import { AnimatePresence } from "framer-motion";
-
 export default function App() {
   const { t, i18n } = useTranslation();
 
@@ -34,11 +30,10 @@ export default function App() {
     document.documentElement.classList.toggle("dark", darkMode);
   }, [darkMode]);
 
-  // Splash
+  // Splash (long enough to finish the CSS animation)
   const [showSplash, setShowSplash] = useState(true);
   useEffect(() => {
-    // LONGER to let animation complete
-    const tm = setTimeout(() => setShowSplash(false), 1800);
+    const tm = setTimeout(() => setShowSplash(false), 2100);
     return () => clearTimeout(tm);
   }, []);
 
@@ -70,9 +65,7 @@ export default function App() {
   // Restore auth on first load
   useEffect(() => {
     const saved = loadAuth();
-    if (saved?.token) {
-      setAuthState(saved);
-    }
+    if (saved?.token) setAuthState(saved);
   }, []);
 
   const handleLogin = (authData) => {
@@ -82,9 +75,6 @@ export default function App() {
     setIsLoginModalOpen(false);
     setToast({ type: "success", msg: "Logged in ✓" });
     setTimeout(() => setToast(null), 1500);
-
-    // If driver, jump straight to orders view (optional; comment out if not desired)
-    // if (authData.role === "driver") setView("orders");
   };
 
   const handleLogout = () => {
@@ -143,11 +133,7 @@ export default function App() {
   }, [stopScanner, t]);
 
   // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      stopScanner();
-    };
-  }, [stopScanner]);
+  useEffect(() => () => { stopScanner(); }, [stopScanner]);
 
   // Fetch status (home)
   const getStatus = useCallback(async () => {
@@ -207,8 +193,8 @@ export default function App() {
 
   return (
     <div className="app-shell min-h-screen relative">
-      {/* NEW: AnimatePresence for Splash exit fade */}
-      <AnimatePresence>{showSplash && <Splash />}</AnimatePresence>
+      {/* Splash above navbar */}
+      {showSplash && <Splash />}
 
       <Navbar
         language={language}
@@ -244,81 +230,84 @@ export default function App() {
       <main className="content safe-b max-w-3xl mx-auto px-4 pb-6">
         {view === "home" && (
           <>
-            {/* Scanner + input card */}
-            <section className="card bg-white dark:bg-slate-800 rounded-xl shadow-lg p-5 mb-6 border border-slate-200 dark:border-slate-700 mx-auto">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl brand-gradient text-white">
-                  <QrCode className="h-5 w-5" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">{t("track_order")}</h2>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">{t("scan_or_enter")}</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    {t("order")}
-                  </label>
-                  <input
-                    className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white px-4 py-3 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900"
-                    placeholder={t("placeholder_order")}
-                    value={orderNumber}
-                    onChange={(e) => setOrderNumber(e.target.value)}
-                    inputMode="text"
-                    autoComplete="off"
-                    onPaste={(e) => e.stopPropagation()}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={beginScan}
-                    className="btn brand-gradient hover:opacity-95 text-white flex items-center justify-center gap-2"
-                  >
-                    <CameraIcon className="h-5 w-5" /> {t("scan")}
-                  </button>
-
-                  <button
-                    onClick={reset}
-                    className="btn bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600"
-                  >
-                    <RefreshCcw className="h-5 w-5 mx-auto" />
-                  </button>
-                </div>
-
-                <button
-                  onClick={getStatus}
-                  disabled={isLoading}
-                  className="btn bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white flex items-center justify-center gap-2"
-                >
-                  {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <QrCode className="h-5 w-5" />}
-                  {t("load_status")}
-                </button>
-              </div>
-
-              {!!scanError && (
-                <div className="mt-4 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-700 dark:text-red-200 flex items-start">
-                  <XCircle className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
+            {/* Center the scan card when there's no details yet */}
+            <div className={`${current ? "" : "min-h-[70dvh] flex items-center justify-center"}`}>
+              {/* Scanner + input card */}
+              <section className="card bg-white dark:bg-slate-800 rounded-xl shadow-lg p-5 mb-6 border border-slate-200 dark:border-slate-700 mx-auto max-w-md w-full">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl brand-gradient text-white">
+                    <QrCode className="h-5 w-5" />
+                  </div>
                   <div>
-                    {scanError}
-                    {permDenied && (
-                      <button onClick={openAppSettings} className="ml-2 underline font-medium">
-                        {t("open_settings")}
-                      </button>
-                    )}
+                    <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">{t("track_order")}</h2>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">{t("scan_or_enter")}</p>
                   </div>
                 </div>
-              )}
 
-              {!!rawScan && (
-                <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
-                  <p className="text-xs text-slate-500 dark:text-slate-400">{t("scanned_payload")}:</p>
-                  <p className="text-sm font-mono break-words mt-1 text-slate-700 dark:text-slate-300">{rawScan}</p>
+                <div className="grid grid-cols-1 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      {t("order")}
+                    </label>
+                    <input
+                      className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white px-4 py-3 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900"
+                      placeholder={t("placeholder_order")}
+                      value={orderNumber}
+                      onChange={(e) => setOrderNumber(e.target.value)}
+                      inputMode="text"
+                      autoComplete="off"
+                      onPaste={(e) => e.stopPropagation()}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={beginScan}
+                      className="btn brand-gradient hover:opacity-95 text-white flex items-center justify-center gap-2"
+                    >
+                      <CameraIcon className="h-5 w-5" /> {t("scan")}
+                    </button>
+
+                    <button
+                      onClick={reset}
+                      className="btn bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600"
+                    >
+                      <RefreshCcw className="h-5 w-5 mx-auto" />
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={getStatus}
+                    disabled={isLoading}
+                    className="btn bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white flex items-center justify-center gap-2"
+                  >
+                    {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <QrCode className="h-5 w-5" />}
+                    {t("load_status")}
+                  </button>
                 </div>
-              )}
-            </section>
+
+                {!!scanError && (
+                  <div className="mt-4 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-700 dark:text-red-200 flex items-start">
+                    <XCircle className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
+                    <div>
+                      {scanError}
+                      {permDenied && (
+                        <button onClick={openAppSettings} className="ml-2 underline font-medium">
+                          {t("open_settings")}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {!!rawScan && (
+                  <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{t("scanned_payload")}:</p>
+                    <p className="text-sm font-mono break-words mt-1 text-slate-700 dark:text-slate-300">{rawScan}</p>
+                  </div>
+                )}
+              </section>
+            </div>
 
             {/* Order details (home) */}
             {current && (
@@ -444,8 +433,6 @@ export default function App() {
             <div className="font-medium text-sm">{toast.msg}</div>
           </div>
         )}
-
-        {/* Removed the tip line per your earlier request */}
       </main>
 
       <ScannerOverlay

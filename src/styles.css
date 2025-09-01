@@ -30,6 +30,7 @@ body.scanner-open, body.overflow-hidden { overflow: hidden; }
   flex-direction: column;
 }
 
+/* Navbar (brand color, safe-area padding, keeps your structure) */
 .navbar { 
   @apply fixed top-0 inset-x-0 z-50 shadow-md border-b border-slate-200 dark:border-slate-800;
   background: var(--brand);
@@ -42,6 +43,7 @@ body.scanner-open, body.overflow-hidden { overflow: hidden; }
   height: 100%;
 }
 
+/* Main content underneath navbar */
 .content { 
   @apply max-w-3xl mx-auto px-4 pb-6;
   flex: 1;
@@ -51,22 +53,46 @@ body.scanner-open, body.overflow-hidden { overflow: hidden; }
   overflow-y: auto;
 }
 
+/* Cards & buttons */
 .card { @apply rounded-2xl border border-slate-200 bg-white shadow-sm dark:bg-slate-800 dark:border-slate-700; }
 .btn  { @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 font-medium shadow-sm transition; }
 .icon-btn { @apply rounded-xl flex items-center justify-center border border-slate-300 bg-white hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-700 dark:hover:bg-slate-600; }
 
-/* ===== Splash (no CSS auto-fade) ===== */
+/* ====== SPLASH (Z-INDEX ABOVE NAVBAR) ====== */
 .splash {
-  @apply fixed inset-0 z-40 grid place-items-center;
+  @apply fixed inset-0 grid place-items-center;
+  z-index: 120; /* <-- above navbar */
   background: linear-gradient(135deg, var(--brand) 0%, var(--brand-400) 100%);
 }
 
-/* Road used in Splash */
+/* Logo tile + subtle pop */
+.splash-logo-tile {
+  @apply h-20 w-20 rounded-2xl bg-white flex items-center justify-center mb-6 shadow-xl overflow-hidden;
+  animation: logo-pop 280ms ease-out;
+}
+.splash-logo-img {
+  width: 3.5rem; height: 3.5rem; object-fit: contain;
+}
+
+/* Brand text */
+.splash-brand {
+  @apply text-2xl font-extrabold text-white tracking-tight;
+  animation: text-rise 250ms ease-out both;
+  animation-delay: 80ms;
+}
+.splash-tagline {
+  @apply mt-1 text-sm text-white/80;
+  animation: text-rise 250ms ease-out both;
+  animation-delay: 140ms;
+}
+
+/* Road */
 .road {
   @apply w-full relative overflow-hidden;
   height: 6px;
   background: rgba(255,255,255,0.2);
   border-radius: 999px;
+  transform-origin: left center;
 }
 .road-centerline {
   position: absolute; top: 50%; left: 0; right: 0; height: 2px;
@@ -74,6 +100,35 @@ body.scanner-open, body.overflow-hidden { overflow: hidden; }
   background-image: repeating-linear-gradient(90deg, #fff 0 16px, transparent 16px 28px);
   background-size: 28px 2px;
   opacity: .9;
+}
+
+/* Truck (logo) that drives */
+.truck-animate {
+  position: absolute; top: -28px; left: -18%;
+  width: 40px; height: 40px; object-fit: contain;
+  filter: drop-shadow(0 8px 12px rgba(0,0,0,.25));
+  animation: truck-drive 1000ms cubic-bezier(.22,1,.36,1) 200ms forwards;
+}
+
+/* Animate the road length */
+.road-animate { animation: road-grow 550ms cubic-bezier(.22,1,.36,1) forwards; }
+
+/* Keyframes */
+@keyframes road-grow {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+@keyframes truck-drive {
+  from { transform: translateX(0) rotate(-1.5deg); opacity: .95; }
+  to   { transform: translateX(125vw) rotate(0deg); opacity: 1; }
+}
+@keyframes logo-pop {
+  from { transform: scale(.85); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+@keyframes text-rise {
+  from { transform: translateY(8px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
 }
 
 /* Responsive tweaks */
