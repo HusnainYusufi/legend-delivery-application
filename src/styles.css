@@ -3,148 +3,127 @@
 @tailwind utilities;
 
 /* ===== Brand tokens ===== */
-:root {
-  --brand: #072c41;
-  --brand-500: #08374f;
-  --brand-400: #0a4766;
+:root{
+  --brand:#072c41;
+  --brand-500:#08374f;
+  --brand-400:#0a4766;
 }
-.brand-gradient { background-image: linear-gradient(90deg, var(--brand), var(--brand-500)); }
-.brand-chip { @apply text-white rounded-lg px-2 py-1 text-xs; background-image: linear-gradient(90deg, var(--brand), var(--brand-500)); }
+.brand-gradient{background-image:linear-gradient(90deg,var(--brand),var(--brand-500));}
 
 /* Resets */
-* { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-html, body, #root { height: 100%; width: 100%; margin: 0; padding: 0; }
+*{-webkit-tap-highlight-color:transparent;box-sizing:border-box;}
+html,body,#root{height:100%;width:100%;margin:0;padding:0;}
 
-/* Default light theme; dark still available via .dark */
-body {
+/* Default light theme */
+body{
   @apply text-slate-900 bg-sky-50 overflow-x-hidden dark:bg-slate-900 dark:text-slate-100;
-  transition: background-color 0.3s ease;
+  transition:background-color .3s ease;
 }
-body.scanner-open, body.overflow-hidden { overflow: hidden; }
+body.scanner-open,body.overflow-hidden{overflow:hidden;}
 
 /* App shell + safe areas */
-.app-shell { 
+.app-shell{
   @apply min-h-[100dvh];
-  background: linear-gradient(135deg, #f0f7fb 0%, #e5f0f6 100%);
-  display: flex;
-  flex-direction: column;
+  background:linear-gradient(135deg,#f0f7fb 0%,#e5f0f6 100%);
+  display:flex;flex-direction:column;
 }
 
-/* Navbar (brand color, safe-area padding, keeps your structure) */
-.navbar { 
+/* Navbar (brand color + safe area) */
+.navbar{
   @apply fixed top-0 inset-x-0 z-50 shadow-md border-b border-slate-200 dark:border-slate-800;
-  background: var(--brand);
-  color: white;
-  padding-top: max(env(safe-area-inset-top), 10px);
-  height: calc(max(env(safe-area-inset-top), 10px) + 3.5rem);
+  background:var(--brand);color:#fff;
+  padding-top:max(env(safe-area-inset-top),10px);
+  height:calc(max(env(safe-area-inset-top),10px) + 3.5rem);
 }
-.navbar-inner { 
-  @apply max-w-3xl mx-auto py-2 flex items-center justify-between;
-  height: 100%;
-}
+.navbar-inner{@apply max-w-3xl mx-auto py-2 flex items-center justify-between;height:100%;}
 
-/* Main content underneath navbar */
-.content { 
+/* Content under navbar */
+.content{
   @apply max-w-3xl mx-auto px-4 pb-6;
-  flex: 1;
-  padding-top: calc(max(env(safe-area-inset-top), 10px) + 4.2rem);
-  padding-bottom: env(safe-area-inset-bottom);
-  width: 100%;
-  overflow-y: auto;
+  flex:1;
+  padding-top:calc(max(env(safe-area-inset-top),10px) + 4.2rem);
+  padding-bottom:env(safe-area-inset-bottom);
+  width:100%;overflow-y:auto;
 }
 
 /* Cards & buttons */
-.card { @apply rounded-2xl border border-slate-200 bg-white shadow-sm dark:bg-slate-800 dark:border-slate-700; }
-.btn  { @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 font-medium shadow-sm transition; }
-.icon-btn { @apply rounded-xl flex items-center justify-center border border-slate-300 bg-white hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-700 dark:hover:bg-slate-600; }
+.card{@apply rounded-2xl border border-slate-200 bg-white shadow-sm dark:bg-slate-800 dark:border-slate-700;}
+.btn{@apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 font-medium shadow-sm transition;}
+.icon-btn{@apply rounded-xl flex items-center justify-center border border-slate-300 bg-white hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-700 dark:hover:bg-slate-600;}
 
-/* ====== SPLASH (Z-INDEX ABOVE NAVBAR) ====== */
-.splash {
+/* ===== Splash (above navbar) ===== */
+.splash{
   @apply fixed inset-0 grid place-items-center;
-  z-index: 120; /* <-- above navbar */
-  background: linear-gradient(135deg, var(--brand) 0%, var(--brand-400) 100%);
+  z-index:120;
+  background:linear-gradient(135deg,var(--brand) 0%,var(--brand-400) 100%);
 }
 
-/* Logo tile + subtle pop */
-.splash-logo-tile {
-  @apply h-20 w-20 rounded-2xl bg-white flex items-center justify-center mb-6 shadow-xl overflow-hidden;
-  animation: logo-pop 280ms ease-out;
+/* Logo container with a subtle drop shadow */
+.splash-logo-wrap{
+  @apply h-24 w-24 md:h-28 md:w-28 rounded-2xl bg-white flex items-center justify-center mb-6 shadow-2xl overflow-hidden;
+  animation:splash-pop .35s ease-out both;
 }
-.splash-logo-img {
-  width: 3.5rem; height: 3.5rem; object-fit: contain;
+
+/* The actual logo animation (no road, just the logo) */
+.splash-logo-anim{
+  width:4.25rem;height:4.25rem;object-fit:contain;
+  animation:
+    logo-slide-in 780ms cubic-bezier(.22,1,.36,1) 40ms both,
+    logo-bounce 520ms ease-out 820ms 1 both,
+    logo-breathe 1400ms ease-in-out 1380ms infinite alternate;
+  will-change:transform,opacity;
+  filter:drop-shadow(0 10px 14px rgba(0,0,0,.25));
 }
 
 /* Brand text */
-.splash-brand {
-  @apply text-2xl font-extrabold text-white tracking-tight;
-  animation: text-rise 250ms ease-out both;
-  animation-delay: 80ms;
+.splash-brand{
+  @apply text-2xl md:text-3xl font-extrabold text-white tracking-tight;
+  animation:splash-rise .28s ease-out .08s both;
 }
-.splash-tagline {
-  @apply mt-1 text-sm text-white/80;
-  animation: text-rise 250ms ease-out both;
-  animation-delay: 140ms;
+.splash-tagline{
+  @apply mt-1 text-sm md:text-base text-white/85;
+  animation:splash-rise .28s ease-out .14s both;
 }
-
-/* Road */
-.road {
-  @apply w-full relative overflow-hidden;
-  height: 6px;
-  background: rgba(255,255,255,0.2);
-  border-radius: 999px;
-  transform-origin: left center;
-}
-.road-centerline {
-  position: absolute; top: 50%; left: 0; right: 0; height: 2px;
-  transform: translateY(-50%);
-  background-image: repeating-linear-gradient(90deg, #fff 0 16px, transparent 16px 28px);
-  background-size: 28px 2px;
-  opacity: .9;
-}
-
-/* Truck (logo) that drives */
-.truck-animate {
-  position: absolute; top: -28px; left: -18%;
-  width: 40px; height: 40px; object-fit: contain;
-  filter: drop-shadow(0 8px 12px rgba(0,0,0,.25));
-  animation: truck-drive 1000ms cubic-bezier(.22,1,.36,1) 200ms forwards;
-}
-
-/* Animate the road length */
-.road-animate { animation: road-grow 550ms cubic-bezier(.22,1,.36,1) forwards; }
 
 /* Keyframes */
-@keyframes road-grow {
-  from { transform: scaleX(0); }
-  to   { transform: scaleX(1); }
+@keyframes splash-pop{
+  from{transform:scale(.86);opacity:0}
+  to{transform:scale(1);opacity:1}
 }
-@keyframes truck-drive {
-  from { transform: translateX(0) rotate(-1.5deg); opacity: .95; }
-  to   { transform: translateX(125vw) rotate(0deg); opacity: 1; }
+@keyframes splash-rise{
+  from{transform:translateY(8px);opacity:0}
+  to{transform:translateY(0);opacity:1}
 }
-@keyframes logo-pop {
-  from { transform: scale(.85); opacity: 0; }
-  to   { transform: scale(1); opacity: 1; }
+/* slide in from left, slight overshoot */
+@keyframes logo-slide-in{
+  0%{transform:translateX(-120%) rotate(-6deg) scale(.92);opacity:.0}
+  68%{transform:translateX(6%) rotate(1.5deg) scale(1.04);opacity:1}
+  100%{transform:translateX(0) rotate(0deg) scale(1)}
 }
-@keyframes text-rise {
-  from { transform: translateY(8px); opacity: 0; }
-  to   { transform: translateY(0); opacity: 1; }
+/* one soft bounce */
+@keyframes logo-bounce{
+  0%{transform:translateY(0) scale(1)}
+  50%{transform:translateY(-6px) scale(1.02)}
+  100%{transform:translateY(0) scale(1)}
+}
+/* gentle breathing loop (subtle) */
+@keyframes logo-breathe{
+  from{transform:translateY(0) scale(1)}
+  to{transform:translateY(-2px) scale(1.007)}
 }
 
 /* Responsive tweaks */
-@media (max-width: 640px) {
-  .navbar-inner { @apply py-1; }
-  .content { padding-top: calc(max(env(safe-area-inset-top), 10px) + 3.8rem); }
-  .card { @apply p-4; }
+@media (max-width:640px){
+  .navbar-inner{@apply py-1;}
+  .content{padding-top:calc(max(env(safe-area-inset-top),10px) + 3.8rem);}
+  .card{@apply p-4;}
 }
 
-/* Drawer overlay fade */
-.bg-black\/50 { transition: opacity 0.3s ease; }
-
-/* Slide animations (drawer) */
-@keyframes slide-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
-@keyframes slide-out-right { from { transform: translateX(0); } to { transform: translateX(100%); } }
-@keyframes slide-out-left { from { transform: translateX(0); } to { transform: translateX(-100%); } }
-.animate-slide-in { animation: slide-in 0.3s ease-out forwards; }
-.animate-slide-out-right { animation: slide-out-right 0.3s ease-in forwards; }
-.animate-slide-out-left { animation: slide-out-left 0.3s ease-in forwards; }
+/* Drawer / overlay transitions */
+.bg-black\/50{transition:opacity .3s ease;}
+@keyframes slide-in{from{transform:translateX(100%)}to{transform:translateX(0)}}
+@keyframes slide-out-right{from{transform:translateX(0)}to{transform:translateX(100%)}}
+@keyframes slide-out-left{from{transform:translateX(0)}to{transform:translateX(-100%)}}
+.animate-slide-in{animation:slide-in .3s ease-out forwards}
+.animate-slide-out-right{animation:slide-out-right .3s ease-in forwards}
+.animate-slide-out-left{animation:slide-out-left .3s ease-in forwards}
