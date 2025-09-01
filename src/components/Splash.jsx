@@ -1,21 +1,25 @@
+// src/components/Splash.jsx
 import React from "react";
 import { useTranslation } from "react-i18next";
 
 export default function Splash() {
   const { t } = useTranslation();
+
   return (
     <div className="splash">
-      <div className="flex flex-col items-center w-[86%] max-w-md">
-        {/* Animated logo */}
-        <div className="splash-logo-wrap">
+      {/* Full-screen animation stage so the logo can travel across the viewport */}
+      <div className="splash-anim-stage" aria-hidden="true">
+        <div className="splash-anim-track">
           <img
-            src="/sh-logo.png"
+            src="/sh-logo.png"   // make sure this exists in /public
             alt={t("brand")}
-            className="splash-logo-anim"
+            className="splash-logo-drive"
           />
         </div>
+      </div>
 
-        {/* Brand & tagline */}
+      {/* Brand text (centered) */}
+      <div className="flex flex-col items-center w-[86%] max-w-md relative z-[2]">
         <div className="splash-brand">{t("brand")}</div>
         <div className="splash-tagline">{t("splash_tagline")}</div>
       </div>
