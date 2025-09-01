@@ -1,6 +1,7 @@
 // src/components/Splash.jsx
 import React from "react";
 import { useTranslation } from "react-i18next";
+import logoUrl from "/sh-logo.png"; // resolves asset in Vite + Capacitor
 
 export default function Splash() {
   const { t } = useTranslation();
@@ -11,7 +12,7 @@ export default function Splash() {
       <div className="splash-anim-stage" aria-hidden="true">
         <div className="splash-anim-track">
           <img
-            src="/sh-logo.png"   // make sure this exists in /public
+            src={logoUrl}
             alt={t("brand")}
             className="splash-logo-drive"
           />

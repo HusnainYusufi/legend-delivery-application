@@ -1,8 +1,10 @@
+// src/components/LoginModal.jsx
 import React, { useState } from "react";
 import { X, User, Lock, Eye, EyeOff } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { loginRequest } from "../lib/api.js";
 import { decodeJwt } from "../lib/auth.js";
+import logoUrl from "/sh-logo.png";
 
 export default function LoginModal({ onClose, onLogin }) {
   const { t } = useTranslation();
@@ -52,11 +54,13 @@ export default function LoginModal({ onClose, onLogin }) {
           <X className="h-6 w-6" />
         </button>
 
-        {/* Brand logo (responsive) */}
+        {/* Brand logo */}
         <div className="flex justify-center mb-6">
-          <div className="w-20 h-20 rounded-2xl bg-white/90 dark:bg-slate-700/60 shadow-md grid place-items-center overflow-hidden">
-            <img src="/sh-logo.png" alt="SHAHEENE" className="w-16 h-16 object-contain" />
-          </div>
+          <img
+            src={logoUrl}
+            alt="SHAHEENE"
+            className="h-16 w-16 object-contain"
+          />
         </div>
 
         <h2 className="text-2xl font-bold text-center text-slate-800 dark:text-slate-100 mb-2">

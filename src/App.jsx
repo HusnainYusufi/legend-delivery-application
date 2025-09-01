@@ -33,7 +33,7 @@ export default function App() {
   // Splash (long enough to finish the CSS animation)
   const [showSplash, setShowSplash] = useState(true);
   useEffect(() => {
-    const tm = setTimeout(() => setShowSplash(false), 2100);
+    const tm = setTimeout(() => setShowSplash(false), 2500);
     return () => clearTimeout(tm);
   }, []);
 
