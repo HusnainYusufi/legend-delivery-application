@@ -1,3 +1,4 @@
+// src/App.jsx
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Camera as CameraIcon, Loader2, QrCode, RefreshCcw, XCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -9,7 +10,6 @@ import StatusBadge from "./components/StatusBadge.jsx";
 import Drawer from "./components/Drawer";
 import LoginModal from "./components/LoginModal";
 import OrdersList from "./components/OrdersList.jsx";
-import PickupPool from "./components/PickupPool.jsx";
 
 import { CONFIG, apiFetch, parseOrderNumberFromScan } from "./lib/api.js";
 import {
@@ -21,12 +21,15 @@ import {
 
 import { getAuth as loadAuth, setAuth as persistAuth, clearAuth as purgeAuth } from "./lib/auth.js";
 
+// NEW: enable framer-motion presence for splash exit fade
+import { AnimatePresence } from "framer-motion";
+
 export default function App() {
   const { t, i18n } = useTranslation();
 
   // UI prefs
   const [language, setLanguage] = useState("ar");
-  const [darkMode, setDarkMode] = useState(false); // default light
+  const [darkMode, setDarkMode] = useState(false);
   useEffect(() => {
     document.documentElement.classList.toggle("dark", darkMode);
   }, [darkMode]);
@@ -34,12 +37,13 @@ export default function App() {
   // Splash
   const [showSplash, setShowSplash] = useState(true);
   useEffect(() => {
-    const tm = setTimeout(() => setShowSplash(false), 900);
+    // LONGER to let animation complete
+    const tm = setTimeout(() => setShowSplash(false), 1800);
     return () => clearTimeout(tm);
   }, []);
 
   // Navigation
-  const [view, setView] = useState("home"); // home | orders | pickup
+  const [view, setView] = useState("home"); // "home" | "orders"
 
   // Scanner state
   const [isScanning, setIsScanning] = useState(false);
@@ -60,7 +64,6 @@ export default function App() {
   // Authentication state
   const [auth, setAuthState] = useState(null);
   const isAuthenticated = !!auth?.token;
-  const isDriver = ((auth?.role || auth?.userType) || "").toLowerCase() === "driver";
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
@@ -79,9 +82,9 @@ export default function App() {
     setIsLoginModalOpen(false);
     setToast({ type: "success", msg: "Logged in ✓" });
     setTimeout(() => setToast(null), 1500);
-    if (((authData.role || authData.userType) || "").toLowerCase() === "driver") {
-      setView("pickup");
-    }
+
+    // If driver, jump straight to orders view (optional; comment out if not desired)
+    // if (authData.role === "driver") setView("orders");
   };
 
   const handleLogout = () => {
@@ -95,7 +98,9 @@ export default function App() {
 
   // Stop any active scanner instance
   const stopScanner = useCallback(async () => {
-    try { await scannerRef.current?.stop?.(); } catch {}
+    try {
+      await scannerRef.current?.stop?.();
+    } catch {}
     scannerRef.current = null;
   }, []);
 
@@ -139,7 +144,9 @@ export default function App() {
 
   // Cleanup on unmount
   useEffect(() => {
-    return () => { stopScanner(); };
+    return () => {
+      stopScanner();
+    };
   }, [stopScanner]);
 
   // Fetch status (home)
@@ -173,12 +180,12 @@ export default function App() {
     setScannerKey((k) => k + 1);
   }, [stopScanner]);
 
-  // Language
+  // Language change
   useEffect(() => {
     if (language !== i18n.language) i18n.changeLanguage(language);
   }, [language, i18n]);
 
-  // Scan from image
+  // Scan from image fallback
   const onPickImage = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -199,24 +206,22 @@ export default function App() {
   };
 
   return (
-    <div className="app-shell min-h-screen bg-gradient-to-br from-sky-50 to-sky-100 dark:from-slate-900 dark:to-slate-800 relative">
-      {showSplash && <Splash />}
+    <div className="app-shell min-h-screen relative">
+      {/* NEW: AnimatePresence for Splash exit fade */}
+      <AnimatePresence>{showSplash && <Splash />}</AnimatePresence>
 
       <Navbar
         language={language}
         onChangeLanguage={setLanguage}
         isAuthenticated={isAuthenticated}
-        isDriver={isDriver}
         onMenuClick={() => setIsDrawerOpen(true)}
         onOrdersClick={() => setView("orders")}
-        onPickupClick={() => setView("pickup")}
       />
 
       <Drawer
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
         isAuthenticated={isAuthenticated}
-        isDriver={isDriver}
         onLoginClick={() => {
           setIsDrawerOpen(false);
           setIsLoginModalOpen(true);
@@ -224,10 +229,6 @@ export default function App() {
         onLogout={handleLogout}
         onOrdersClick={() => {
           setView("orders");
-          setIsDrawerOpen(false);
-        }}
-        onPickupClick={() => {
-          setView("pickup");
           setIsDrawerOpen(false);
         }}
         language={language}
@@ -240,12 +241,13 @@ export default function App() {
         />
       )}
 
-      <main className="content safe-b max-w-3xl mx-auto px-4 pt-20 pb-6">
+      <main className="content safe-b max-w-3xl mx-auto px-4 pb-6">
         {view === "home" && (
-          <div className="min-h-[calc(100dvh-9rem)] grid place-items-center">
-            <section className="card bg-white dark:bg-slate-800 rounded-xl shadow-lg p-5 border border-slate-200 dark:border-slate-700 mx-auto w-full max-w-xl">
+          <>
+            {/* Scanner + input card */}
+            <section className="card bg-white dark:bg-slate-800 rounded-xl shadow-lg p-5 mb-6 border border-slate-200 dark:border-slate-700 mx-auto">
               <div className="flex items-center gap-3 mb-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl text-white brand-gradient">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl brand-gradient text-white">
                   <QrCode className="h-5 w-5" />
                 </div>
                 <div>
@@ -260,19 +262,20 @@ export default function App() {
                     {t("order")}
                   </label>
                   <input
-                    className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white px-4 py-3 outline-none transition-all focus:border-[var(--brand-500)] focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900"
+                    className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white px-4 py-3 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900"
                     placeholder={t("placeholder_order")}
                     value={orderNumber}
                     onChange={(e) => setOrderNumber(e.target.value)}
                     inputMode="text"
                     autoComplete="off"
+                    onPaste={(e) => e.stopPropagation()}
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={beginScan}
-                    className="btn text-white flex items-center justify-center gap-2 brand-gradient"
+                    className="btn brand-gradient hover:opacity-95 text-white flex items-center justify-center gap-2"
                   >
                     <CameraIcon className="h-5 w-5" /> {t("scan")}
                   </button>
@@ -288,7 +291,7 @@ export default function App() {
                 <button
                   onClick={getStatus}
                   disabled={isLoading}
-                  className="btn text-white flex items-center justify-center gap-2 brand-gradient-2"
+                  className="btn bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white flex items-center justify-center gap-2"
                 >
                   {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <QrCode className="h-5 w-5" />}
                   {t("load_status")}
@@ -319,7 +322,7 @@ export default function App() {
 
             {/* Order details (home) */}
             {current && (
-              <section className="card bg-white dark:bg-slate-800 rounded-xl shadow-lg p-5 mt-6 border border-slate-200 dark:border-slate-700 mx-auto w-full max-w-xl">
+              <section className="card bg-white dark:bg-slate-800 rounded-xl shadow-lg p-5 mb-6 border border-slate-200 dark:border-slate-700 mx-auto">
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-4 pb-4 border-b border-slate-200 dark:border-slate-700">
                   <div>
                     <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">{t("order_details")}</h2>
@@ -355,13 +358,13 @@ export default function App() {
                         let borderClass = "border-slate-200 dark:border-slate-700";
 
                         if (isDone) {
-                          stepClass = "bg-emerald-50 dark:bg-emerald-900/20";
-                          textClass = "text-emerald-700 dark:text-emerald-300";
-                          borderClass = "border-emerald-200 dark:border-emerald-800";
+                          stepClass = "bg-green-50 dark:bg-green-900/20";
+                          textClass = "text-green-700 dark:text-green-300";
+                          borderClass = "border-green-200 dark:border-green-800";
                         } else if (isCurrent) {
-                          stepClass = "bg-cyan-50 dark:bg-cyan-900/20";
-                          textClass = "text-cyan-700 dark:text-cyan-300";
-                          borderClass = "border-cyan-200 dark:border-cyan-800";
+                          stepClass = "bg-blue-50 dark:bg-blue-900/20";
+                          textClass = "text-blue-700 dark:text-blue-300";
+                          borderClass = "border-blue-200 dark:border-blue-800";
                         } else if (isNextSuggested) {
                           stepClass = "bg-amber-50 dark:bg-amber-900/20";
                           textClass = "text-amber-700 dark:text-amber-300";
@@ -370,7 +373,7 @@ export default function App() {
 
                         return (
                           <div key={step.code} className={`p-3 rounded-lg border ${borderClass} ${stepClass} flex items-center gap-3`}>
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDone ? "bg-emerald-600 text-white" : "bg-slate-200 dark:bg-slate-600"}`}>
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDone ? "brand-gradient text-white" : "bg-slate-200 dark:bg-slate-600"}`}>
                               {isDone ? "✓" : (step.code || "?").charAt(0)}
                             </div>
                             <div className={`flex-1 ${textClass}`}>
@@ -378,7 +381,7 @@ export default function App() {
                               {step.at && <div className="text-xs mt-1">{new Date(step.at).toLocaleString()}</div>}
                             </div>
                             {isCurrent && (
-                              <span className="px-2 py-1 bg-cyan-100 dark:bg-cyan-900 text-cyan-800 dark:text-cyan-200 text-xs rounded">
+                              <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs rounded">
                                 {t("current")}
                               </span>
                             )}
@@ -405,14 +408,14 @@ export default function App() {
                           key={status.code}
                           className={`p-3 rounded-lg border ${
                             status.occurred
-                              ? "border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300"
+                              ? "border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300"
                               : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/30 text-slate-700 dark:text-slate-300"
                           }`}
                         >
                           <div className="font-medium">
                             {t(`statuses.${status.code}`)}
                             {status.occurred && (
-                              <span className="ml-2 text-xs bg-rose-100 dark:bg-rose-800 text-rose-800 dark:text-rose-200 px-2 py-1 rounded">
+                              <span className="ml-2 text-xs bg-red-100 dark:bg-red-800 text-red-800 dark:text-red-200 px-2 py-1 rounded">
                                 {t("occurred")}
                               </span>
                             )}
@@ -425,25 +428,26 @@ export default function App() {
                 )}
               </section>
             )}
-          </div>
+          </>
         )}
 
         {view === "orders" && <OrdersList />}
 
-        {view === "pickup" && <PickupPool />}
-
         {toast && (
           <div
             className={`fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 rounded-xl px-5 py-3 shadow-lg flex items-center transition-all ${
-              toast.type === "success" ? "brand-gradient text-white" : "bg-rose-600 text-white"
+              toast.type === "success"
+                ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white"
+                : "bg-gradient-to-r from-red-500 to-rose-600 text-white"
             }`}
           >
             <div className="font-medium text-sm">{toast.msg}</div>
           </div>
         )}
+
+        {/* Removed the tip line per your earlier request */}
       </main>
 
-      {/* Global scanner for Home */}
       <ScannerOverlay
         key={scannerKey}
         visible={isScanning}

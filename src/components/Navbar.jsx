@@ -1,5 +1,5 @@
 import React from "react";
-import { QrCode, Menu, ListChecks } from "lucide-react";
+import { Menu, ListChecks } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 export default function Navbar({
@@ -23,7 +23,6 @@ export default function Navbar({
           </button>
 
           <div className="flex items-center gap-2">
-            {/* Brand logo */}
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/10">
               <img
                 src="/sh-logo.png"
