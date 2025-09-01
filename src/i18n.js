@@ -4,7 +4,7 @@ import { initReactI18next } from "react-i18next";
 const resources = {
   en: {
     translation: {
-      brand: "SHAHEEN",
+      brand: "SHAHEENE",
       splash_tagline: "Fast. Simple. Reliable.",
       scan_or_enter: "Scan QR or enter order number",
       placeholder_order: "e.g. ORD-12345",
@@ -18,6 +18,7 @@ const resources = {
       next_suggested: "Next Suggested",
       current: "Current",
       occurred: "Occurred",
+      tip_camera: "Tip: On device, camera scanning needs HTTPS + permission.",
       toast_need_order: "Enter or scan an order number.",
       error_fetch_status: "Failed to fetch status",
       scanned_payload: "Scanned payload",
@@ -28,7 +29,6 @@ const resources = {
       open_settings: "Open Settings",
       order_details: "Order Details",
       track_order: "Track Order",
-
       login: "Login",
       logout: "Logout",
       login_title: "Welcome Back",
@@ -42,26 +42,30 @@ const resources = {
       forgot_password: "Forgot your password?",
       reset_here: "Reset here",
       menu: "Menu",
-      show_password: "Show password",
-      hide_password: "Hide password",
-
-      orders_title: "Orders",
       orders_nav: "Orders",
+      orders_title: "My Assigned Orders",
       loading: "Loading…",
-      no_orders: "No orders found.",
+      no_orders: "No orders found",
       customer: "Customer",
       city: "City",
+      order_date: "Order Date",
       items: "Items",
       more: "more",
-      order_date: "Order Date",
-
-      pickup_pool: "Pickup Pool",
-      tab_pool: "Pool",
-      tab_mine: "My Claimed",
-      search_orders: "Search by order number",
-      claim: "Claim",
-      scan_to_claim: "Scan & Claim",
-      claimed_success: "Order claimed ✓",
+      show_password: "Show password",
+      hide_password: "Hide password",
+      statuses: {
+        PENDING: "Pending",
+        PREPARING: "Preparing",
+        PREPARED: "Prepared",
+        AWAITING_PICKUP: "Awaiting Pickup",
+        IN_TRANSIT: "In Transit",
+        OUT_FOR_DELIVERY: "Out for Delivery",
+        DELIVERED: "Delivered",
+        DELIVERY_FAILED: "Delivery Failed",
+        ON_HOLD: "On Hold",
+        RETURNED: "Returned",
+        CANCELLED: "Cancelled"
+      }
     }
   },
   ar: {
@@ -80,6 +84,7 @@ const resources = {
       next_suggested: "مقترح التالي",
       current: "حالي",
       occurred: "حدث",
+      tip_camera: "ملاحظة: على الجهاز، المسح يحتاج HTTPS + إذن.",
       toast_need_order: "أدخل أو امسح رقم الطلب.",
       error_fetch_status: "تعذر جلب الحالة",
       scanned_payload: "البيانات الممسوحة",
@@ -90,7 +95,6 @@ const resources = {
       open_settings: "فتح الإعدادات",
       order_details: "تفاصيل الطلب",
       track_order: "تتبع الطلب",
-
       login: "تسجيل الدخول",
       logout: "تسجيل الخروج",
       login_title: "مرحبًا بعودتك",
@@ -104,26 +108,30 @@ const resources = {
       forgot_password: "نسيت كلمة المرور؟",
       reset_here: "إعادة تعيين هنا",
       menu: "القائمة",
-      show_password: "إظهار كلمة المرور",
-      hide_password: "إخفاء كلمة المرور",
-
-      orders_title: "الطلبات",
       orders_nav: "الطلبات",
+      orders_title: "طلباتي المعيّنة",
       loading: "جارٍ التحميل…",
-      no_orders: "لا توجد طلبات.",
+      no_orders: "لا توجد طلبات",
       customer: "العميل",
       city: "المدينة",
-      items: "العناصر",
-      more: "أخرى",
       order_date: "تاريخ الطلب",
-
-      pickup_pool: "طلبات بانتظار الاستلام",
-      tab_pool: "المسبح",
-      tab_mine: "طلباتـي",
-      search_orders: "ابحث برقم الطلب",
-      claim: "استلام",
-      scan_to_claim: "مسح للاستلام",
-      claimed_success: "تم الاستلام ✓",
+      items: "العناصر",
+      more: "المزيد",
+      show_password: "إظهار كلمة المرور",
+      hide_password: "إخفاء كلمة المرور",
+      statuses: {
+        PENDING: "قيد الانتظار",
+        PREPARING: "قيد التحضير",
+        PREPARED: "تم التحضير",
+        AWAITING_PICKUP: "بانتظار الاستلام",
+        IN_TRANSIT: "قيد النقل",
+        OUT_FOR_DELIVERY: "خارج للتسليم",
+        DELIVERED: "تم التسليم",
+        DELIVERY_FAILED: "فشل التسليم",
+        ON_HOLD: "معلق",
+        RETURNED: "مرتجع",
+        CANCELLED: "ملغى"
+      }
     }
   }
 };
@@ -132,10 +140,10 @@ i18n.use(initReactI18next).init({
   resources,
   lng: "ar",
   fallbackLng: "ar",
-  interpolation: { escapeValue: false },
+  interpolation: { escapeValue: false }
 });
 
-function syncDir(lng){
+function syncDir(lng) {
   const dir = lng === "ar" ? "rtl" : "ltr";
   document.documentElement.setAttribute("dir", dir);
   document.documentElement.setAttribute("lang", lng);
