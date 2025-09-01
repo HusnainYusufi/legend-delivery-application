@@ -1,7 +1,7 @@
 import { getAuth } from "./auth.js";
 
 // Use your main API for ALL endpoints
-const API_BASE = "https://apidelivery.devmedialm.com";
+const API_BASE = "https://api.shaheene.com/";
 export const AUTH_BASE_URL = API_BASE;
 
 const CONFIG = {
