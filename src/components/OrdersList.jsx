@@ -1,9 +1,11 @@
 // src/components/OrdersList.jsx
 import React, { useEffect, useState } from "react";
-import { RefreshCcw, Loader2, PackageOpen, ChevronDown } from "lucide-react";
+import { RefreshCcw, Loader2, PackageOpen, ChevronDown, Send } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { fetchAssignedOrders, AUTH_BASE_URL } from "../lib/api.js";
+import { fetchAssignedOrders, AUTH_BASE_URL, sendOrderOtp } from "../lib/api.js";
+import { getAuth } from "../lib/auth.js";
 import StatusBadge from "./StatusBadge.jsx";
+import OtpModal from "./OtpModal.jsx";
 
 // Pretty, safe text for any value (prevents [object Object])
 const safeText = (v, { fallback = "-" } = {}) => {
@@ -40,12 +42,22 @@ export default function OrdersList() {
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  // OTP modal state
+  const [otpOrder, setOtpOrder] = useState(null);
+  const [otpOpen, setOtpOpen] = useState(false);
+
+  const auth = getAuth();
+  const role = auth?.role || auth?.userType || null;
+  const isDriver = role && String(role).toLowerCase() === "driver";
 
   const hasMore = orders.length < count;
 
   const load = async ({ reset = false } = {}) => {
     try {
       setError("");
+      setSuccess("");
       if (reset) setLoading(true);
       else setLoadingMore(true);
 
@@ -80,8 +92,21 @@ export default function OrdersList() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const onSendOtp = async (order) => {
+    setError("");
+    setSuccess("");
+    try {
+      await sendOrderOtp(order.orderNo);
+      setSuccess(t("otp_sent"));
+      setOtpOrder(order);
+      setOtpOpen(true);
+    } catch (e) {
+      setError(errorToString(e));
+    }
+  };
+
   return (
-    <section className="card bg-white dark:bg-slate-800 rounded-xl shadow-lg p-5 mb-6 border border-slate-200 dark:border-slate-700 mx-auto">
+    <section className="card bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-5 mb-6 border border-slate-200 dark:border-slate-700 mx-auto">
       <div className="flex items-center justify-between gap-3 mb-4">
         <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">
           {t("orders_title")}
@@ -105,6 +130,12 @@ export default function OrdersList() {
         </div>
       )}
 
+      {success && (
+        <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 px-4 py-3 text-sm dark:border-emerald-900 dark:bg-emerald-900/20 dark:text-emerald-200">
+          {success}
+        </div>
+      )}
+
       {loading && orders.length === 0 ? (
         <div className="py-8 flex items-center justify-center text-slate-500 dark:text-slate-400">
           <Loader2 className="h-5 w-5 animate-spin mr-2" />
@@ -119,6 +150,9 @@ export default function OrdersList() {
         <div className="space-y-3">
           {orders.map((o) => {
             const statusVal = o.currentStatus || o.orderStatus;
+            const normalized = statusVal ? String(statusVal).toUpperCase() : "";
+            const showOtp = isDriver && normalized === "IN_TRANSIT";
+
             return (
               <article
                 key={safeText(o._id)}
@@ -133,7 +167,19 @@ export default function OrdersList() {
                       {safeText(o.orderNo)}
                     </div>
                   </div>
-                  <StatusBadge value={statusVal} />
+                  <div className="flex items-center gap-2">
+                    <StatusBadge value={statusVal} />
+                    {showOtp && (
+                      <button
+                        onClick={() => onSendOtp(o)}
+                        className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-white brand-gradient hover:opacity-95"
+                        title={t("send_otp")}
+                      >
+                        <Send className="h-4 w-4" />
+                        {t("send_otp")}
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
@@ -214,6 +260,17 @@ export default function OrdersList() {
           </button>
         </div>
       )}
+
+      {/* OTP Modal */}
+      <OtpModal
+        open={otpOpen}
+        orderNo={otpOrder?.orderNo}
+        onClose={() => setOtpOpen(false)}
+        onSubmit={(code) => {
+          // No verify endpoint specified yet; close for now.
+          setOtpOpen(false);
+        }}
+      />
     </section>
   );
 }
