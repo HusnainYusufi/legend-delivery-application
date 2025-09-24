@@ -1,5 +1,6 @@
 // src/components/LoginModal.jsx
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { X, User, Lock, Eye, EyeOff } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { loginRequest } from "../lib/api.js";
@@ -33,9 +34,9 @@ export default function LoginModal({ onClose, onLogin }) {
         iat: payload.iat ?? null,
         exp: payload.exp ?? null,
       };
-
+      // Call parent; parent already closes the modal.
       onLogin?.(auth);
-      onClose?.();
+      // IMPORTANT: do NOT call onClose() here as parent closes it too.
     } catch (err) {
       setError(err?.message || t("login_error"));
     } finally {
@@ -43,10 +44,11 @@ export default function LoginModal({ onClose, onLogin }) {
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+  const content = (
+    <div className="fixed inset-0 z-[120] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl max-w-md w-full mx-4 p-6 relative">
         <button
+          type="button"             // ensure not a submit if nested in a form
           onClick={onClose}
           className="absolute top-4 right-4 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
           aria-label={t("close")}
@@ -54,13 +56,8 @@ export default function LoginModal({ onClose, onLogin }) {
           <X className="h-6 w-6" />
         </button>
 
-        {/* Brand logo */}
         <div className="flex justify-center mb-6">
-          <img
-            src={logoUrl}
-            alt="SHAHEENE"
-            className="h-16 w-16 object-contain"
-          />
+          <img src={logoUrl} alt="SHAHEENE" className="h-16 w-16 object-contain" />
         </div>
 
         <h2 className="text-2xl font-bold text-center text-slate-800 dark:text-slate-100 mb-2">
@@ -120,7 +117,7 @@ export default function LoginModal({ onClose, onLogin }) {
           </div>
 
           {error && (
-            <div className="mb-6 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-700 dark:text-red-200 flex items-center">
+            <div className="mb-6 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-700 dark:text-red-200">
               {error}
             </div>
           )}
@@ -137,15 +134,11 @@ export default function LoginModal({ onClose, onLogin }) {
             )}
             {t("login_button")}
           </button>
-
-          <div className="mt-4 text-center text-sm text-slate-500 dark:text-slate-400">
-            {t("forgot_password")}
-            <button type="button" className="text-indigo-600 dark:text-indigo-400 font-medium ml-1">
-              {t("reset_here")}
-            </button>
-          </div>
         </form>
       </div>
     </div>
   );
+
+  const container = document.getElementById("modal-root");
+  return container ? createPortal(content, container) : content;
 }

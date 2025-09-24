@@ -1,17 +1,23 @@
 // src/components/OrdersList.jsx
 import React, { useEffect, useState } from "react";
-import { RefreshCcw, Loader2, PackageOpen, ChevronDown, Send } from "lucide-react";
+import { RefreshCcw, Loader2, PackageOpen, ChevronDown, Send, Info } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { fetchAssignedOrders, AUTH_BASE_URL, sendOrderOtp } from "../lib/api.js";
+import {
+  fetchAssignedOrders,
+  AUTH_BASE_URL,
+  sendOrderOtp,
+} from "../lib/api.js";
 import { getAuth } from "../lib/auth.js";
 import StatusBadge from "./StatusBadge.jsx";
 import OtpModal from "./OtpModal.jsx";
+import OrderDetailsModal from "./OrderDetailsModal.jsx";
 
-// Pretty, safe text for any value (prevents [object Object])
+// ✅ driver UI
+import PickupPool from "./PickupPool.jsx";
+
 const safeText = (v, { fallback = "-" } = {}) => {
   if (v == null) return fallback;
-  if (typeof v === "string" || typeof v === "number" || typeof v === "boolean")
-    return String(v);
+  if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") return String(v);
   try {
     const json = JSON.stringify(v);
     return json.length > 160 ? json.slice(0, 157) + "…" : json;
@@ -19,8 +25,6 @@ const safeText = (v, { fallback = "-" } = {}) => {
     return fallback;
   }
 };
-
-// Turn ANY error into a clear string
 const errorToString = (e) => {
   if (!e) return "Unknown error";
   if (typeof e === "string") return e;
@@ -35,6 +39,18 @@ const errorToString = (e) => {
 
 export default function OrdersList() {
   const { t } = useTranslation();
+
+  // Figure out role
+  const auth = getAuth();
+  const role = auth?.role || auth?.userType || null;
+  const isDriver = role && String(role).toLowerCase() === "driver";
+
+  // ✅ If driver, render the Claim UI (Pool/Mine tabs + scanner)
+  if (isDriver) {
+    return <PickupPool />;
+  }
+
+  // ---------- Staff list (kept as-is) ----------
   const [orders, setOrders] = useState([]);
   const [page, setPage] = useState(1);
   const [limit] = useState(15);
@@ -44,15 +60,33 @@ export default function OrdersList() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  // OTP modal state
+  // OTP modal
   const [otpOrder, setOtpOrder] = useState(null);
   const [otpOpen, setOtpOpen] = useState(false);
 
-  const auth = getAuth();
-  const role = auth?.role || auth?.userType || null;
-  const isDriver = role && String(role).toLowerCase() === "driver";
+  // Details modal
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [detailsOrder, setDetailsOrder] = useState(null);
 
   const hasMore = orders.length < count;
+
+  const staffLoad = async ({ reset }) => {
+    const res = await fetchAssignedOrders({
+      page: reset ? 1 : page,
+      limit,
+      sortBy: "orderDate",
+      sortDir: "desc",
+    });
+    setCount(res.count || 0);
+    const next = Array.isArray(res.orders) ? res.orders : [];
+    if (reset) {
+      setOrders(next);
+      setPage(2);
+    } else {
+      setOrders((prev) => [...prev, ...next]);
+      setPage((p) => p + 1);
+    }
+  };
 
   const load = async ({ reset = false } = {}) => {
     try {
@@ -61,23 +95,7 @@ export default function OrdersList() {
       if (reset) setLoading(true);
       else setLoadingMore(true);
 
-      const res = await fetchAssignedOrders({
-        page: reset ? 1 : page,
-        limit,
-        sortBy: "orderDate",
-        sortDir: "desc",
-      });
-
-      setCount(res.count || 0);
-      const next = Array.isArray(res.orders) ? res.orders : [];
-
-      if (reset) {
-        setOrders(next);
-        setPage(2);
-      } else {
-        setOrders((prev) => [...prev, ...next]);
-        setPage((p) => p + 1);
-      }
+      await staffLoad({ reset });
     } catch (e) {
       console.error("Orders load error:", e);
       setError(`${errorToString(e)} [AUTH_BASE=${AUTH_BASE_URL}]`);
@@ -97,7 +115,7 @@ export default function OrdersList() {
     setSuccess("");
     try {
       await sendOrderOtp(order.orderNo);
-      setSuccess(t("otp_sent"));
+      setSuccess(t("otp_sent") || "OTP has been sent.");
       setOtpOrder(order);
       setOtpOpen(true);
     } catch (e) {
@@ -116,11 +134,7 @@ export default function OrdersList() {
           disabled={loading}
           className="btn bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600 px-3 py-2"
         >
-          {loading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <RefreshCcw className="h-4 w-4" />
-          )}
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
         </button>
       </div>
 
@@ -137,12 +151,12 @@ export default function OrdersList() {
       )}
 
       {loading && orders.length === 0 ? (
-        <div className="py-8 flex items-center justify-center text-slate-500 dark:text-slate-400">
+        <div className="py-8 flex items-center justify-center text-slate-500 dark:text-slate-400 min-h-[30vh]">
           <Loader2 className="h-5 w-5 animate-spin mr-2" />
           {t("loading")}
         </div>
       ) : orders.length === 0 ? (
-        <div className="py-10 text-center text-slate-500 dark:text-slate-400">
+        <div className="py-10 text-center text-slate-500 dark:text-slate-400 min-h-[30vh]">
           <PackageOpen className="h-8 w-8 mx-auto mb-2 opacity-70" />
           {t("no_orders")}
         </div>
@@ -151,24 +165,30 @@ export default function OrdersList() {
           {orders.map((o) => {
             const statusVal = o.currentStatus || o.orderStatus;
             const normalized = statusVal ? String(statusVal).toUpperCase() : "";
-            const showOtp = isDriver && normalized === "IN_TRANSIT";
+            const showOtp = normalized === "IN_TRANSIT";
 
             return (
               <article
-                key={safeText(o._id)}
+                key={o._id || o.orderNo}
                 className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-700/30 p-4"
               >
                 <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="text-sm text-slate-500 dark:text-slate-400">
-                      {t("order")}
-                    </div>
+                  <div className="min-w-0">
+                    <div className="text-sm text-slate-500 dark:text-slate-400">{t("order")}</div>
                     <div className="text-base font-semibold text-slate-800 dark:text-white break-all">
                       {safeText(o.orderNo)}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <StatusBadge value={statusVal} />
+                    <button
+                      onClick={() => { setDetailsOrder(o); setDetailsOpen(true); }}
+                      className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-600"
+                      title="Details"
+                    >
+                      <Info className="h-4 w-4" />
+                      Details
+                    </button>
                     {showOtp && (
                       <button
                         onClick={() => onSendOtp(o)}
@@ -184,60 +204,30 @@ export default function OrdersList() {
 
                 <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                   <div className="rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3">
-                    <div className="text-slate-500 dark:text-slate-400">
-                      {t("customer")}
-                    </div>
+                    <div className="text-slate-500 dark:text-slate-400">{t("customer")}</div>
                     <div className="font-medium text-slate-800 dark:text-slate-100">
                       {safeText(o.customerName)}
                     </div>
                   </div>
                   <div className="rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3">
-                    <div className="text-slate-500 dark:text-slate-400">
-                      {t("city")}
-                    </div>
+                    <div className="text-slate-500 dark:text-slate-400">{t("city")}</div>
                     <div className="font-medium text-slate-800 dark:text-slate-100">
-                      {safeText(o.city)}
-                      {o.country ? `, ${safeText(o.country)}` : ""}
+                      {safeText(o.city)}{o.country ? `, ${safeText(o.country)}` : ""}
                     </div>
                   </div>
                   <div className="rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3">
-                    <div className="text-slate-500 dark:text-slate-400">
-                      {t("order_date")}
-                    </div>
+                    <div className="text-slate-500 dark:text-slate-400">{t("order_date")}</div>
                     <div className="font-medium text-slate-800 dark:text-slate-100">
                       {o.orderDate ? new Date(o.orderDate).toLocaleString() : "-"}
                     </div>
                   </div>
                   <div className="rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3">
-                    <div className="text-slate-500 dark:text-slate-400">
-                      {t("tracking_number")}
-                    </div>
+                    <div className="text-slate-500 dark:text-slate-400">{t("tracking_number")}</div>
                     <div className="font-medium text-slate-800 dark:text-slate-100 break-all">
                       {safeText(o.trackingNumber)}
                     </div>
                   </div>
                 </div>
-
-                {Array.isArray(o.items) && o.items.length > 0 && (
-                  <div className="mt-3 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3">
-                    <div className="text-slate-500 dark:text-slate-400 text-sm mb-1">
-                      {t("items")}
-                    </div>
-                    <ul className="list-disc pl-5 space-y-1">
-                      {o.items.slice(0, 3).map((it, idx) => (
-                        <li key={idx} className="text-sm text-slate-700 dark:text-slate-200">
-                          {safeText(it.productName || it.sku)} ×{" "}
-                          {safeText(it.quantity ?? 1)}
-                        </li>
-                      ))}
-                      {o.items.length > 3 && (
-                        <li className="text-xs text-slate-500 dark:text-slate-400">
-                          +{o.items.length - 3} {t("more")}
-                        </li>
-                      )}
-                    </ul>
-                  </div>
-                )}
               </article>
             );
           })}
@@ -261,15 +251,17 @@ export default function OrdersList() {
         </div>
       )}
 
-      {/* OTP Modal */}
       <OtpModal
         open={otpOpen}
         orderNo={otpOrder?.orderNo}
         onClose={() => setOtpOpen(false)}
-        onSubmit={(code) => {
-          // No verify endpoint specified yet; close for now.
-          setOtpOpen(false);
-        }}
+        onSubmit={(code) => { setOtpOpen(false); }}
+      />
+
+      <OrderDetailsModal
+        open={detailsOpen}
+        order={detailsOrder}
+        onClose={() => setDetailsOpen(false)}
       />
     </section>
   );

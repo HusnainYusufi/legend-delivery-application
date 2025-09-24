@@ -18,6 +18,7 @@ export default function Drawer({
   const isRTL = language === "ar";
   const overlayRef = useRef(null);
 
+  // Lock body scroll, ESC to close
   useEffect(() => {
     if (!isOpen) return;
     const onEsc = (e) => e.key === "Escape" && onClose();
@@ -29,10 +30,32 @@ export default function Drawer({
     };
   }, [isOpen, onClose]);
 
+  // Android back button (Capacitor) — **await** the listener handle
   useEffect(() => {
     if (!isOpen) return;
-    const sub = CapApp.addListener("backButton", () => onClose());
-    return () => sub?.remove();
+    let handle = null;
+    let alive = true;
+
+    (async () => {
+      try {
+        const h = await CapApp.addListener("backButton", () => onClose());
+        if (!alive) {
+          // if we unmounted before this resolved, remove immediately
+          if (h && typeof h.remove === "function") await h.remove();
+        } else {
+          handle = h;
+        }
+      } catch {
+        // no-op on web / unsupported platform
+      }
+    })();
+
+    return () => {
+      alive = false;
+      if (handle && typeof handle.remove === "function") {
+        try { handle.remove(); } catch {}
+      }
+    };
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;

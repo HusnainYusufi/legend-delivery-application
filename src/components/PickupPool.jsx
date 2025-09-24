@@ -1,3 +1,4 @@
+// src/components/PickupPool.jsx
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Loader2, RefreshCcw, ChevronDown, ChevronUp, QrCode, Search, PackageOpen } from "lucide-react";
@@ -6,7 +7,6 @@ import StatusBadge from "./StatusBadge.jsx";
 import { ensureCameraPermission, startWebQrScanner } from "../lib/scanner.js";
 import { parseOrderNumberFromScan, fetchAwaitingPickupOrders, fetchAwaitingPickupMine, claimPickupByOrderNo } from "../lib/api.js";
 
-/* util */
 const safeText = (v, { fallback = "-" } = {}) => {
   if (v == null) return fallback;
   if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") return String(v);
@@ -19,13 +19,8 @@ function Row({ order, collapsedDefault = true, rightEl, t }) {
 
   return (
     <article className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
-      {/* collapsed header */}
       <div className="w-full flex items-stretch justify-between px-3 py-2">
-        {/* scrollable single-line left segment */}
-        <button
-          onClick={() => setOpen(o => !o)}
-          className="min-w-0 flex-1 text-left"
-        >
+        <button onClick={() => setOpen(o => !o)} className="min-w-0 flex-1 text-left">
           <div className="overflow-x-auto no-scrollbar whitespace-nowrap pr-2">
             <span className="font-semibold text-slate-900 dark:text-slate-100">{safeText(order.orderNo)}</span>
             <span className="inline-block align-middle ml-2">
@@ -33,21 +28,14 @@ function Row({ order, collapsedDefault = true, rightEl, t }) {
             </span>
           </div>
         </button>
-
-        {/* right controls stay visible */}
         <div className="flex items-center gap-2 pl-2">
           {rightEl}
-          <button
-            onClick={() => setOpen(o => !o)}
-            className="icon-btn px-2 py-1"
-            aria-label={open ? "Collapse" : "Expand"}
-          >
+          <button onClick={() => setOpen(o => !o)} className="icon-btn px-2 py-1" aria-label={open ? "Collapse" : "Expand"}>
             {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </button>
         </div>
       </div>
 
-      {/* expanded */}
       {open && (
         <div className="px-3 pb-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
@@ -149,11 +137,11 @@ export default function PickupPool() {
       if (reset) setMine(s => ({ ...s, loading:true }));
       else setMine(s => ({ ...s, moreLoading:true }));
 
-      const res = await fetchAwaitingPickupMine({
-        page: reset ? 1 : mine.page,
-        limit: mine.limit,
-        q: q.trim() || undefined,
-      });
+    const res = await fetchAwaitingPickupMine({
+      page: reset ? 1 : mine.page,
+      limit: mine.limit,
+      q: q.trim() || undefined,
+    });
 
       const next = Array.isArray(res.orders) ? res.orders : [];
       if (reset){
@@ -199,7 +187,7 @@ export default function PickupPool() {
             if (!orderNo) return;
 
             try{
-              await claimPickupByOrderNo(orderNo);
+              await claimPickupByOrderNo(orderNo); // sends { verifyLabel:false, advance:true }
               setToast({ type:"success", msg:t("claimed_success") });
               setTimeout(() => setToast(null), 1200);
               await loadPool({ reset:true });
@@ -241,23 +229,21 @@ export default function PickupPool() {
         </div>
       </div>
 
-      {/* Tabs */}
       <div className="flex gap-2 mb-3">
         <button
           onClick={() => setTab("pool")}
           className={`px-3 py-1.5 rounded-lg text-sm border ${tab==="pool" ? "text-white brand-gradient border-transparent" : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200"}`}
         >
-          {t("tab_pool")}
+          {t("Orders Pool")}
         </button>
         <button
           onClick={() => setTab("mine")}
           className={`px-3 py-1.5 rounded-lg text-sm border ${tab==="mine" ? "text-white brand-gradient border-transparent" : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200"}`}
         >
-          {t("tab_mine")}
+          {t("My Orders")}
         </button>
       </div>
 
-      {/* Search */}
       <form onSubmit={onSearch} className="mb-3">
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -272,7 +258,6 @@ export default function PickupPool() {
         </div>
       </form>
 
-      {/* List */}
       {error && (
         <div className="mb-3 rounded-lg border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-700 dark:text-red-200 break-words">
           {error}
@@ -315,8 +300,7 @@ export default function PickupPool() {
         </div>
       )}
 
-      {/* Load more */}
-      {((tab==="pool" && hasMorePool) || (tab==="mine" && hasMoreMine)) && (
+      {hasMore && (
         <div className="mt-4 flex justify-center">
           <button
             onClick={() => (tab === "pool" ? loadPool({ reset:false }) : loadMine({ reset:false }))}
@@ -324,19 +308,17 @@ export default function PickupPool() {
             className="btn bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600 px-4 py-2"
           >
             {currentList.moreLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ChevronDown className="h-4 w-4" />}
-            <span className="ml-2">{t("load_more") || "Load more"}</span>
+            <span className="ml-2">{t("load_more")}</span>
           </button>
         </div>
       )}
 
-      {/* Toast */}
       {toast && (
         <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[120] rounded-xl px-5 py-3 shadow-lg text-white ${toast.type==="success" ? "brand-gradient" : "bg-rose-600"}`}>
           <div className="font-medium text-sm">{toast.msg}</div>
         </div>
       )}
 
-      {/* Scanner overlay for claim */}
       <ScannerOverlay
         key={scannerKey}
         visible={scanOpen}
