@@ -4,9 +4,16 @@ import { useTranslation } from "react-i18next";
 import { Loader2, RefreshCcw, ChevronDown, ChevronUp, QrCode, Search, PackageOpen } from "lucide-react";
 import ScannerOverlay from "./ScannerOverlay.jsx";
 import StatusBadge from "./StatusBadge.jsx";
+import AnimatedOtp from "./AnimatedOtp.jsx";
 import { ensureCameraPermission, startWebQrScanner } from "../lib/scanner.js";
-import { parseOrderNumberFromScan, fetchAwaitingPickupOrders, fetchAwaitingPickupMine, claimPickupByOrderNo } from "../lib/api.js";
+import {
+  parseOrderNumberFromScan,
+  fetchAwaitingPickupOrders,
+  fetchAwaitingPickupMine,
+  claimPickupByOrderNo
+} from "../lib/api.js";
 
+/* util */
 const safeText = (v, { fallback = "-" } = {}) => {
   if (v == null) return fallback;
   if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") return String(v);
@@ -28,9 +35,14 @@ function Row({ order, collapsedDefault = true, rightEl, t }) {
             </span>
           </div>
         </button>
+
         <div className="flex items-center gap-2 pl-2">
           {rightEl}
-          <button onClick={() => setOpen(o => !o)} className="icon-btn px-2 py-1" aria-label={open ? "Collapse" : "Expand"}>
+          <button
+            onClick={() => setOpen(o => !o)}
+            className="icon-btn px-2 py-1"
+            aria-label={open ? "Collapse" : "Expand"}
+          >
             {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </button>
         </div>
@@ -100,7 +112,10 @@ export default function PickupPool() {
   const scannerRef = useRef(null);
   const [scannerKey, setScannerKey] = useState(0);
   const [toast, setToast] = useState(null);
-  const pendingOrderToClaim = useRef(null);
+
+  // animated OTP
+  const [otpOpen, setOtpOpen] = useState(false);
+  const [otpOrderNo, setOtpOrderNo] = useState("");
 
   const hasMorePool = pool.items.length < pool.count;
   const hasMoreMine = mine.items.length < mine.count;
@@ -137,11 +152,11 @@ export default function PickupPool() {
       if (reset) setMine(s => ({ ...s, loading:true }));
       else setMine(s => ({ ...s, moreLoading:true }));
 
-    const res = await fetchAwaitingPickupMine({
-      page: reset ? 1 : mine.page,
-      limit: mine.limit,
-      q: q.trim() || undefined,
-    });
+      const res = await fetchAwaitingPickupMine({
+        page: reset ? 1 : mine.page,
+        limit: mine.limit,
+        q: q.trim() || undefined,
+      });
 
       const next = Array.isArray(res.orders) ? res.orders : [];
       if (reset){
@@ -182,16 +197,21 @@ export default function PickupPool() {
           async (decoded) => {
             await stopScanner();
             setScanOpen(false);
-            const ordFromQr = parseOrderNumberFromScan(decoded);
-            const orderNo = ordFromQr || pendingOrderToClaim.current;
+            const orderNo = parseOrderNumberFromScan(decoded);
             if (!orderNo) return;
 
             try{
-              await claimPickupByOrderNo(orderNo); // sends { verifyLabel:false, advance:true }
-              setToast({ type:"success", msg:t("claimed_success") });
+              await claimPickupByOrderNo(orderNo);
+              setToast({ type:"success", msg: t("claimed_success") || "Order claimed" });
               setTimeout(() => setToast(null), 1200);
+
+              // refresh both lists
               await loadPool({ reset:true });
               await loadMine({ reset:true });
+
+              // 🔥 immediately open OTP sheet for this order
+              setOtpOrderNo(orderNo);
+              setOtpOpen(true);
             }catch(err){
               setError(err?.message || "Claim failed");
             }
@@ -214,10 +234,19 @@ export default function PickupPool() {
   const currentList = tab === "pool" ? pool : mine;
   const hasMore = tab === "pool" ? hasMorePool : hasMoreMine;
 
+  const verifyOtp = async (code) => {
+    // Hook API later:
+    // POST /orders/:orderNo/otp/verify { code }
+    // For now, just close and toast
+    setOtpOpen(false);
+    setToast({ type: "success", msg: "OTP verified (demo)" });
+    setTimeout(() => setToast(null), 1200);
+  };
+
   return (
     <section className="card bg-white dark:bg-slate-800 rounded-xl shadow-lg p-5 mb-6 border border-slate-200 dark:border-slate-700 mx-auto">
       <div className="flex items-center justify-between gap-3 mb-4">
-        <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">{t("pickup_pool")}</h2>
+        <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">{t("pickup_pool") || "Awaiting Pickup"}</h2>
         <div className="flex items-center gap-2">
           <button
             onClick={() => { if (tab==="pool") loadPool({ reset:true }); else loadMine({ reset:true }); }}
@@ -229,21 +258,23 @@ export default function PickupPool() {
         </div>
       </div>
 
+      {/* Tabs */}
       <div className="flex gap-2 mb-3">
         <button
           onClick={() => setTab("pool")}
           className={`px-3 py-1.5 rounded-lg text-sm border ${tab==="pool" ? "text-white brand-gradient border-transparent" : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200"}`}
         >
-          {t("Orders Pool")}
+          {t("tab_pool") || "Pool"}
         </button>
         <button
           onClick={() => setTab("mine")}
           className={`px-3 py-1.5 rounded-lg text-sm border ${tab==="mine" ? "text-white brand-gradient border-transparent" : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200"}`}
         >
-          {t("My Orders")}
+          {t("tab_mine") || "My Claimed"}
         </button>
       </div>
 
+      {/* Search */}
       <form onSubmit={onSearch} className="mb-3">
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -253,11 +284,12 @@ export default function PickupPool() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white pl-10 pr-4 py-2.5 outline-none transition-all focus:border-[var(--brand-500)]"
-            placeholder={t("search_orders")}
+            placeholder={t("search_orders") || "Search orders"}
           />
         </div>
       </form>
 
+      {/* List */}
       {error && (
         <div className="mb-3 rounded-lg border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-700 dark:text-red-200 break-words">
           {error}
@@ -276,30 +308,52 @@ export default function PickupPool() {
         </div>
       ) : (
         <div className="space-y-2">
-          {currentList.items.map((o) => (
-            <Row
-              key={o._id || o.orderNo}
-              order={o}
-              collapsedDefault={true}
-              t={t}
-              rightEl={
-                tab === "pool" ? (
+          {currentList.items.map((o) => {
+            const statusVal = o.currentStatus || o.orderStatus;
+            const normalized = statusVal ? String(statusVal).toUpperCase() : "";
+
+            // Show "Claim" button on Pool.
+            // Show "Enter OTP" button on Mine for claimed orders (tune status check as needed).
+            const rightEl =
+              tab === "pool" ? (
+                <button
+                  type="button"
+                  onClick={() => { setScanOpen(true); setTimeout(() => setScanOpen(true), 0); }}
+                  className="inline-flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium text-white brand-gradient"
+                  title={t("scan_to_claim") || "Scan to claim"}
+                >
+                  <QrCode className="h-4 w-4" />
+                  {t("claim") || "Claim"}
+                </button>
+              ) : (
+                // In your flow, after claim you move order to IN_TRANSIT (or similar).
+                // Adjust the condition if your status differs.
+                (normalized === "IN_TRANSIT" || normalized === "AWAITING_DELIVERY" || normalized === "PREPARED") && (
                   <button
                     type="button"
-                    onClick={() => { pendingOrderToClaim.current = o?.orderNo || null; setScannerKey(k=>k+1); setScanOpen(true); }}
+                    onClick={() => { setOtpOrderNo(o.orderNo); setOtpOpen(true); }}
                     className="inline-flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium text-white brand-gradient"
-                    title={t("scan_to_claim")}
+                    title="Enter OTP"
                   >
-                    <QrCode className="h-4 w-4" />
-                    {t("claim")}
+                    Enter OTP
                   </button>
-                ) : null
-              }
-            />
-          ))}
+                )
+              );
+
+            return (
+              <Row
+                key={o._id || o.orderNo}
+                order={o}
+                collapsedDefault={true}
+                t={t}
+                rightEl={rightEl}
+              />
+            );
+          })}
         </div>
       )}
 
+      {/* Load more */}
       {hasMore && (
         <div className="mt-4 flex justify-center">
           <button
@@ -308,23 +362,33 @@ export default function PickupPool() {
             className="btn bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600 px-4 py-2"
           >
             {currentList.moreLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ChevronDown className="h-4 w-4" />}
-            <span className="ml-2">{t("load_more")}</span>
+            <span className="ml-2">{t("load_more") || "Load more"}</span>
           </button>
         </div>
       )}
 
+      {/* Toast */}
       {toast && (
         <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[120] rounded-xl px-5 py-3 shadow-lg text-white ${toast.type==="success" ? "brand-gradient" : "bg-rose-600"}`}>
           <div className="font-medium text-sm">{toast.msg}</div>
         </div>
       )}
 
+      {/* Scanner overlay for claim (pool) */}
       <ScannerOverlay
         key={scannerKey}
         visible={scanOpen}
         onClose={async () => { await stopScanner(); setScanOpen(false); }}
         scannerDivId={scannerDivId}
-        title={t("scan_to_claim")}
+        title={t("scan_to_claim") || "Scan to claim"}
+      />
+
+      {/* Animated OTP sheet */}
+      <AnimatedOtp
+        open={otpOpen}
+        orderNo={otpOrderNo}
+        onClose={() => setOtpOpen(false)}
+        onVerify={verifyOtp}
       />
     </section>
   );

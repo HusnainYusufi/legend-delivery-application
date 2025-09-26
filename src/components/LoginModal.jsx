@@ -1,5 +1,5 @@
 // src/components/LoginModal.jsx
-import React, { useState } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { X, User, Lock, Eye, EyeOff } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -7,13 +7,20 @@ import { loginRequest } from "../lib/api.js";
 import { decodeJwt } from "../lib/auth.js";
 import logoUrl from "/sh-logo.png";
 
-export default function LoginModal({ onClose, onLogin }) {
+function ModalContent({ onClose, onLogin }) {
   const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // prevent background scroll when modal is open
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -34,9 +41,10 @@ export default function LoginModal({ onClose, onLogin }) {
         iat: payload.iat ?? null,
         exp: payload.exp ?? null,
       };
-      // Call parent; parent already closes the modal.
+
+      // ✅ Only notify parent. DO NOT call onClose here.
+      // Parent's handleLogin will close the modal and navigate.
       onLogin?.(auth);
-      // IMPORTANT: do NOT call onClose() here as parent closes it too.
     } catch (err) {
       setError(err?.message || t("login_error"));
     } finally {
@@ -44,11 +52,11 @@ export default function LoginModal({ onClose, onLogin }) {
     }
   };
 
-  const content = (
-    <div className="fixed inset-0 z-[120] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+  return (
+    <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl max-w-md w-full mx-4 p-6 relative">
         <button
-          type="button"             // ensure not a submit if nested in a form
+          type="button"
           onClick={onClose}
           className="absolute top-4 right-4 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
           aria-label={t("close")}
@@ -56,6 +64,7 @@ export default function LoginModal({ onClose, onLogin }) {
           <X className="h-6 w-6" />
         </button>
 
+        {/* Brand logo */}
         <div className="flex justify-center mb-6">
           <img src={logoUrl} alt="SHAHEENE" className="h-16 w-16 object-contain" />
         </div>
@@ -117,7 +126,7 @@ export default function LoginModal({ onClose, onLogin }) {
           </div>
 
           {error && (
-            <div className="mb-6 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-700 dark:text-red-200">
+            <div className="mb-6 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-700 dark:text-red-200 flex items-center">
               {error}
             </div>
           )}
@@ -134,11 +143,33 @@ export default function LoginModal({ onClose, onLogin }) {
             )}
             {t("login_button")}
           </button>
+
+          <div className="mt-4 text-center text-sm text-slate-500 dark:text-slate-400">
+            {t("forgot_password")}
+            <button type="button" className="text-indigo-600 dark:text-indigo-400 font-medium ml-1">
+              {t("reset_here")}
+            </button>
+          </div>
         </form>
       </div>
     </div>
   );
+}
 
-  const container = document.getElementById("modal-root");
-  return container ? createPortal(content, container) : content;
+export default function LoginModal({ onClose, onLogin }) {
+  // Create (or reuse) a portal host for modals
+  const host = useMemo(() => {
+    let el = document.getElementById("modal-root");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "modal-root";
+      document.body.appendChild(el);
+    }
+    return el;
+  }, []);
+
+  return createPortal(
+    <ModalContent onClose={onClose} onLogin={onLogin} />,
+    host
+  );
 }
