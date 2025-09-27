@@ -392,4 +392,7 @@ export default function PickupPool() {
       />
     </section>
   );
+
+
+  
 }
