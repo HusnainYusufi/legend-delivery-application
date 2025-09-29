@@ -3,7 +3,7 @@ import { getAuth } from "./auth.js";
 
 // Use your main API for ALL standard endpoints
 const API_BASE = "https://api.shaheene.com";
-// OTP service base (as requested)
+// OTP service base (same host currently)
 const OTP_BASE = "https://api.shaheene.com";
 
 // Exported for debugging/messages elsewhere
@@ -16,37 +16,6 @@ const CONFIG = {
       `/orders/${encodeURIComponent(orderNumber)}/status-overview`,
   },
 };
-
-// ---------- DRIVER: Claim by scanned orderNo ----------
-async function claimPickupByOrderNo(orderNo) {
-  const auth = getAuth();
-  if (!auth?.token) throw new Error("No auth token. Please log in.");
-  if (!orderNo) throw new Error("Missing order number from QR.");
-
-  const url = `${AUTH_BASE_URL}/orders/${encodeURIComponent(orderNo)}/claim-pickup`;
-
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      Authorization: `Bearer ${auth.token}`,
-    },
-    body: JSON.stringify({ verifyLabel: false, advance: true }), // ✅ claim body
-  });
-
-  let data = null;
-  let raw = "";
-  try { data = await res.clone().json(); } catch {}
-  try { raw = await res.text(); } catch {}
-
-  const okByBody = typeof data?.status === "number" ? data.status === 200 : res.ok;
-  if (!res.ok || !okByBody) {
-    const serverMsg = (data && (data.message || data.error)) || (raw && raw.slice(0, 300)) || "";
-    throw new Error(`Claim failed (HTTP ${res.status}${res.statusText ? " " + res.statusText : ""})${serverMsg ? " - " + serverMsg : ""}`);
-  }
-  return data || { status: 200 };
-}
 
 // ---------- AUTH ----------
 /**
@@ -88,7 +57,7 @@ async function loginRequest(email, password) {
   return data; // { status, token, role, warehouseId }
 }
 
-// ---------- ORDERS: Assigned to me ----------
+// ---------- ORDERS: Assigned to me (staff) ----------
 async function fetchAssignedOrders({
   page = 1,
   limit = 15,
@@ -96,9 +65,7 @@ async function fetchAssignedOrders({
   sortDir = "desc",
 } = {}) {
   const auth = getAuth();
-  if (!auth?.token) {
-    throw new Error("No auth token found. Please log in again.");
-  }
+  if (!auth?.token) throw new Error("No auth token found. Please log in again.");
 
   const url = `${AUTH_BASE_URL}/orders/my-assigned?page=${page}&limit=${limit}&sortBy=${encodeURIComponent(
     sortBy
@@ -114,12 +81,8 @@ async function fetchAssignedOrders({
 
   let data = null;
   let rawText = "";
-  try {
-    data = await res.clone().json();
-  } catch {}
-  try {
-    rawText = await res.text();
-  } catch {}
+  try { data = await res.clone().json(); } catch {}
+  try { rawText = await res.text(); } catch {}
 
   const okByBody =
     typeof data?.status === "number" ? data.status === 200 : res.ok;
@@ -146,7 +109,7 @@ async function fetchAssignedOrders({
   };
 }
 
-// ---------- DRIVER: Awaiting Pickup (pool + mine) ----------
+// ---------- DRIVER: Awaiting Pickup (unassigned pool or mine) ----------
 async function fetchAwaitingPickupOrders({
   page = 1,
   limit = 15,
@@ -178,12 +141,8 @@ async function fetchAwaitingPickupOrders({
 
   let data = null;
   let raw = "";
-  try {
-    data = await res.clone().json();
-  } catch {}
-  try {
-    raw = await res.text();
-  } catch {}
+  try { data = await res.clone().json(); } catch {}
+  try { raw = await res.text(); } catch {}
 
   const okBody =
     typeof data?.status === "number" ? data.status === 200 : res.ok;
@@ -208,12 +167,92 @@ async function fetchAwaitingPickupOrders({
   };
 }
 
+// convenience (legacy "mine" awaiting pickup if server supports it)
 const fetchAwaitingPickupMine = (opts = {}) =>
   fetchAwaitingPickupOrders({ ...opts, mine: true, unassigned: false });
 
+// ---------- DRIVER: My In-Transit (claimed by this driver) ----------
+async function fetchMyInTransitOrders({
+  page = 1,
+  limit = 20,
+} = {}) {
+  const auth = getAuth();
+  if (!auth?.token) throw new Error("No auth token. Please log in.");
+
+  const url = `${AUTH_BASE_URL}/orders/my-in-transit?page=${page}&limit=${limit}`;
+
+  const res = await fetch(url, {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      Authorization: `Bearer ${auth.token}`,
+    },
+  });
+
+  let data = null;
+  let raw = "";
+  try { data = await res.clone().json(); } catch {}
+  try { raw = await res.text(); } catch {}
+
+  const okBody =
+    typeof data?.status === "number" ? data.status === 200 : res.ok;
+  if (!res.ok || !okBody) {
+    const serverMsg =
+      (data && (data.message || data.error)) || (raw && raw.slice(0, 300)) || "";
+    throw new Error(
+      `My In-Transit fetch failed (HTTP ${res.status}${
+        res.statusText ? " " + res.statusText : ""
+      })${serverMsg ? " - " + serverMsg : ""}`
+    );
+  }
+
+  return {
+    status: 200,
+    page: data?.page ?? page,
+    limit: data?.limit ?? limit,
+    count:
+      data?.count ?? (Array.isArray(data?.orders) ? data.orders.length : 0),
+    orders: Array.isArray(data?.orders) ? data.orders : [],
+  };
+}
+
+// ---------- DRIVER: Claim by scanned orderNo ----------
+async function claimPickupByOrderNo(orderNo) {
+  const auth = getAuth();
+  if (!auth?.token) throw new Error("No auth token. Please log in.");
+  if (!orderNo) throw new Error("Missing order number from QR.");
+
+  const url = `${AUTH_BASE_URL}/orders/${encodeURIComponent(orderNo)}/claim-pickup`;
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      Authorization: `Bearer ${auth.token}`,
+    },
+    body: JSON.stringify({ verifyLabel: false, advance: true }), // claim body
+  });
+
+  let data = null;
+  let raw = "";
+  try { data = await res.clone().json(); } catch {}
+  try { raw = await res.text(); } catch {}
+
+  const okByBody = typeof data?.status === "number" ? data.status === 200 : res.ok;
+  if (!res.ok || !okByBody) {
+    const serverMsg =
+      (data && (data.message || data.error)) || (raw && raw.slice(0, 300)) || "";
+    throw new Error(
+      `Claim failed (HTTP ${res.status}${res.statusText ? " " + res.statusText : ""})${serverMsg ? " - " + serverMsg : ""}`
+    );
+  }
+  return data || { status: 200 };
+}
+
 // ---------- DRIVER: Send OTP ----------
 /**
- * POST https://api.shaheene.com/orders/:orderNo/otp/send
+ * POST /orders/:orderNo/otp/send
  * Headers: Authorization: Bearer <driver token>
  * Body: {}
  */
@@ -236,12 +275,8 @@ async function sendOrderOtp(orderNo) {
 
   let data = null;
   let raw = "";
-  try {
-    data = await res.clone().json();
-  } catch {}
-  try {
-    raw = await res.text();
-  } catch {}
+  try { data = await res.clone().json(); } catch {}
+  try { raw = await res.text(); } catch {}
 
   const okBody =
     typeof data?.status === "number" ? data.status === 200 : res.ok;
@@ -309,8 +344,7 @@ function parseOrderNumberFromScan(payload) {
     if (last && /[A-Za-z0-9_-]{4,}/.test(last)) return last;
   } catch (_) {}
   const tokens = String(payload)
-    .split(/[^A-Za-z0-9_-]+/)
-    .filter(Boolean)
+    .split(/[^A-Za-z0-9_-]+/).filter(Boolean)
     .sort((a, b) => b.length - a.length);
   return tokens[0] || "";
 }
@@ -323,6 +357,7 @@ export {
   fetchAssignedOrders,
   fetchAwaitingPickupOrders,
   fetchAwaitingPickupMine,
+  fetchMyInTransitOrders,
   claimPickupByOrderNo,
   sendOrderOtp,
 };

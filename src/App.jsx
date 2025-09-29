@@ -1,3 +1,4 @@
+// src/App.jsx
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Camera as CameraIcon, Loader2, QrCode, RefreshCcw, XCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -9,7 +10,7 @@ import StatusBadge from "./components/StatusBadge.jsx";
 import Drawer from "./components/Drawer";
 import LoginModal from "./components/LoginModal";
 import OrdersList from "./components/OrdersList.jsx";
-import PickupPool from "./components/PickupPool.jsx"; // ⬅️ NEW: driver screen
+import PickupPool from "./components/PickupPool.jsx";
 
 import { CONFIG, apiFetch, parseOrderNumberFromScan } from "./lib/api.js";
 import {
@@ -66,7 +67,7 @@ export default function App() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-  // Restore auth on first load
+  // Restore auth
   useEffect(() => {
     const saved = loadAuth();
     if (saved?.token) setAuthState(saved);
@@ -77,7 +78,7 @@ export default function App() {
     setAuthState(authData);
     setIsDrawerOpen(false);
     setIsLoginModalOpen(false);
-    // Driver lands on Orders (PickupPool with Pool/Mine tabs)
+    // driver goes straight to orders (PickupPool)
     setView("orders");
     setToast({ type: "success", msg: "Logged in ✓" });
     setTimeout(() => setToast(null), 1200);
@@ -100,7 +101,7 @@ export default function App() {
     scannerRef.current = null;
   }, []);
 
-  // Begin scanning (home)
+  // Begin scanning flow (home tracker)
   const beginScan = useCallback(async () => {
     setScanError("");
     setPermDenied(false);
@@ -138,10 +139,10 @@ export default function App() {
     }, 120);
   }, [stopScanner, t]);
 
-  // Cleanup on unmount
+  // Cleanup
   useEffect(() => () => { stopScanner(); }, [stopScanner]);
 
-  // Fetch status (home)
+  // Fetch status (home tracker)
   const getStatus = useCallback(async () => {
     if (!orderNumber) {
       setToast({ type: "error", msg: t("toast_need_order") });
@@ -177,7 +178,7 @@ export default function App() {
     if (language !== i18n.language) i18n.changeLanguage(language);
   }, [language, i18n]);
 
-  // Scan from image
+  // Scan from image fallback
   const onPickImage = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -197,6 +198,9 @@ export default function App() {
     }
   };
 
+  // Ensure Home is visible when not logged in
+  const showHome = view !== "orders" || !isAuthenticated;
+
   return (
     <div className="app-shell min-h-screen relative">
       {showSplash && <Splash />}
@@ -207,6 +211,7 @@ export default function App() {
         isAuthenticated={isAuthenticated}
         onMenuClick={() => setIsDrawerOpen(true)}
         onOrdersClick={() => setView("orders")}
+        onLogoClick={() => setView("home")}  // <-- go Home on logo
       />
 
       <Drawer
@@ -231,14 +236,111 @@ export default function App() {
       )}
 
       <main className="content safe-b max-w-3xl mx-auto px-4 pb-6">
-        {view === "home" && (
+        {showHome ? (
           <>
-            {/* home screen unchanged — omitted for brevity */}
-            {/* ... */}
-          </>
-        )}
+            <div className={`${current ? "" : "min-h-[70dvh] flex items-center justify-center"}`}>
+              <section className="card bg-white dark:bg-slate-800 rounded-xl shadow-lg p-5 mb-6 border border-slate-200 dark:border-slate-700 mx-auto max-w-md w-full">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl brand-gradient text-white">
+                    <QrCode className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">{t("track_order")}</h2>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">{t("scan_or_enter")}</p>
+                  </div>
+                </div>
 
-        {view === "orders" && (
+                <div className="grid grid-cols-1 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      {t("order")}
+                    </label>
+                    <input
+                      className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white px-4 py-3 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900"
+                      placeholder={t("placeholder_order")}
+                      value={orderNumber}
+                      onChange={(e) => setOrderNumber(e.target.value)}
+                      inputMode="text"
+                      autoComplete="off"
+                      onPaste={(e) => e.stopPropagation()}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={beginScan}
+                      className="btn brand-gradient hover:opacity-95 text-white flex items-center justify-center gap-2"
+                    >
+                      <CameraIcon className="h-5 w-5" /> {t("scan")}
+                    </button>
+
+                    <button
+                      onClick={reset}
+                      className="btn bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600"
+                    >
+                      <RefreshCcw className="h-5 w-5 mx-auto" />
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={getStatus}
+                    disabled={isLoading}
+                    className="btn bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white flex items-center justify-center gap-2"
+                  >
+                    {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <QrCode className="h-5 w-5" />}
+                    {t("load_status")}
+                  </button>
+                </div>
+
+                {!!scanError && (
+                  <div className="mt-4 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-700 dark:text-red-200 flex items-start">
+                    <XCircle className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
+                    <div>
+                      {scanError}
+                      {permDenied && (
+                        <button onClick={openAppSettings} className="ml-2 underline font-medium">
+                          {t("open_settings")}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {!!rawScan && (
+                  <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{t("scanned_payload")}:</p>
+                    <p className="text-sm font-mono break-words mt-1 text-slate-700 dark:text-slate-300">{rawScan}</p>
+                  </div>
+                )}
+              </section>
+            </div>
+
+            {current && (
+              <section className="card bg-white dark:bg-slate-800 rounded-xl shadow-lg p-5 mb-6 border border-slate-200 dark:border-slate-700 mx-auto">
+                <div className="flex flex-wrap items-center justify-between gap-4 mb-4 pb-4 border-b border-slate-200 dark:border-slate-700">
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">{t("order_details")}</h2>
+                    <div className="mt-1">
+                      <span className="text-sm text-slate-500 dark:text-slate-400">{t("order")}: </span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-200 break-words">
+                        {current.orderNo}
+                      </span>
+                    </div>
+                    <div className="mt-1">
+                      <span className="text-sm text-slate-500 dark:text-slate-400">{t("tracking_number")}: </span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-200 break-words">
+                        {current.trackingNumber}
+                      </span>
+                    </div>
+                  </div>
+                  <StatusBadge value={current.currentStatus} />
+                </div>
+                {/* keep your existing status steps, etc, if present */}
+              </section>
+            )}
+          </>
+        ) : (
+          // Orders view
           isDriver ? <PickupPool /> : <OrdersList />
         )}
 

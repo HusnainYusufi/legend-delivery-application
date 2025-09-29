@@ -1,6 +1,6 @@
 // src/components/Navbar.jsx
 import React from "react";
-import { QrCode, Menu, ListChecks } from "lucide-react";
+import { Menu, ListChecks } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import logoUrl from "/sh-logo.png";
 
@@ -10,6 +10,7 @@ export default function Navbar({
   isAuthenticated,
   onMenuClick,
   onOrdersClick,
+  onLogoClick, // NEW
 }) {
   const { t } = useTranslation();
 
@@ -25,13 +26,19 @@ export default function Navbar({
             <Menu className="h-5 w-5" />
           </button>
 
-          <div className="flex items-center gap-2">
+          {/* Brand is clickable -> Home */}
+          <button
+            type="button"
+            onClick={onLogoClick}
+            className="flex items-center gap-2"
+            aria-label="Home"
+          >
             <img
               src={logoUrl}
               alt="SHAHEENE"
               className="h-7 w-7 object-contain"
             />
-            <div className="leading-tight">
+            <div className="leading-tight text-left">
               <div className="text-sm font-bold tracking-tight text-slate-800 dark:text-white">
                 SHAHEENE
               </div>
@@ -39,7 +46,7 @@ export default function Navbar({
                 QR Status
               </div>
             </div>
-          </div>
+          </button>
         </div>
 
         <div className="flex items-center gap-2">

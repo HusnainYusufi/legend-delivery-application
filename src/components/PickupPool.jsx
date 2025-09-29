@@ -1,19 +1,22 @@
+// src/components/PickupPool.jsx
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Loader2, RefreshCcw, ChevronDown, ChevronUp, QrCode, Search, PackageOpen, KeyRound } from "lucide-react";
+import { Loader2, RefreshCcw, ChevronDown, ChevronUp, QrCode, Search, PackageOpen, Send } from "lucide-react";
 import ScannerOverlay from "./ScannerOverlay.jsx";
 import StatusBadge from "./StatusBadge.jsx";
-import OtpModal from "./OtpModal.jsx";                // ⬅️ add OTP modal here
-import { ensureCameraPermission, startWebQrScanner } from "../lib/scanner.js";
+import {
+  ensureCameraPermission,
+  startWebQrScanner,
+} from "../lib/scanner.js";
 import {
   parseOrderNumberFromScan,
   fetchAwaitingPickupOrders,
-  fetchAwaitingPickupMine,
+  fetchMyInTransitOrders,
   claimPickupByOrderNo,
   sendOrderOtp,
 } from "../lib/api.js";
+import OtpModal from "./OtpModal.jsx";
 
-/* util */
 const safeText = (v, { fallback = "-" } = {}) => {
   if (v == null) return fallback;
   if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") return String(v);
@@ -28,7 +31,7 @@ function Row({ order, collapsedDefault = true, rightEl, t }) {
     <article className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
       <div className="w-full flex items-stretch justify-between px-3 py-2">
         <button onClick={() => setOpen(o => !o)} className="min-w-0 flex-1 text-left">
-          <div className="overflow-x-auto whitespace-nowrap pr-2">
+          <div className="overflow-x-auto no-scrollbar whitespace-nowrap pr-2">
             <span className="font-semibold text-slate-900 dark:text-slate-100">{safeText(order.orderNo)}</span>
             <span className="inline-block align-middle ml-2">
               <StatusBadge value={statusVal} />
@@ -97,15 +100,16 @@ export default function PickupPool() {
   const { t } = useTranslation();
   const [tab, setTab] = useState("pool"); // "pool" | "mine"
   const [q, setQ] = useState("");
+
   const [pool, setPool] = useState({ items: [], page: 1, limit: 15, count: 0, loading: false, moreLoading: false });
-  const [mine, setMine] = useState({ items: [], page: 1, limit: 15, count: 0, loading: false, moreLoading: false });
+  const [mine, setMine] = useState({ items: [], page: 1, limit: 20, count: 0, loading: false, moreLoading: false });
   const [error, setError] = useState("");
 
-  // OTP modal state
+  // OTP modal handled for MINE
   const [otpOpen, setOtpOpen] = useState(false);
   const [otpOrder, setOtpOrder] = useState(null);
 
-  // scanner
+  // scanner for claim (POOL)
   const [scanOpen, setScanOpen] = useState(false);
   const scannerDivId = "pickup-scan-div";
   const scannerRef = useRef(null);
@@ -142,16 +146,16 @@ export default function PickupPool() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, pool.page, pool.limit]);
 
+  // MINE uses /orders/my-in-transit (server-side paginated)
   const loadMine = useCallback(async ({ reset = false } = {}) => {
     try{
       setError("");
       if (reset) setMine(s => ({ ...s, loading:true }));
       else setMine(s => ({ ...s, moreLoading:true }));
 
-      const res = await fetchAwaitingPickupMine({
+      const res = await fetchMyInTransitOrders({
         page: reset ? 1 : mine.page,
         limit: mine.limit,
-        q: q.trim() || undefined,
       });
 
       const next = Array.isArray(res.orders) ? res.orders : [];
@@ -165,7 +169,7 @@ export default function PickupPool() {
       setMine(s => ({ ...s, loading:false, moreLoading:false }));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, mine.page, mine.limit]);
+  }, [mine.page, mine.limit]);
 
   useEffect(() => {
     loadPool({ reset:true });
@@ -198,14 +202,11 @@ export default function PickupPool() {
             if (!orderNo) return;
 
             try{
-              // ✅ CLAIM FIRST
               await claimPickupByOrderNo(orderNo);
-              // Refresh lists and jump to Mine
-              await Promise.all([loadPool({ reset:true }), loadMine({ reset:true })]);
-              setTab("mine");
               setToast({ type:"success", msg:t("claimed_success") });
               setTimeout(() => setToast(null), 1200);
-              // ❌ Do NOT auto-open OTP here
+              await loadPool({ reset:true });
+              await loadMine({ reset:true }); // refresh "mine" so it appears there
             }catch(err){
               setError(err?.message || "Claim failed");
             }
@@ -227,16 +228,6 @@ export default function PickupPool() {
 
   const currentList = tab === "pool" ? pool : mine;
   const hasMore = tab === "pool" ? hasMorePool : hasMoreMine;
-
-  const onSendOtp = async (order) => {
-    try {
-      await sendOrderOtp(order.orderNo);
-      setOtpOrder(order);
-      setOtpOpen(true);
-    } catch (e) {
-      setError(e?.message || "Failed to send OTP");
-    }
-  };
 
   return (
     <section className="card bg-white dark:bg-slate-800 rounded-xl shadow-lg p-5 mb-6 border border-slate-200 dark:border-slate-700 mx-auto">
@@ -269,7 +260,7 @@ export default function PickupPool() {
         </button>
       </div>
 
-      {/* Search */}
+      {/* Search (filters pool by q) */}
       <form onSubmit={onSearch} className="mb-3">
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -303,38 +294,43 @@ export default function PickupPool() {
         </div>
       ) : (
         <div className="space-y-2">
-          {currentList.items.map((o) => (
-            <Row
-              key={o._id || o.orderNo}
-              order={o}
-              collapsedDefault={true}
-              t={t}
-              rightEl={
-                tab === "pool" ? (
-                  <button
-                    type="button"
-                    onClick={() => { pendingOrderToClaim.current = o?.orderNo || null; setScannerKey(k=>k+1); setScanOpen(true); }}
-                    className="inline-flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium text-white brand-gradient"
-                    title={t("scan_to_claim")}
-                  >
-                    <QrCode className="h-4 w-4" />
-                    {t("claim")}
-                  </button>
-                ) : (
-                  // Mine tab → show OTP button
-                  <button
-                    type="button"
-                    onClick={() => onSendOtp(o)}
-                    className="inline-flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-600"
-                    title={t("verify_otp")}
-                  >
-                    <KeyRound className="h-4 w-4" />
-                    {t("otp_short")}
-                  </button>
-                )
-              }
-            />
-          ))}
+          {currentList.items.map((o) => {
+            const statusVal = o.currentStatus || o.orderStatus;
+            const normalized = statusVal ? String(statusVal).toUpperCase() : "";
+            const isMine = tab === "mine"; // show OTP on mine
+
+            return (
+              <Row
+                key={o._id || o.orderNo}
+                order={o}
+                collapsedDefault={true}
+                t={t}
+                rightEl={
+                  tab === "pool" ? (
+                    <button
+                      type="button"
+                      onClick={() => { pendingOrderToClaim.current = o?.orderNo || null; setScannerKey(k=>k+1); setScanOpen(true); }}
+                      className="inline-flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium text-white brand-gradient"
+                      title={t("scan_to_claim")}
+                    >
+                      <QrCode className="h-4 w-4" />
+                      {t("claim")}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => { setOtpOrder(o); setOtpOpen(true); }}
+                      className="inline-flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium text-white brand-gradient"
+                      title={t("send_otp")}
+                    >
+                      <Send className="h-4 w-4" />
+                      OTP
+                    </button>
+                  )
+                }
+              />
+            );
+          })}
         </div>
       )}
 
@@ -368,14 +364,18 @@ export default function PickupPool() {
         title={t("scan_to_claim")}
       />
 
-      {/* OTP Modal (4-digit UI already in your OtpModal) */}
+      {/* OTP Modal (for items in MINE) */}
       <OtpModal
         open={otpOpen}
         orderNo={otpOrder?.orderNo}
         onClose={() => setOtpOpen(false)}
-        onSubmit={(code) => {
-          // Hook up verify endpoint later; keep modal UX for now
-          setOtpOpen(false);
+        onSubmit={async (code) => {
+          // Hook up verify API later; for now, just close after "submit"
+          try {
+            // Optionally: await sendOrderOtp(otpOrder?.orderNo); // if you want to resend before verify
+          } finally {
+            setOtpOpen(false);
+          }
         }}
       />
     </section>

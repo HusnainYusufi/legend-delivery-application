@@ -1,3 +1,4 @@
+// src/i18n.js
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 
@@ -46,18 +47,6 @@ const resources = {
       otp_sent: "OTP has been sent.",
       enter_otp_for: "Enter OTP for Order",
       backspace: "Backspace",
-
-      pickup_pool: "Awaiting Pickup",
-      tab_pool: "Pool",
-      tab_mine: "Mine",
-      search_orders: "Search orders…",
-      claim: "Claim",
-      scan_to_claim: "Scan to Claim",
-      claimed_success: "Order claimed",
-      verify_otp: "Verify OTP",
-      otp_short: "OTP",
-
-
       clear: "Clear",
       cancel: "Cancel",
       submit: "Submit",
@@ -72,6 +61,14 @@ const resources = {
       more: "more",
       show_password: "Show password",
       hide_password: "Hide password",
+      // NEW for PickupPool
+      pickup_pool: "Pickup",
+      tab_pool: "Pool",
+      tab_mine: "Mine",
+      search_orders: "Search by order no.",
+      claim: "Claim",
+      scan_to_claim: "Scan to Claim",
+      claimed_success: "Order claimed ✓",
       statuses: {
         PENDING: "Pending",
         PREPARING: "Preparing",
@@ -103,15 +100,6 @@ const resources = {
       next_suggested: "مقترح التالي",
       current: "حالي",
       occurred: "حدث",
-      pickup_pool: "بانتظار الاستلام",
-      tab_pool: "المتاحة",
-      tab_mine: "خاصة بي",
-      search_orders: "ابحث عن الطلبات…",
-      claim: "استلام",
-      scan_to_claim: "مسح للاستلام",
-      claimed_success: "تم استلام الطلب",
-      verify_otp: "تأكيد الرمز",
-      otp_short: "رمز",
       tip_camera: "ملاحظة: على الجهاز، المسح يحتاج HTTPS + إذن.",
       toast_need_order: "أدخل أو امسح رقم الطلب.",
       error_fetch_status: "تعذر جلب الحالة",
@@ -142,6 +130,9 @@ const resources = {
       no_orders: "لا توجد طلبات",
       customer: "العميل",
       city: "المدينة",
+      order_date: "تاريخ الطلب",
+      items: "العناصر",
+      more: "المزيد",
       send_otp: "إرسال رمز التحقق",
       otp_sent: "تم إرسال رمز التحقق.",
       enter_otp_for: "أدخل رمز التحقق للطلب",
@@ -149,11 +140,16 @@ const resources = {
       clear: "مسح",
       cancel: "إلغاء",
       submit: "تأكيد",
-      order_date: "تاريخ الطلب",
-      items: "العناصر",
-      more: "المزيد",
       show_password: "إظهار كلمة المرور",
       hide_password: "إخفاء كلمة المرور",
+      // NEW for PickupPool
+      pickup_pool: "الاستلام",
+      tab_pool: "المشترك",
+      tab_mine: "الخاصة بي",
+      search_orders: "ابحث برقم الطلب",
+      claim: "مطالبة",
+      scan_to_claim: "المسح للمطالبة",
+      claimed_success: "تمت المطالبة بالطلب ✓",
       statuses: {
         PENDING: "قيد الانتظار",
         PREPARING: "قيد التحضير",
