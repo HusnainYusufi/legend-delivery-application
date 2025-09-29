@@ -17,6 +17,37 @@ const CONFIG = {
   },
 };
 
+// ---------- DRIVER: Claim by scanned orderNo ----------
+async function claimPickupByOrderNo(orderNo) {
+  const auth = getAuth();
+  if (!auth?.token) throw new Error("No auth token. Please log in.");
+  if (!orderNo) throw new Error("Missing order number from QR.");
+
+  const url = `${AUTH_BASE_URL}/orders/${encodeURIComponent(orderNo)}/claim-pickup`;
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      Authorization: `Bearer ${auth.token}`,
+    },
+    body: JSON.stringify({ verifyLabel: false, advance: true }), // ✅ claim body
+  });
+
+  let data = null;
+  let raw = "";
+  try { data = await res.clone().json(); } catch {}
+  try { raw = await res.text(); } catch {}
+
+  const okByBody = typeof data?.status === "number" ? data.status === 200 : res.ok;
+  if (!res.ok || !okByBody) {
+    const serverMsg = (data && (data.message || data.error)) || (raw && raw.slice(0, 300)) || "";
+    throw new Error(`Claim failed (HTTP ${res.status}${res.statusText ? " " + res.statusText : ""})${serverMsg ? " - " + serverMsg : ""}`);
+  }
+  return data || { status: 200 };
+}
+
 // ---------- AUTH ----------
 /**
  * POST /auth/login
@@ -179,51 +210,6 @@ async function fetchAwaitingPickupOrders({
 
 const fetchAwaitingPickupMine = (opts = {}) =>
   fetchAwaitingPickupOrders({ ...opts, mine: true, unassigned: false });
-
-// ---------- DRIVER: Claim by scanned orderNo ----------
-async function claimPickupByOrderNo(orderNo) {
-  const auth = getAuth();
-  if (!auth?.token) throw new Error("No auth token. Please log in.");
-  if (!orderNo) throw new Error("Missing order number from QR.");
-
-  const url = `${AUTH_BASE_URL}/orders/${encodeURIComponent(
-    orderNo
-  )}/claim-pickup`;
-
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      Authorization: `Bearer ${auth.token}`,
-    },
-    body: JSON.stringify({ verifyLabel: false, advance: true }), // per your latest requirement
-  });
-
-  let data = null;
-  let raw = "";
-  try {
-    data = await res.clone().json();
-  } catch {}
-  try {
-    raw = await res.text();
-  } catch {}
-
-  const okByBody =
-    typeof data?.status === "number" ? data.status === 200 : res.ok;
-
-  if (!res.ok || !okByBody) {
-    const serverMsg =
-      (data && (data.message || data.error)) || (raw && raw.slice(0, 300)) || "";
-    throw new Error(
-      `Claim failed (HTTP ${res.status}${
-        res.statusText ? " " + res.statusText : ""
-      })${serverMsg ? " - " + serverMsg : ""}`
-    );
-  }
-
-  return data || { status: 200 };
-}
 
 // ---------- DRIVER: Send OTP ----------
 /**

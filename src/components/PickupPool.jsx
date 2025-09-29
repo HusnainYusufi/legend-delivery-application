@@ -1,16 +1,16 @@
-// src/components/PickupPool.jsx
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Loader2, RefreshCcw, ChevronDown, ChevronUp, QrCode, Search, PackageOpen } from "lucide-react";
+import { Loader2, RefreshCcw, ChevronDown, ChevronUp, QrCode, Search, PackageOpen, KeyRound } from "lucide-react";
 import ScannerOverlay from "./ScannerOverlay.jsx";
 import StatusBadge from "./StatusBadge.jsx";
-import AnimatedOtp from "./AnimatedOtp.jsx";
+import OtpModal from "./OtpModal.jsx";                // ⬅️ add OTP modal here
 import { ensureCameraPermission, startWebQrScanner } from "../lib/scanner.js";
 import {
   parseOrderNumberFromScan,
   fetchAwaitingPickupOrders,
   fetchAwaitingPickupMine,
-  claimPickupByOrderNo
+  claimPickupByOrderNo,
+  sendOrderOtp,
 } from "../lib/api.js";
 
 /* util */
@@ -28,21 +28,16 @@ function Row({ order, collapsedDefault = true, rightEl, t }) {
     <article className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
       <div className="w-full flex items-stretch justify-between px-3 py-2">
         <button onClick={() => setOpen(o => !o)} className="min-w-0 flex-1 text-left">
-          <div className="overflow-x-auto no-scrollbar whitespace-nowrap pr-2">
+          <div className="overflow-x-auto whitespace-nowrap pr-2">
             <span className="font-semibold text-slate-900 dark:text-slate-100">{safeText(order.orderNo)}</span>
             <span className="inline-block align-middle ml-2">
               <StatusBadge value={statusVal} />
             </span>
           </div>
         </button>
-
         <div className="flex items-center gap-2 pl-2">
           {rightEl}
-          <button
-            onClick={() => setOpen(o => !o)}
-            className="icon-btn px-2 py-1"
-            aria-label={open ? "Collapse" : "Expand"}
-          >
+          <button onClick={() => setOpen(o => !o)} className="icon-btn px-2 py-1" aria-label={open ? "Collapse" : "Expand"}>
             {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </button>
         </div>
@@ -100,11 +95,15 @@ function Row({ order, collapsedDefault = true, rightEl, t }) {
 
 export default function PickupPool() {
   const { t } = useTranslation();
-  const [tab, setTab] = useState("pool"); // pool | mine
+  const [tab, setTab] = useState("pool"); // "pool" | "mine"
   const [q, setQ] = useState("");
   const [pool, setPool] = useState({ items: [], page: 1, limit: 15, count: 0, loading: false, moreLoading: false });
   const [mine, setMine] = useState({ items: [], page: 1, limit: 15, count: 0, loading: false, moreLoading: false });
   const [error, setError] = useState("");
+
+  // OTP modal state
+  const [otpOpen, setOtpOpen] = useState(false);
+  const [otpOrder, setOtpOrder] = useState(null);
 
   // scanner
   const [scanOpen, setScanOpen] = useState(false);
@@ -112,10 +111,7 @@ export default function PickupPool() {
   const scannerRef = useRef(null);
   const [scannerKey, setScannerKey] = useState(0);
   const [toast, setToast] = useState(null);
-
-  // animated OTP
-  const [otpOpen, setOtpOpen] = useState(false);
-  const [otpOrderNo, setOtpOrderNo] = useState("");
+  const pendingOrderToClaim = useRef(null);
 
   const hasMorePool = pool.items.length < pool.count;
   const hasMoreMine = mine.items.length < mine.count;
@@ -197,21 +193,19 @@ export default function PickupPool() {
           async (decoded) => {
             await stopScanner();
             setScanOpen(false);
-            const orderNo = parseOrderNumberFromScan(decoded);
+            const ordFromQr = parseOrderNumberFromScan(decoded);
+            const orderNo = ordFromQr || pendingOrderToClaim.current;
             if (!orderNo) return;
 
             try{
+              // ✅ CLAIM FIRST
               await claimPickupByOrderNo(orderNo);
-              setToast({ type:"success", msg: t("claimed_success") || "Order claimed" });
+              // Refresh lists and jump to Mine
+              await Promise.all([loadPool({ reset:true }), loadMine({ reset:true })]);
+              setTab("mine");
+              setToast({ type:"success", msg:t("claimed_success") });
               setTimeout(() => setToast(null), 1200);
-
-              // refresh both lists
-              await loadPool({ reset:true });
-              await loadMine({ reset:true });
-
-              // 🔥 immediately open OTP sheet for this order
-              setOtpOrderNo(orderNo);
-              setOtpOpen(true);
+              // ❌ Do NOT auto-open OTP here
             }catch(err){
               setError(err?.message || "Claim failed");
             }
@@ -234,19 +228,20 @@ export default function PickupPool() {
   const currentList = tab === "pool" ? pool : mine;
   const hasMore = tab === "pool" ? hasMorePool : hasMoreMine;
 
-  const verifyOtp = async (code) => {
-    // Hook API later:
-    // POST /orders/:orderNo/otp/verify { code }
-    // For now, just close and toast
-    setOtpOpen(false);
-    setToast({ type: "success", msg: "OTP verified (demo)" });
-    setTimeout(() => setToast(null), 1200);
+  const onSendOtp = async (order) => {
+    try {
+      await sendOrderOtp(order.orderNo);
+      setOtpOrder(order);
+      setOtpOpen(true);
+    } catch (e) {
+      setError(e?.message || "Failed to send OTP");
+    }
   };
 
   return (
     <section className="card bg-white dark:bg-slate-800 rounded-xl shadow-lg p-5 mb-6 border border-slate-200 dark:border-slate-700 mx-auto">
       <div className="flex items-center justify-between gap-3 mb-4">
-        <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">{t("pickup_pool") || "Awaiting Pickup"}</h2>
+        <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">{t("pickup_pool")}</h2>
         <div className="flex items-center gap-2">
           <button
             onClick={() => { if (tab==="pool") loadPool({ reset:true }); else loadMine({ reset:true }); }}
@@ -264,13 +259,13 @@ export default function PickupPool() {
           onClick={() => setTab("pool")}
           className={`px-3 py-1.5 rounded-lg text-sm border ${tab==="pool" ? "text-white brand-gradient border-transparent" : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200"}`}
         >
-          {t("tab_pool") || "Pool"}
+          {t("tab_pool")}
         </button>
         <button
           onClick={() => setTab("mine")}
           className={`px-3 py-1.5 rounded-lg text-sm border ${tab==="mine" ? "text-white brand-gradient border-transparent" : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200"}`}
         >
-          {t("tab_mine") || "My Claimed"}
+          {t("tab_mine")}
         </button>
       </div>
 
@@ -284,7 +279,7 @@ export default function PickupPool() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white pl-10 pr-4 py-2.5 outline-none transition-all focus:border-[var(--brand-500)]"
-            placeholder={t("search_orders") || "Search orders"}
+            placeholder={t("search_orders")}
           />
         </div>
       </form>
@@ -308,48 +303,38 @@ export default function PickupPool() {
         </div>
       ) : (
         <div className="space-y-2">
-          {currentList.items.map((o) => {
-            const statusVal = o.currentStatus || o.orderStatus;
-            const normalized = statusVal ? String(statusVal).toUpperCase() : "";
-
-            // Show "Claim" button on Pool.
-            // Show "Enter OTP" button on Mine for claimed orders (tune status check as needed).
-            const rightEl =
-              tab === "pool" ? (
-                <button
-                  type="button"
-                  onClick={() => { setScanOpen(true); setTimeout(() => setScanOpen(true), 0); }}
-                  className="inline-flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium text-white brand-gradient"
-                  title={t("scan_to_claim") || "Scan to claim"}
-                >
-                  <QrCode className="h-4 w-4" />
-                  {t("claim") || "Claim"}
-                </button>
-              ) : (
-                // In your flow, after claim you move order to IN_TRANSIT (or similar).
-                // Adjust the condition if your status differs.
-                (normalized === "IN_TRANSIT" || normalized === "AWAITING_DELIVERY" || normalized === "PREPARED") && (
+          {currentList.items.map((o) => (
+            <Row
+              key={o._id || o.orderNo}
+              order={o}
+              collapsedDefault={true}
+              t={t}
+              rightEl={
+                tab === "pool" ? (
                   <button
                     type="button"
-                    onClick={() => { setOtpOrderNo(o.orderNo); setOtpOpen(true); }}
+                    onClick={() => { pendingOrderToClaim.current = o?.orderNo || null; setScannerKey(k=>k+1); setScanOpen(true); }}
                     className="inline-flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium text-white brand-gradient"
-                    title="Enter OTP"
+                    title={t("scan_to_claim")}
                   >
-                    Enter OTP
+                    <QrCode className="h-4 w-4" />
+                    {t("claim")}
+                  </button>
+                ) : (
+                  // Mine tab → show OTP button
+                  <button
+                    type="button"
+                    onClick={() => onSendOtp(o)}
+                    className="inline-flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-600"
+                    title={t("verify_otp")}
+                  >
+                    <KeyRound className="h-4 w-4" />
+                    {t("otp_short")}
                   </button>
                 )
-              );
-
-            return (
-              <Row
-                key={o._id || o.orderNo}
-                order={o}
-                collapsedDefault={true}
-                t={t}
-                rightEl={rightEl}
-              />
-            );
-          })}
+              }
+            />
+          ))}
         </div>
       )}
 
@@ -374,25 +359,25 @@ export default function PickupPool() {
         </div>
       )}
 
-      {/* Scanner overlay for claim (pool) */}
+      {/* Scanner overlay for claim */}
       <ScannerOverlay
         key={scannerKey}
         visible={scanOpen}
         onClose={async () => { await stopScanner(); setScanOpen(false); }}
         scannerDivId={scannerDivId}
-        title={t("scan_to_claim") || "Scan to claim"}
+        title={t("scan_to_claim")}
       />
 
-      {/* Animated OTP sheet */}
-      <AnimatedOtp
+      {/* OTP Modal (4-digit UI already in your OtpModal) */}
+      <OtpModal
         open={otpOpen}
-        orderNo={otpOrderNo}
+        orderNo={otpOrder?.orderNo}
         onClose={() => setOtpOpen(false)}
-        onVerify={verifyOtp}
+        onSubmit={(code) => {
+          // Hook up verify endpoint later; keep modal UX for now
+          setOtpOpen(false);
+        }}
       />
     </section>
   );
-
-
-  
 }
