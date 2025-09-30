@@ -36,9 +36,7 @@ async function loginRequest(email, password) {
 
   const rawTextPromise = res.clone().text().catch(() => "");
   let data = null;
-  try {
-    data = await res.json();
-  } catch {}
+  try { data = await res.json(); } catch {}
 
   const rawText = await rawTextPromise;
   const okByBody =
@@ -172,10 +170,7 @@ const fetchAwaitingPickupMine = (opts = {}) =>
   fetchAwaitingPickupOrders({ ...opts, mine: true, unassigned: false });
 
 // ---------- DRIVER: My In-Transit (claimed by this driver) ----------
-async function fetchMyInTransitOrders({
-  page = 1,
-  limit = 20,
-} = {}) {
+async function fetchMyInTransitOrders({ page = 1, limit = 20 } = {}) {
   const auth = getAuth();
   if (!auth?.token) throw new Error("No auth token. Please log in.");
 
@@ -250,11 +245,9 @@ async function claimPickupByOrderNo(orderNo) {
   return data || { status: 200 };
 }
 
-// ---------- DRIVER: Send OTP ----------
+// ---------- DRIVER: Send OTP (to customer) ----------
 /**
  * POST /orders/:orderNo/otp/send
- * Headers: Authorization: Bearer <driver token>
- * Body: {}
  */
 async function sendOrderOtp(orderNo) {
   const auth = getAuth();
@@ -290,6 +283,56 @@ async function sendOrderOtp(orderNo) {
     );
   }
   return data || { status: 200 };
+}
+
+// ---------- DRIVER: Verify OTP (deliver) ----------
+/**
+ * POST /orders/:orderNo/otp/verify
+ * Body: { code: "123456" }
+ * Role: driver/admin/csr_user (JWT)
+ * On success -> { status:200, message:"OTP verified. Order delivered." }
+ * Common errors:
+ * 404 No active OTP, 410 expired, 401 incorrect (attempts left), 429 too many attempts
+ */
+async function verifyOrderOtp(orderNo, code) {
+  const auth = getAuth();
+  if (!auth?.token) throw new Error("No auth token. Please log in.");
+  if (!orderNo) throw new Error("Missing order number.");
+  if (!code || String(code).trim().length < 4) throw new Error("Enter the OTP code.");
+
+  const url = `${OTP_BASE}/orders/${encodeURIComponent(orderNo)}/otp/verify`;
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      Authorization: `Bearer ${auth.token}`,
+    },
+    body: JSON.stringify({ code: String(code).trim() }),
+  });
+
+  let data = null;
+  let raw = "";
+  try { data = await res.clone().json(); } catch {}
+  try { raw = await res.text(); } catch {}
+
+  if (!res.ok || (typeof data?.status === "number" && data.status !== 200)) {
+    // Friendly error mapping
+    if (res.status === 404) throw new Error("No active OTP for this order (send one first).");
+    if (res.status === 410) throw new Error("OTP expired.");
+    if (res.status === 401) throw new Error(data?.message || "Incorrect code.");
+    if (res.status === 429) throw new Error("Too many attempts. Try again later.");
+    const serverMsg =
+      (data && (data.message || data.error)) || (raw && raw.slice(0, 300)) || "";
+    throw new Error(
+      `OTP verify failed (HTTP ${res.status}${
+        res.statusText ? ` ${res.statusText}` : ""
+      })${serverMsg ? ` - ${serverMsg}` : ""}`
+    );
+  }
+
+  return data || { status: 200, message: "OTP verified. Order delivered." };
 }
 
 // ---------- PUBLIC API (Bearer auto-attached) ----------
@@ -360,4 +403,5 @@ export {
   fetchMyInTransitOrders,
   claimPickupByOrderNo,
   sendOrderOtp,
+  verifyOrderOtp,
 };

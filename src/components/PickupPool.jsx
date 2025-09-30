@@ -13,9 +13,10 @@ import {
   fetchAwaitingPickupOrders,
   fetchMyInTransitOrders,
   claimPickupByOrderNo,
-  sendOrderOtp,
+  verifyOrderOtp,
 } from "../lib/api.js";
 import OtpModal from "./OtpModal.jsx";
+import DeliverySuccess from "./DeliverySuccess.jsx";
 
 const safeText = (v, { fallback = "-" } = {}) => {
   if (v == null) return fallback;
@@ -108,6 +109,11 @@ export default function PickupPool() {
   // OTP modal handled for MINE
   const [otpOpen, setOtpOpen] = useState(false);
   const [otpOrder, setOtpOrder] = useState(null);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpError, setOtpError] = useState("");
+
+  // success overlay
+  const [successOpen, setSuccessOpen] = useState(false);
 
   // scanner for claim (POOL)
   const [scanOpen, setScanOpen] = useState(false);
@@ -226,6 +232,31 @@ export default function PickupPool() {
     return () => { stopScanner(); };
   }, [scanOpen, beginScan, stopScanner]);
 
+  // OTP flow handlers
+  const openOtpFor = (order) => {
+    setOtpOrder(order || null);
+    setOtpError("");
+    setOtpOpen(true);
+  };
+
+  const submitOtp = async (code) => {
+    if (!otpOrder?.orderNo) return;
+    try {
+      setOtpLoading(true);
+      setOtpError("");
+      await verifyOrderOtp(otpOrder.orderNo, code);
+      // success -> delivered
+      setOtpOpen(false);
+      setSuccessOpen(true);
+      // refresh Mine list (delivered order will typically disappear from in-transit)
+      await loadMine({ reset: true });
+    } catch (e) {
+      setOtpError(e?.message || "Failed to verify OTP.");
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
   const currentList = tab === "pool" ? pool : mine;
   const hasMore = tab === "pool" ? hasMorePool : hasMoreMine;
 
@@ -294,43 +325,37 @@ export default function PickupPool() {
         </div>
       ) : (
         <div className="space-y-2">
-          {currentList.items.map((o) => {
-            const statusVal = o.currentStatus || o.orderStatus;
-            const normalized = statusVal ? String(statusVal).toUpperCase() : "";
-            const isMine = tab === "mine"; // show OTP on mine
-
-            return (
-              <Row
-                key={o._id || o.orderNo}
-                order={o}
-                collapsedDefault={true}
-                t={t}
-                rightEl={
-                  tab === "pool" ? (
-                    <button
-                      type="button"
-                      onClick={() => { pendingOrderToClaim.current = o?.orderNo || null; setScannerKey(k=>k+1); setScanOpen(true); }}
-                      className="inline-flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium text-white brand-gradient"
-                      title={t("scan_to_claim")}
-                    >
-                      <QrCode className="h-4 w-4" />
-                      {t("claim")}
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => { setOtpOrder(o); setOtpOpen(true); }}
-                      className="inline-flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium text-white brand-gradient"
-                      title={t("send_otp")}
-                    >
-                      <Send className="h-4 w-4" />
-                      OTP
-                    </button>
-                  )
-                }
-              />
-            );
-          })}
+          {currentList.items.map((o) => (
+            <Row
+              key={o._id || o.orderNo}
+              order={o}
+              collapsedDefault={true}
+              t={t}
+              rightEl={
+                tab === "pool" ? (
+                  <button
+                    type="button"
+                    onClick={() => { pendingOrderToClaim.current = o?.orderNo || null; setScannerKey(k=>k+1); setScanOpen(true); }}
+                    className="inline-flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium text-white brand-gradient"
+                    title={t("scan_to_claim")}
+                  >
+                    <QrCode className="h-4 w-4" />
+                    {t("claim")}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => openOtpFor(o)}
+                    className="inline-flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium text-white brand-gradient"
+                    title="Verify OTP"
+                  >
+                    <Send className="h-4 w-4" />
+                    OTP
+                  </button>
+                )
+              }
+            />
+          ))}
         </div>
       )}
 
@@ -369,14 +394,16 @@ export default function PickupPool() {
         open={otpOpen}
         orderNo={otpOrder?.orderNo}
         onClose={() => setOtpOpen(false)}
-        onSubmit={async (code) => {
-          // Hook up verify API later; for now, just close after "submit"
-          try {
-            // Optionally: await sendOrderOtp(otpOrder?.orderNo); // if you want to resend before verify
-          } finally {
-            setOtpOpen(false);
-          }
-        }}
+        onSubmit={submitOtp}
+        loading={otpLoading}
+        error={otpError}
+      />
+
+      {/* Delivery success overlay */}
+      <DeliverySuccess
+        open={successOpen}
+        orderNo={otpOrder?.orderNo}
+        onClose={() => setSuccessOpen(false)}
       />
     </section>
   );
