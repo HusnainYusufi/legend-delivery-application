@@ -1,5 +1,6 @@
+// src/components/Drawer.jsx
 import React, { useEffect, useRef } from "react";
-import { X, User, Lock, ListChecks, Truck } from "lucide-react";
+import { X, User, Lock, ListChecks, Truck, Camera } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { App as CapApp } from "@capacitor/app";
 
@@ -11,14 +12,14 @@ export default function Drawer({
   onLoginClick,
   onLogout,
   onOrdersClick,
-  onPickupClick,
+  onPickupClick,           // (kept if you had it wired elsewhere)
+  onScanProductClick,      // ✅ NEW
   language,
 }) {
   const { t } = useTranslation();
   const isRTL = language === "ar";
   const overlayRef = useRef(null);
 
-  // Lock body scroll, ESC to close
   useEffect(() => {
     if (!isOpen) return;
     const onEsc = (e) => e.key === "Escape" && onClose();
@@ -30,7 +31,6 @@ export default function Drawer({
     };
   }, [isOpen, onClose]);
 
-  // Android back button (Capacitor) — **await** the listener handle
   useEffect(() => {
     if (!isOpen) return;
     let handle = null;
@@ -40,14 +40,11 @@ export default function Drawer({
       try {
         const h = await CapApp.addListener("backButton", () => onClose());
         if (!alive) {
-          // if we unmounted before this resolved, remove immediately
           if (h && typeof h.remove === "function") await h.remove();
         } else {
           handle = h;
         }
-      } catch {
-        // no-op on web / unsupported platform
-      }
+      } catch {}
     })();
 
     return () => {
@@ -99,16 +96,33 @@ export default function Drawer({
               </button>
 
               {isDriver && (
-                <button
-                  onClick={() => {
-                    onPickupClick?.();
-                    onClose();
-                  }}
-                  className="w-full flex items-center gap-3 p-3 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                >
-                  <Truck className="h-5 w-5" />
-                  <span className="text-base">{t("pickup_pool")}</span>
-                </button>
+                <>
+                  {/* ✅ NEW: Scan Product quick-claim page */}
+                  <button
+                    onClick={() => {
+                      onScanProductClick?.();
+                      onClose();
+                    }}
+                    className="w-full flex items-center gap-3 p-3 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                  >
+                    <Camera className="h-5 w-5" />
+                    <span className="text-base">{t("scan_product")}</span>
+                  </button>
+
+                  {/* (Optional) keep a pickup pool item if you had one */}
+                  {onPickupClick && (
+                    <button
+                      onClick={() => {
+                        onPickupClick?.();
+                        onClose();
+                      }}
+                      className="w-full flex items-center gap-3 p-3 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                    >
+                      <Truck className="h-5 w-5" />
+                      <span className="text-base">{t("pickup_pool")}</span>
+                    </button>
+                  )}
+                </>
               )}
 
               <button

@@ -10,7 +10,7 @@ import StatusBadge from "./components/StatusBadge.jsx";
 import Drawer from "./components/Drawer";
 import LoginModal from "./components/LoginModal";
 import OrdersList from "./components/OrdersList.jsx";
-import PickupPool from "./components/PickupPool.jsx";
+import ScanClaim from "./components/ScanClaim.jsx"; // ✅ NEW
 
 import { CONFIG, apiFetch, parseOrderNumberFromScan } from "./lib/api.js";
 import {
@@ -25,40 +25,37 @@ import { getAuth as loadAuth, setAuth as persistAuth, clearAuth as purgeAuth } f
 export default function App() {
   const { t, i18n } = useTranslation();
 
-  // UI prefs
   const [language, setLanguage] = useState("ar");
   const [darkMode, setDarkMode] = useState(false);
   useEffect(() => {
     document.documentElement.classList.toggle("dark", darkMode);
   }, [darkMode]);
 
-  // Splash
   const [showSplash, setShowSplash] = useState(true);
   useEffect(() => {
     const tm = setTimeout(() => setShowSplash(false), 2500);
     return () => clearTimeout(tm);
   }, []);
 
-  // Navigation
-  const [view, setView] = useState("home"); // "home" | "orders"
+  // views: "home" | "orders" | "scan-claim"
+  const [view, setView] = useState("home");
 
-  // Scanner state
+  // scanner bits (home screen)
   const [isScanning, setIsScanning] = useState(false);
   const [scanError, setScanError] = useState("");
   const [permDenied, setPermDenied] = useState(false);
   const [rawScan, setRawScan] = useState("");
-
   const scannerRef = useRef(null);
   const scannerDivId = "qr-scanner-region";
   const [scannerKey, setScannerKey] = useState(0);
 
-  // Order/status state (home)
+  // home status
   const [orderNumber, setOrderNumber] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [current, setCurrent] = useState(null);
   const [toast, setToast] = useState(null);
 
-  // Authentication
+  // auth
   const [auth, setAuthState] = useState(null);
   const isAuthenticated = !!auth?.token;
   const role = auth?.role || auth?.userType || null;
@@ -67,7 +64,6 @@ export default function App() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-  // Restore auth
   useEffect(() => {
     const saved = loadAuth();
     if (saved?.token) setAuthState(saved);
@@ -78,7 +74,7 @@ export default function App() {
     setAuthState(authData);
     setIsDrawerOpen(false);
     setIsLoginModalOpen(false);
-    // driver goes straight to orders (PickupPool)
+    // Land driver on Orders
     setView("orders");
     setToast({ type: "success", msg: "Logged in ✓" });
     setTimeout(() => setToast(null), 1200);
@@ -93,15 +89,11 @@ export default function App() {
     setTimeout(() => setToast(null), 1200);
   };
 
-  // Stop any active scanner instance
   const stopScanner = useCallback(async () => {
-    try {
-      await scannerRef.current?.stop?.();
-    } catch {}
+    try { await scannerRef.current?.stop?.(); } catch {}
     scannerRef.current = null;
   }, []);
 
-  // Begin scanning flow (home tracker)
   const beginScan = useCallback(async () => {
     setScanError("");
     setPermDenied(false);
@@ -139,10 +131,8 @@ export default function App() {
     }, 120);
   }, [stopScanner, t]);
 
-  // Cleanup
   useEffect(() => () => { stopScanner(); }, [stopScanner]);
 
-  // Fetch status (home tracker)
   const getStatus = useCallback(async () => {
     if (!orderNumber) {
       setToast({ type: "error", msg: t("toast_need_order") });
@@ -161,7 +151,6 @@ export default function App() {
     }
   }, [orderNumber, t]);
 
-  // Reset home state
   const reset = useCallback(async () => {
     await stopScanner();
     setIsScanning(false);
@@ -173,12 +162,10 @@ export default function App() {
     setScannerKey((k) => k + 1);
   }, [stopScanner]);
 
-  // Language change
   useEffect(() => {
     if (language !== i18n.language) i18n.changeLanguage(language);
   }, [language, i18n]);
 
-  // Scan from image fallback
   const onPickImage = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -198,9 +185,6 @@ export default function App() {
     }
   };
 
-  // Ensure Home is visible when not logged in
-  const showHome = view !== "orders" || !isAuthenticated;
-
   return (
     <div className="app-shell min-h-screen relative">
       {showSplash && <Splash />}
@@ -211,7 +195,6 @@ export default function App() {
         isAuthenticated={isAuthenticated}
         onMenuClick={() => setIsDrawerOpen(true)}
         onOrdersClick={() => setView("orders")}
-        onLogoClick={() => setView("home")}  // <-- go Home on logo
       />
 
       <Drawer
@@ -225,6 +208,7 @@ export default function App() {
         }}
         onLogout={handleLogout}
         onOrdersClick={() => setView("orders")}
+        onScanProductClick={() => setView("scan-claim")}  // ✅ NEW
         language={language}
       />
 
@@ -236,7 +220,7 @@ export default function App() {
       )}
 
       <main className="content safe-b max-w-3xl mx-auto px-4 pb-6">
-        {showHome ? (
+        {view === "home" && (
           <>
             <div className={`${current ? "" : "min-h-[70dvh] flex items-center justify-center"}`}>
               <section className="card bg-white dark:bg-slate-800 rounded-xl shadow-lg p-5 mb-6 border border-slate-200 dark:border-slate-700 mx-auto max-w-md w-full">
@@ -335,15 +319,16 @@ export default function App() {
                   </div>
                   <StatusBadge value={current.currentStatus} />
                 </div>
-                {/* keep your existing status steps, etc, if present */}
               </section>
             )}
           </>
-        ) : (
-          // Orders view
-          isDriver ? <PickupPool /> : <OrdersList />
         )}
 
+        {view === "orders" && <OrdersList />}
+
+        {/* ✅ NEW: dedicated quick-claim scanner page */}
+        {view === "scan-claim" && <ScanClaim onBack={() => setView("orders")} />}
+        
         {toast && (
           <div
             className={`fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 rounded-xl px-5 py-3 shadow-lg flex items-center transition-all ${

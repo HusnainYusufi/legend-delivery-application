@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 export default function OtpModal({ open, orderNo, onClose, onSubmit, error, loading }) {
   const { t } = useTranslation();
   const [code, setCode] = useState("");
-  const maxLen = 6; // 6-digit OTP (adjust if needed)
+  const maxLen = 4; // ✅ 4-digit OTP
 
   useEffect(() => {
     if (!open) setCode("");
@@ -31,7 +31,6 @@ export default function OtpModal({ open, orderNo, onClose, onSubmit, error, load
   return (
     <div className="fixed inset-0 z-[120] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xl overflow-hidden">
-        {/* Header */}
         <div className="brand-gradient px-4 py-3 text-white flex items-center justify-between">
           <div className="font-semibold text-sm">OTP Verification</div>
           <button
@@ -43,7 +42,6 @@ export default function OtpModal({ open, orderNo, onClose, onSubmit, error, load
           </button>
         </div>
 
-        {/* Body */}
         <div className="p-5">
           <div className="text-center">
             <div className="text-sm text-slate-500 dark:text-slate-400">
@@ -54,7 +52,6 @@ export default function OtpModal({ open, orderNo, onClose, onSubmit, error, load
             </div>
           </div>
 
-          {/* OTP boxes */}
           <div className="mt-4 flex items-center justify-center gap-2">
             {digits.map((d, i) => (
               <div
@@ -66,14 +63,12 @@ export default function OtpModal({ open, orderNo, onClose, onSubmit, error, load
             ))}
           </div>
 
-          {/* Error (if any) */}
           {!!error && (
             <div className="mt-3 rounded-lg border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 px-3 py-2 text-sm text-red-700 dark:text-red-200">
               {error}
             </div>
           )}
 
-          {/* Numpad */}
           <div className="mt-5 grid grid-cols-3 gap-2">
             {[1,2,3,4,5,6,7,8,9].map((n) => (
               <button
@@ -109,7 +104,6 @@ export default function OtpModal({ open, orderNo, onClose, onSubmit, error, load
             </button>
           </div>
 
-          {/* Actions */}
           <div className="mt-5 flex items-center gap-2">
             <button
               onClick={onClose}
