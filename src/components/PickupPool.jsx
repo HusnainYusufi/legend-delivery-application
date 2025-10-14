@@ -1,7 +1,16 @@
 // src/components/PickupPool.jsx
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Loader2, RefreshCcw, ChevronDown, ChevronUp, QrCode, Search, PackageOpen, Send } from "lucide-react";
+import {
+  Loader2,
+  RefreshCcw,
+  ChevronDown,
+  QrCode,
+  Search,
+  PackageOpen,
+  CheckCircle2,
+  Send,
+} from "lucide-react";
 import ScannerOverlay from "./ScannerOverlay.jsx";
 import StatusBadge from "./StatusBadge.jsx";
 import {
@@ -13,10 +22,8 @@ import {
   fetchAwaitingPickupOrders,
   fetchMyInTransitOrders,
   claimPickupByOrderNo,
-  verifyOrderOtp,
+  sendOrderOtp,
 } from "../lib/api.js";
-import OtpModal from "./OtpModal.jsx";
-import DeliverySuccess from "./DeliverySuccess.jsx";
 
 const safeText = (v, { fallback = "-" } = {}) => {
   if (v == null) return fallback;
@@ -24,73 +31,67 @@ const safeText = (v, { fallback = "-" } = {}) => {
   try { const j = JSON.stringify(v); return j.length > 160 ? j.slice(0,157)+"…" : j; } catch { return fallback; }
 };
 
-function Row({ order, collapsedDefault = true, rightEl, t }) {
-  const [open, setOpen] = useState(!collapsedDefault);
+function OrderCard({ order, t, rightArea }) {
   const statusVal = order.currentStatus || order.orderStatus;
-
   return (
-    <article className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
-      <div className="w-full flex items-stretch justify-between px-3 py-2">
-        <button onClick={() => setOpen(o => !o)} className="min-w-0 flex-1 text-left">
-          <div className="overflow-x-auto no-scrollbar whitespace-nowrap pr-2">
-            <span className="font-semibold text-slate-900 dark:text-slate-100">{safeText(order.orderNo)}</span>
-            <span className="inline-block align-middle ml-2">
-              <StatusBadge value={statusVal} />
-            </span>
+    <article className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-sm text-slate-500 dark:text-slate-400">{t("order")}</div>
+          <div className="text-base font-semibold text-slate-800 dark:text-white break-all">
+            {safeText(order.orderNo)}
           </div>
-        </button>
-        <div className="flex items-center gap-2 pl-2">
-          {rightEl}
-          <button onClick={() => setOpen(o => !o)} className="icon-btn px-2 py-1" aria-label={open ? "Collapse" : "Expand"}>
-            {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </button>
+        </div>
+        <div className="flex items-center gap-2">
+          <StatusBadge value={statusVal} />
+          {rightArea}
         </div>
       </div>
 
-      {open && (
-        <div className="px-3 pb-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-            <div className="rounded-lg bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-700 p-3">
-              <div className="text-slate-500 dark:text-slate-400">{t("customer")}</div>
-              <div className="font-medium text-slate-800 dark:text-slate-100">{safeText(order.customerName)}</div>
-            </div>
-            <div className="rounded-lg bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-700 p-3">
-              <div className="text-slate-500 dark:text-slate-400">{t("city")}</div>
-              <div className="font-medium text-slate-800 dark:text-slate-100">
-                {safeText(order.city)}{order.country ? `, ${safeText(order.country)}` : ""}
-              </div>
-            </div>
-            <div className="rounded-lg bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-700 p-3">
-              <div className="text-slate-500 dark:text-slate-400">{t("order_date")}</div>
-              <div className="font-medium text-slate-800 dark:text-slate-100">
-                {order.orderDate ? new Date(order.orderDate).toLocaleString() : "-"}
-              </div>
-            </div>
-            <div className="rounded-lg bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-700 p-3">
-              <div className="text-slate-500 dark:text-slate-400">{t("tracking_number")}</div>
-              <div className="font-medium text-slate-800 dark:text-slate-100 break-all">
-                {safeText(order.trackingNumber)}
-              </div>
-            </div>
+      <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+        <div className="rounded-lg bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-700 p-3">
+          <div className="text-slate-500 dark:text-slate-400">{t("customer")}</div>
+          <div className="font-medium text-slate-800 dark:text-slate-100">
+            {safeText(order.customerName)}
           </div>
+        </div>
+        <div className="rounded-lg bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-700 p-3">
+          <div className="text-slate-500 dark:text-slate-400">{t("city")}</div>
+          <div className="font-medium text-slate-800 dark:text-slate-100">
+            {safeText(order.city)}{order.country ? `, ${safeText(order.country)}` : ""}
+          </div>
+        </div>
+        <div className="rounded-lg bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-700 p-3">
+          <div className="text-slate-500 dark:text-slate-400">{t("order_date")}</div>
+          <div className="font-medium text-slate-800 dark:text-slate-100">
+            {order.orderDate ? new Date(order.orderDate).toLocaleString() : "-"}
+          </div>
+        </div>
+        <div className="rounded-lg bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-700 p-3">
+          <div className="text-slate-500 dark:text-slate-400">{t("tracking_number")}</div>
+          <div className="font-medium text-slate-800 dark:text-slate-100 break-all">
+            {safeText(order.trackingNumber)}
+          </div>
+        </div>
+      </div>
 
-          {Array.isArray(order.items) && order.items.length > 0 && (
-            <div className="mt-3 rounded-lg bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-700 p-3">
-              <div className="text-slate-500 dark:text-slate-400 text-sm mb-1">{t("items")}</div>
-              <ul className="list-disc pl-5 space-y-1">
-                {order.items.slice(0,5).map((it, idx) => (
-                  <li key={idx} className="text-sm text-slate-700 dark:text-slate-200">
-                    {safeText(it.productName || it.sku)} × {safeText(it.quantity ?? 1)}
-                  </li>
-                ))}
-                {order.items.length > 5 && (
-                  <li className="text-xs text-slate-500 dark:text-slate-400">
-                    +{order.items.length - 5} {t("more")}
-                  </li>
-                )}
-              </ul>
-            </div>
-          )}
+      {Array.isArray(order.items) && order.items.length > 0 && (
+        <div className="mt-3 rounded-lg bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-700 p-3">
+          <div className="text-slate-500 dark:text-slate-400 text-sm mb-1">
+            {t("items")}
+          </div>
+          <ul className="list-disc pl-5 space-y-1">
+            {order.items.slice(0, 5).map((it, idx) => (
+              <li key={idx} className="text-sm text-slate-700 dark:text-slate-200">
+                {safeText(it.productName || it.sku)} × {safeText(it.quantity ?? 1)}
+              </li>
+            ))}
+            {order.items.length > 5 && (
+              <li className="text-xs text-slate-500 dark:text-slate-400">
+                +{order.items.length - 5} {t("more")}
+              </li>
+            )}
+          </ul>
         </div>
       )}
     </article>
@@ -100,37 +101,43 @@ function Row({ order, collapsedDefault = true, rightEl, t }) {
 export default function PickupPool() {
   const { t } = useTranslation();
   const [tab, setTab] = useState("pool"); // "pool" | "mine"
+  const [mineSub, setMineSub] = useState("undelivered"); // "undelivered" | "delivered"
   const [q, setQ] = useState("");
 
   const [pool, setPool] = useState({ items: [], page: 1, limit: 15, count: 0, loading: false, moreLoading: false });
   const [mine, setMine] = useState({ items: [], page: 1, limit: 20, count: 0, loading: false, moreLoading: false });
+
   const [error, setError] = useState("");
+  const [toast, setToast] = useState(null);
 
-  // OTP modal handled for MINE
-  const [otpOpen, setOtpOpen] = useState(false);
-  const [otpOrder, setOtpOrder] = useState(null);
-  const [otpLoading, setOtpLoading] = useState(false);
-  const [otpError, setOtpError] = useState("");
-
-  // success overlay
-  const [successOpen, setSuccessOpen] = useState(false);
-
-  // scanner for claim (POOL)
+  // scanner (claim)
   const [scanOpen, setScanOpen] = useState(false);
   const scannerDivId = "pickup-scan-div";
   const scannerRef = useRef(null);
   const [scannerKey, setScannerKey] = useState(0);
-  const [toast, setToast] = useState(null);
-  const pendingOrderToClaim = useRef(null);
 
   const hasMorePool = pool.items.length < pool.count;
   const hasMoreMine = mine.items.length < mine.count;
 
+  // Helpers
+  const isDelivered = (ord) => {
+    // Prefer package-level if present in __pkg.pkgStatus
+    const pkg = ord?.__pkg;
+    if (pkg?.pkgStatus) return String(pkg.pkgStatus).toUpperCase() === "DELIVERED";
+    // Fallback to order status
+    const s = (ord.currentStatus || ord.orderStatus || "").toUpperCase();
+    return s === "DELIVERED";
+  };
+
+  const undeliveredMine = mine.items.filter((o) => !isDelivered(o));
+  const deliveredMine = mine.items.filter((o) => isDelivered(o));
+
+  // Loaders
   const loadPool = useCallback(async ({ reset = false } = {}) => {
-    try{
+    try {
       setError("");
-      if (reset) setPool(s => ({ ...s, loading:true }));
-      else setPool(s => ({ ...s, moreLoading:true }));
+      if (reset) setPool((s) => ({ ...s, loading: true }));
+      else setPool((s) => ({ ...s, moreLoading: true }));
 
       const res = await fetchAwaitingPickupOrders({
         page: reset ? 1 : pool.page,
@@ -140,87 +147,104 @@ export default function PickupPool() {
       });
 
       const next = Array.isArray(res.orders) ? res.orders : [];
-      if (reset){
-        setPool({ items: next, page: 2, limit: pool.limit, count: res.count || next.length, loading:false, moreLoading:false });
-      }else{
-        setPool(s => ({ ...s, items:[...s.items, ...next], page:s.page+1, count: res.count || s.count, moreLoading:false, loading:false }));
+      if (reset) {
+        setPool({ items: next, page: 2, limit: pool.limit, count: res.count || next.length, loading: false, moreLoading: false });
+      } else {
+        setPool((s) => ({
+          ...s,
+          items: [...s.items, ...next],
+          page: s.page + 1,
+          count: res.count || s.count,
+          moreLoading: false,
+          loading: false,
+        }));
       }
-    }catch(e){
+    } catch (e) {
       setError(e?.message || "Failed to load pool");
-      setPool(s => ({ ...s, loading:false, moreLoading:false }));
+      setPool((s) => ({ ...s, loading: false, moreLoading: false }));
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, pool.page, pool.limit]);
 
-  // MINE uses /orders/my-in-transit (server-side paginated)
   const loadMine = useCallback(async ({ reset = false } = {}) => {
-    try{
+    try {
       setError("");
-      if (reset) setMine(s => ({ ...s, loading:true }));
-      else setMine(s => ({ ...s, moreLoading:true }));
+      if (reset) setMine((s) => ({ ...s, loading: true }));
+      else setMine((s) => ({ ...s, moreLoading: true }));
 
       const res = await fetchMyInTransitOrders({
         page: reset ? 1 : mine.page,
         limit: mine.limit,
+        q: q.trim() || undefined,
       });
 
       const next = Array.isArray(res.orders) ? res.orders : [];
-      if (reset){
-        setMine({ items: next, page: 2, limit: mine.limit, count: res.count || next.length, loading:false, moreLoading:false });
-      }else{
-        setMine(s => ({ ...s, items:[...s.items, ...next], page:s.page+1, count: res.count || s.count, moreLoading:false, loading:false }));
+      if (reset) {
+        setMine({ items: next, page: 2, limit: mine.limit, count: res.count || next.length, loading: false, moreLoading: false });
+      } else {
+        setMine((s) => ({
+          ...s,
+          items: [...s.items, ...next],
+          page: s.page + 1,
+          count: res.count || s.count,
+          moreLoading: false,
+          loading: false,
+        }));
       }
-    }catch(e){
+    } catch (e) {
       setError(e?.message || "Failed to load my claimed");
-      setMine(s => ({ ...s, loading:false, moreLoading:false }));
+      setMine((s) => ({ ...s, loading: false, moreLoading: false }));
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mine.page, mine.limit]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q, mine.page, mine.limit]);
 
   useEffect(() => {
-    loadPool({ reset:true });
-    loadMine({ reset:true });
+    // initial load both
+    loadPool({ reset: true });
+    loadMine({ reset: true });
   }, []); // eslint-disable-line
 
+  // Search
   const onSearch = (e) => {
     e?.preventDefault?.();
-    if (tab === "pool") loadPool({ reset:true });
-    else loadMine({ reset:true });
+    if (tab === "pool") loadPool({ reset: true });
+    else loadMine({ reset: true });
   };
 
+  // Scanner control
   const stopScanner = useCallback(async () => {
-    try{ await scannerRef.current?.stop?.(); }catch{}
+    try { await scannerRef.current?.stop?.(); } catch {}
     scannerRef.current = null;
   }, []);
 
   const beginScan = useCallback(async () => {
     const perm = await ensureCameraPermission();
-    if (!perm.granted){ setError(t("camera_permission_denied")); setScanOpen(false); return; }
+    if (!perm.granted) { setError(t("camera_permission_denied")); setScanOpen(false); return; }
     setTimeout(async () => {
-      try{
+      try {
         const s = await startWebQrScanner(
           scannerDivId,
           async (decoded) => {
             await stopScanner();
             setScanOpen(false);
-            const ordFromQr = parseOrderNumberFromScan(decoded);
-            const orderNo = ordFromQr || pendingOrderToClaim.current;
+            const orderNo = parseOrderNumberFromScan(decoded);
             if (!orderNo) return;
 
-            try{
+            try {
               await claimPickupByOrderNo(orderNo);
-              setToast({ type:"success", msg:t("claimed_success") });
+              setToast({ type: "success", msg: t("claimed_success") || "Claimed ✓" });
               setTimeout(() => setToast(null), 1200);
-              await loadPool({ reset:true });
-              await loadMine({ reset:true }); // refresh "mine" so it appears there
-            }catch(err){
+              // refresh both lists
+              await loadPool({ reset: true });
+              await loadMine({ reset: true });
+            } catch (err) {
               setError(err?.message || "Claim failed");
             }
           },
           (err) => { setError(err || t("camera_init_failed")); setScanOpen(false); }
         );
         scannerRef.current = s;
-      }catch{
+      } catch {
         setError(t("camera_init_failed"));
         setScanOpen(false);
       }
@@ -232,41 +256,52 @@ export default function PickupPool() {
     return () => { stopScanner(); };
   }, [scanOpen, beginScan, stopScanner]);
 
-  // OTP flow handlers
-  const openOtpFor = (order) => {
-    setOtpOrder(order || null);
-    setOtpError("");
-    setOtpOpen(true);
-  };
-
-  const submitOtp = async (code) => {
-    if (!otpOrder?.orderNo) return;
-    try {
-      setOtpLoading(true);
-      setOtpError("");
-      await verifyOrderOtp(otpOrder.orderNo, code);
-      // success -> delivered
-      setOtpOpen(false);
-      setSuccessOpen(true);
-      // refresh Mine list (delivered order will typically disappear from in-transit)
-      await loadMine({ reset: true });
-    } catch (e) {
-      setOtpError(e?.message || "Failed to verify OTP.");
-    } finally {
-      setOtpLoading(false);
-    }
-  };
-
+  // Current list selection
   const currentList = tab === "pool" ? pool : mine;
   const hasMore = tab === "pool" ? hasMorePool : hasMoreMine;
 
+  // Right area for cards
+  const poolRight = (order) => (
+    <button
+      type="button"
+      onClick={() => { setScanOpen(true); setScannerKey((k) => k + 1); }}
+      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-white brand-gradient"
+      title={t("scan_to_claim")}
+    >
+      <QrCode className="h-4 w-4" />
+      {t("claim")}
+    </button>
+  );
+
+  const mineUndeliveredRight = (order) => (
+    <button
+      type="button"
+      onClick={async () => {
+        try {
+          await sendOrderOtp(order.orderNo);
+          setToast({ type: "success", msg: t("otp_sent") || "OTP sent" });
+          setTimeout(() => setToast(null), 1200);
+          // OTP entry handled elsewhere (e.g., your existing OTP modal/flow)
+        } catch (e) {
+          setError(e?.message || "Failed to send OTP");
+        }
+      }}
+      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-white brand-gradient"
+      title={t("send_otp")}
+    >
+      <Send className="h-4 w-4" />
+      {t("send_otp")}
+    </button>
+  );
+
+  // Render
   return (
     <section className="card bg-white dark:bg-slate-800 rounded-xl shadow-lg p-5 mb-6 border border-slate-200 dark:border-slate-700 mx-auto">
       <div className="flex items-center justify-between gap-3 mb-4">
-        <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">{t("pickup_pool")}</h2>
+        <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">{t("pickup_pool") || "Pickup & Mine"}</h2>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => { if (tab==="pool") loadPool({ reset:true }); else loadMine({ reset:true }); }}
+            onClick={() => { if (tab === "pool") loadPool({ reset: true }); else loadMine({ reset: true }); }}
             disabled={currentList.loading}
             className="btn bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600 px-3 py-2"
           >
@@ -281,17 +316,35 @@ export default function PickupPool() {
           onClick={() => setTab("pool")}
           className={`px-3 py-1.5 rounded-lg text-sm border ${tab==="pool" ? "text-white brand-gradient border-transparent" : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200"}`}
         >
-          {t("tab_pool")}
+          {t("tab_pool") || "Pool"}
         </button>
         <button
           onClick={() => setTab("mine")}
           className={`px-3 py-1.5 rounded-lg text-sm border ${tab==="mine" ? "text-white brand-gradient border-transparent" : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200"}`}
         >
-          {t("tab_mine")}
+          {t("tab_mine") || "Mine"}
         </button>
       </div>
 
-      {/* Search (filters pool by q) */}
+      {/* Sub-tabs for Mine */}
+      {tab === "mine" && (
+        <div className="flex gap-2 mb-3">
+          <button
+            onClick={() => setMineSub("undelivered")}
+            className={`px-3 py-1.5 rounded-lg text-xs border ${mineSub==="undelivered" ? "text-white bg-emerald-600 border-transparent" : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200"}`}
+          >
+            {t("mine_undelivered") || "Undelivered"}
+          </button>
+          <button
+            onClick={() => setMineSub("delivered")}
+            className={`px-3 py-1.5 rounded-lg text-xs border ${mineSub==="delivered" ? "text-white bg-indigo-600 border-transparent" : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200"}`}
+          >
+            {t("mine_delivered") || "Delivered"}
+          </button>
+        </div>
+      )}
+
+      {/* Search */}
       <form onSubmit={onSearch} className="mb-3">
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -301,61 +354,65 @@ export default function PickupPool() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white pl-10 pr-4 py-2.5 outline-none transition-all focus:border-[var(--brand-500)]"
-            placeholder={t("search_orders")}
+            placeholder={t("search_orders") || "Search orders…"}
           />
         </div>
       </form>
 
-      {/* List */}
+      {/* Errors */}
       {error && (
         <div className="mb-3 rounded-lg border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-700 dark:text-red-200 break-words">
           {error}
         </div>
       )}
 
+      {/* Lists */}
       {currentList.loading && currentList.items.length === 0 ? (
         <div className="py-8 flex items-center justify-center text-slate-500 dark:text-slate-400">
           <Loader2 className="h-5 w-5 animate-spin mr-2" />
           {t("loading")}
         </div>
-      ) : currentList.items.length === 0 ? (
+      ) : (tab === "pool" ? pool.items.length === 0 : mine.items.length === 0) ? (
         <div className="py-10 text-center text-slate-500 dark:text-slate-400">
           <PackageOpen className="h-8 w-8 mx-auto mb-2 opacity-70" />
           {t("no_orders")}
         </div>
       ) : (
-        <div className="space-y-2">
-          {currentList.items.map((o) => (
-            <Row
-              key={o._id || o.orderNo}
-              order={o}
-              collapsedDefault={true}
-              t={t}
-              rightEl={
-                tab === "pool" ? (
-                  <button
-                    type="button"
-                    onClick={() => { pendingOrderToClaim.current = o?.orderNo || null; setScannerKey(k=>k+1); setScanOpen(true); }}
-                    className="inline-flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium text-white brand-gradient"
-                    title={t("scan_to_claim")}
-                  >
-                    <QrCode className="h-4 w-4" />
-                    {t("claim")}
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => openOtpFor(o)}
-                    className="inline-flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium text-white brand-gradient"
-                    title="Verify OTP"
-                  >
-                    <Send className="h-4 w-4" />
-                    OTP
-                  </button>
-                )
-              }
-            />
-          ))}
+        <div className="grid grid-cols-1 gap-3">
+          {tab === "pool" &&
+            pool.items.map((o) => (
+              <OrderCard
+                key={o._id || `${o.orderNo}-pool`}
+                order={o}
+                t={t}
+                rightArea={poolRight(o)}
+              />
+            ))}
+
+          {tab === "mine" && mineSub === "undelivered" &&
+            undeliveredMine.map((o) => (
+              <OrderCard
+                key={o._id || `${o.orderNo}-mine-u`}
+                order={o}
+                t={t}
+                rightArea={mineUndeliveredRight(o)}
+              />
+            ))}
+
+          {tab === "mine" && mineSub === "delivered" &&
+            deliveredMine.map((o) => (
+              <OrderCard
+                key={o._id || `${o.orderNo}-mine-d`}
+                order={o}
+                t={t}
+                rightArea={
+                  <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-green-600 text-white">
+                    <CheckCircle2 className="h-4 w-4" />
+                    {t("DELIVERED") || "Delivered"}
+                  </span>
+                }
+              />
+            ))}
         </div>
       )}
 
@@ -386,24 +443,7 @@ export default function PickupPool() {
         visible={scanOpen}
         onClose={async () => { await stopScanner(); setScanOpen(false); }}
         scannerDivId={scannerDivId}
-        title={t("scan_to_claim")}
-      />
-
-      {/* OTP Modal (for items in MINE) */}
-      <OtpModal
-        open={otpOpen}
-        orderNo={otpOrder?.orderNo}
-        onClose={() => setOtpOpen(false)}
-        onSubmit={submitOtp}
-        loading={otpLoading}
-        error={otpError}
-      />
-
-      {/* Delivery success overlay */}
-      <DeliverySuccess
-        open={successOpen}
-        orderNo={otpOrder?.orderNo}
-        onClose={() => setSuccessOpen(false)}
+        title={t("scan_to_claim") || "Scan to claim"}
       />
     </section>
   );

@@ -1,9 +1,8 @@
 // src/lib/api.js
 import { getAuth } from "./auth.js";
 
-// Use your main API for ALL standard endpoints
+// Base URLs
 const API_BASE = "https://api.shaheene.com";
-// OTP service base (same host currently)
 const OTP_BASE = "https://api.shaheene.com";
 
 // Exported for debugging/messages elsewhere
@@ -16,6 +15,37 @@ const CONFIG = {
       `/orders/${encodeURIComponent(orderNumber)}/status-overview`,
   },
 };
+
+// ---------- DRIVER: Claim by scanned orderNo ----------
+async function claimPickupByOrderNo(orderNo) {
+  const auth = getAuth();
+  if (!auth?.token) throw new Error("No auth token. Please log in.");
+  if (!orderNo) throw new Error("Missing order number from QR.");
+
+  const url = `${AUTH_BASE_URL}/orders/${encodeURIComponent(orderNo)}/claim-pickup`;
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      Authorization: `Bearer ${auth.token}`,
+    },
+    body: JSON.stringify({ verifyLabel: false, advance: true }),
+  });
+
+  let data = null;
+  let raw = "";
+  try { data = await res.clone().json(); } catch {}
+  try { raw = await res.text(); } catch {}
+
+  const okByBody = typeof data?.status === "number" ? data.status === 200 : res.ok;
+  if (!res.ok || !okByBody) {
+    const serverMsg = (data && (data.message || data.error)) || (raw && raw.slice(0, 300)) || "";
+    throw new Error(`Claim failed (HTTP ${res.status}${res.statusText ? " " + res.statusText : ""})${serverMsg ? " - " + serverMsg : ""}`);
+  }
+  return data || { status: 200 };
+}
 
 // ---------- AUTH ----------
 /**
@@ -36,7 +66,9 @@ async function loginRequest(email, password) {
 
   const rawTextPromise = res.clone().text().catch(() => "");
   let data = null;
-  try { data = await res.json(); } catch {}
+  try {
+    data = await res.json();
+  } catch {}
 
   const rawText = await rawTextPromise;
   const okByBody =
@@ -55,7 +87,7 @@ async function loginRequest(email, password) {
   return data; // { status, token, role, warehouseId }
 }
 
-// ---------- ORDERS: Assigned to me (staff) ----------
+// ---------- ORDERS: Assigned to me (non-driver staff) ----------
 async function fetchAssignedOrders({
   page = 1,
   limit = 15,
@@ -63,7 +95,9 @@ async function fetchAssignedOrders({
   sortDir = "desc",
 } = {}) {
   const auth = getAuth();
-  if (!auth?.token) throw new Error("No auth token found. Please log in again.");
+  if (!auth?.token) {
+    throw new Error("No auth token found. Please log in again.");
+  }
 
   const url = `${AUTH_BASE_URL}/orders/my-assigned?page=${page}&limit=${limit}&sortBy=${encodeURIComponent(
     sortBy
@@ -82,8 +116,7 @@ async function fetchAssignedOrders({
   try { data = await res.clone().json(); } catch {}
   try { rawText = await res.text(); } catch {}
 
-  const okByBody =
-    typeof data?.status === "number" ? data.status === 200 : res.ok;
+  const okByBody = typeof data?.status === "number" ? data.status === 200 : res.ok;
   if (!res.ok || !okByBody) {
     const serverMsg =
       (data && (data.message || data.error)) ||
@@ -107,7 +140,7 @@ async function fetchAssignedOrders({
   };
 }
 
-// ---------- DRIVER: Awaiting Pickup (unassigned pool or mine) ----------
+// ---------- DRIVER: Awaiting Pickup (POOL) ----------
 async function fetchAwaitingPickupOrders({
   page = 1,
   limit = 15,
@@ -142,8 +175,7 @@ async function fetchAwaitingPickupOrders({
   try { data = await res.clone().json(); } catch {}
   try { raw = await res.text(); } catch {}
 
-  const okBody =
-    typeof data?.status === "number" ? data.status === 200 : res.ok;
+  const okBody = typeof data?.status === "number" ? data.status === 200 : res.ok;
   if (!res.ok || !okBody) {
     const serverMsg =
       (data && (data.message || data.error)) || (raw && raw.slice(0, 300)) || "";
@@ -165,16 +197,25 @@ async function fetchAwaitingPickupOrders({
   };
 }
 
-// convenience (legacy "mine" awaiting pickup if server supports it)
+// Keep for backward compatibility if you still use it somewhere
 const fetchAwaitingPickupMine = (opts = {}) =>
   fetchAwaitingPickupOrders({ ...opts, mine: true, unassigned: false });
 
-// ---------- DRIVER: My In-Transit (claimed by this driver) ----------
-async function fetchMyInTransitOrders({ page = 1, limit = 20 } = {}) {
+// ---------- DRIVER: MY IN-TRANSIT (claimed by the driver) ----------
+async function fetchMyInTransitOrders({
+  page = 1,
+  limit = 20,
+  q,
+} = {}) {
   const auth = getAuth();
   if (!auth?.token) throw new Error("No auth token. Please log in.");
 
-  const url = `${AUTH_BASE_URL}/orders/my-in-transit?page=${page}&limit=${limit}`;
+  const params = new URLSearchParams();
+  params.set("page", String(page));
+  params.set("limit", String(limit));
+  if (q) params.set("q", q);
+
+  const url = `${AUTH_BASE_URL}/orders/my-in-transit?${params.toString()}`;
 
   const res = await fetch(url, {
     method: "GET",
@@ -189,13 +230,12 @@ async function fetchMyInTransitOrders({ page = 1, limit = 20 } = {}) {
   try { data = await res.clone().json(); } catch {}
   try { raw = await res.text(); } catch {}
 
-  const okBody =
-    typeof data?.status === "number" ? data.status === 200 : res.ok;
+  const okBody = typeof data?.status === "number" ? data.status === 200 : res.ok;
   if (!res.ok || !okBody) {
     const serverMsg =
       (data && (data.message || data.error)) || (raw && raw.slice(0, 300)) || "";
     throw new Error(
-      `My In-Transit fetch failed (HTTP ${res.status}${
+      `My in-transit fetch failed (HTTP ${res.status}${
         res.statusText ? " " + res.statusText : ""
       })${serverMsg ? " - " + serverMsg : ""}`
     );
@@ -205,50 +245,12 @@ async function fetchMyInTransitOrders({ page = 1, limit = 20 } = {}) {
     status: 200,
     page: data?.page ?? page,
     limit: data?.limit ?? limit,
-    count:
-      data?.count ?? (Array.isArray(data?.orders) ? data.orders.length : 0),
+    count: data?.count ?? (Array.isArray(data?.orders) ? data.orders.length : 0),
     orders: Array.isArray(data?.orders) ? data.orders : [],
   };
 }
 
-// ---------- DRIVER: Claim by scanned orderNo ----------
-async function claimPickupByOrderNo(orderNo) {
-  const auth = getAuth();
-  if (!auth?.token) throw new Error("No auth token. Please log in.");
-  if (!orderNo) throw new Error("Missing order number from QR.");
-
-  const url = `${AUTH_BASE_URL}/orders/${encodeURIComponent(orderNo)}/claim-pickup`;
-
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      Authorization: `Bearer ${auth.token}`,
-    },
-    body: JSON.stringify({ verifyLabel: false, advance: true }), // claim body
-  });
-
-  let data = null;
-  let raw = "";
-  try { data = await res.clone().json(); } catch {}
-  try { raw = await res.text(); } catch {}
-
-  const okByBody = typeof data?.status === "number" ? data.status === 200 : res.ok;
-  if (!res.ok || !okByBody) {
-    const serverMsg =
-      (data && (data.message || data.error)) || (raw && raw.slice(0, 300)) || "";
-    throw new Error(
-      `Claim failed (HTTP ${res.status}${res.statusText ? " " + res.statusText : ""})${serverMsg ? " - " + serverMsg : ""}`
-    );
-  }
-  return data || { status: 200 };
-}
-
-// ---------- DRIVER: Send OTP (to customer) ----------
-/**
- * POST /orders/:orderNo/otp/send
- */
+// ---------- DRIVER: Send OTP ----------
 async function sendOrderOtp(orderNo) {
   const auth = getAuth();
   if (!auth?.token) throw new Error("No auth token. Please log in.");
@@ -271,8 +273,7 @@ async function sendOrderOtp(orderNo) {
   try { data = await res.clone().json(); } catch {}
   try { raw = await res.text(); } catch {}
 
-  const okBody =
-    typeof data?.status === "number" ? data.status === 200 : res.ok;
+  const okBody = typeof data?.status === "number" ? data.status === 200 : res.ok;
   if (!res.ok || !okBody) {
     const serverMsg =
       (data && (data.message || data.error)) || (raw && raw.slice(0, 300)) || "";
@@ -285,20 +286,12 @@ async function sendOrderOtp(orderNo) {
   return data || { status: 200 };
 }
 
-// ---------- DRIVER: Verify OTP (deliver) ----------
-/**
- * POST /orders/:orderNo/otp/verify
- * Body: { code: "123456" }
- * Role: driver/admin/csr_user (JWT)
- * On success -> { status:200, message:"OTP verified. Order delivered." }
- * Common errors:
- * 404 No active OTP, 410 expired, 401 incorrect (attempts left), 429 too many attempts
- */
+// ---------- DRIVER: Verify OTP -> DELIVERED ----------
 async function verifyOrderOtp(orderNo, code) {
   const auth = getAuth();
   if (!auth?.token) throw new Error("No auth token. Please log in.");
   if (!orderNo) throw new Error("Missing order number.");
-  if (!code || String(code).trim().length < 4) throw new Error("Enter the OTP code.");
+  if (!code) throw new Error("Missing OTP code.");
 
   const url = `${OTP_BASE}/orders/${encodeURIComponent(orderNo)}/otp/verify`;
 
@@ -309,7 +302,7 @@ async function verifyOrderOtp(orderNo, code) {
       Accept: "application/json",
       Authorization: `Bearer ${auth.token}`,
     },
-    body: JSON.stringify({ code: String(code).trim() }),
+    body: JSON.stringify({ code }),
   });
 
   let data = null;
@@ -317,12 +310,8 @@ async function verifyOrderOtp(orderNo, code) {
   try { data = await res.clone().json(); } catch {}
   try { raw = await res.text(); } catch {}
 
-  if (!res.ok || (typeof data?.status === "number" && data.status !== 200)) {
-    // Friendly error mapping
-    if (res.status === 404) throw new Error("No active OTP for this order (send one first).");
-    if (res.status === 410) throw new Error("OTP expired.");
-    if (res.status === 401) throw new Error(data?.message || "Incorrect code.");
-    if (res.status === 429) throw new Error("Too many attempts. Try again later.");
+  const okBody = typeof data?.status === "number" ? data.status === 200 : res.ok;
+  if (!res.ok || !okBody) {
     const serverMsg =
       (data && (data.message || data.error)) || (raw && raw.slice(0, 300)) || "";
     throw new Error(
@@ -331,7 +320,6 @@ async function verifyOrderOtp(orderNo, code) {
       })${serverMsg ? ` - ${serverMsg}` : ""}`
     );
   }
-
   return data || { status: 200, message: "OTP verified. Order delivered." };
 }
 
@@ -387,7 +375,8 @@ function parseOrderNumberFromScan(payload) {
     if (last && /[A-Za-z0-9_-]{4,}/.test(last)) return last;
   } catch (_) {}
   const tokens = String(payload)
-    .split(/[^A-Za-z0-9_-]+/).filter(Boolean)
+    .split(/[^A-Za-z0-9_-]+/)
+    .filter(Boolean)
     .sort((a, b) => b.length - a.length);
   return tokens[0] || "";
 }
