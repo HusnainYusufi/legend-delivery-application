@@ -7,6 +7,8 @@ import {
   ChevronUp,
   Info,
   CheckCircle2,
+  X,
+  Search,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
@@ -33,6 +35,7 @@ const errorToString = (e) => {
   try { const json = JSON.stringify(e); return json.length > 300 ? json.slice(0,297)+"…" : json; }
   catch { return String(e); }
 };
+const norm = (s) => String(s || "").trim().toUpperCase();
 
 function pkgStatusOf(order) {
   const s =
@@ -42,6 +45,14 @@ function pkgStatusOf(order) {
     order?.orderStatus ||
     "";
   return String(s).toUpperCase();
+}
+
+function driverRefSearchOf(order) {
+  return (
+    order?.__pkg?.driverRefSearch ||
+    order?.driverView?.driverRefSearch ||
+    ""
+  );
 }
 
 function CollapsibleCard({ order, children, initiallyOpen = false }) {
@@ -59,6 +70,12 @@ function CollapsibleCard({ order, children, initiallyOpen = false }) {
             <span className="inline-block align-middle ml-2">
               <StatusBadge value={statusVal} />
             </span>
+            {/* Show driverRefSearch inline for quick visual confirmation */}
+            {driverRefSearchOf(order) && (
+              <span className="ml-3 text-[11px] px-1.5 py-[1px] rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                {driverRefSearchOf(order)}
+              </span>
+            )}
           </div>
         </button>
         <div className="flex items-center gap-2 pl-2">
@@ -88,6 +105,14 @@ export default function OrdersList() {
 
   // Driver sub-tab: 'undelivered' | 'delivered'
   const [subTab, setSubTab] = useState("undelivered");
+
+  // Search query (driverRefSearch), debounce
+  const [q, setQ] = useState("");
+  const [qLive, setQLive] = useState("");
+  useEffect(() => {
+    const id = setTimeout(() => setQ(qLive), 200);
+    return () => clearTimeout(id);
+  }, [qLive]);
 
   // OTP modal
   const [otpOrder, setOtpOrder] = useState(null);
@@ -164,14 +189,24 @@ export default function OrdersList() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDriver]);
 
-  // Split lists for driver view based on package status
+  // --- DRIVER VIEW PROCESSING ---
+
+  // Filter by driverRefSearch (server returns it as __pkg.driverRefSearch)
+  const filteredByQuery = useMemo(() => {
+    if (!isDriver) return orders;
+    const query = norm(q);
+    if (!query) return orders;
+    return orders.filter((o) => norm(driverRefSearchOf(o)).includes(query));
+  }, [orders, q, isDriver]);
+
+  // Split lists for driver view based on package status *after filtering*
   const driverUndelivered = useMemo(
-    () => orders.filter((o) => pkgStatusOf(o) === "IN_TRANSIT"),
-    [orders]
+    () => filteredByQuery.filter((o) => pkgStatusOf(o) === "IN_TRANSIT"),
+    [filteredByQuery]
   );
   const driverDelivered = useMemo(
-    () => orders.filter((o) => pkgStatusOf(o) === "DELIVERED"),
-    [orders]
+    () => filteredByQuery.filter((o) => pkgStatusOf(o) === "DELIVERED"),
+    [filteredByQuery]
   );
 
   const shownOrders = isDriver
@@ -185,12 +220,10 @@ export default function OrdersList() {
     setOtpLoading(true);
     setOtpError("");
     try {
-      // verify only; API call lives in api.js
       await verifyOrderOtp(otpOrder.orderNo, code);
       setOtpOpen(false);
       setDeliveredMsg("OTP verified. Order delivered ✅");
       setTimeout(() => setDeliveredMsg(""), 1500);
-      // reload to reflect new statuses
       await load({ reset: true });
     } catch (e) {
       setOtpError(errorToString(e));
@@ -205,13 +238,18 @@ export default function OrdersList() {
     return (
       <div className="space-y-2">
         {shownOrders.map((o) => {
-          const statusVal = o.currentStatus || o.orderStatus;
           const pStatus = pkgStatusOf(o);
-          const canVerify = pStatus === "IN_TRANSIT"; // only in Undelivered tab
+          const canVerify = pStatus === "IN_TRANSIT";
 
           return (
             <CollapsibleCard key={(o._id || o.orderNo) + ":" + (o.__pkg?.id || "")} order={o}>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                <div className="rounded-lg bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-700 p-3">
+                  <div className="text-slate-500 dark:text-slate-400">Search Ref</div>
+                  <div className="font-medium text-slate-800 dark:text-slate-100">
+                    {driverRefSearchOf(o) || "-"}
+                  </div>
+                </div>
                 <div className="rounded-lg bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-700 p-3">
                   <div className="text-slate-500 dark:text-slate-400">Customer</div>
                   <div className="font-medium text-slate-800 dark:text-slate-100">
@@ -290,14 +328,45 @@ export default function OrdersList() {
 
   return (
     <section className="card bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-5 mb-6 border border-slate-200 dark:border-slate-700 mx-auto">
-      <div className="flex items-center justify-between gap-3 mb-4">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
         <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">
           {isDriver ? "My Orders" : t("orders_title")}
         </h2>
+
+        {/* Driver-only search box for __pkg.driverRefSearch */}
+        {isDriver && (
+          <div className="w-full md:w-auto md:min-w-[360px]">
+            <div className="relative">
+              <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                inputMode="search"
+                placeholder="Search by code (e.g., 208556883-P1-CDD04)"
+                value={qLive}
+                onChange={(e) => setQLive(e.target.value)}
+                className="w-full pl-9 pr-8 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+              {qLive && (
+                <button
+                  onClick={() => { setQLive(""); setQ(""); }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  aria-label="Clear search"
+                  title="Clear"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            <div className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+              Tip: paste the code you see in SMS/label (format <code>Order-P#-XXXXX</code>)
+            </div>
+          </div>
+        )}
+
         <button
           onClick={() => load({ reset: true })}
           disabled={loading}
-          className="btn bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600 px-3 py-2"
+          className="btn shrink-0 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600 px-3 py-2"
         >
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
         </button>
@@ -348,7 +417,7 @@ export default function OrdersList() {
         </div>
       ) : shownOrders.length === 0 ? (
         <div className="py-10 text-center text-slate-500 dark:text-slate-400 min-h-[30vh]">
-          No orders
+          {q ? "No orders match your search." : "No orders"}
         </div>
       ) : isDriver ? (
         MineList
