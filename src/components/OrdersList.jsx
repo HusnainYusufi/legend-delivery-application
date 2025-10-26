@@ -55,6 +55,16 @@ function driverRefSearchOf(order) {
   );
 }
 
+// NEW: OTP/package key used in SMS/labels (e.g., "PK-9757E")
+function pkgKeyOf(order) {
+  return order?.__pkg?.pkgKey || order?.driverView?.pkgKey || "";
+}
+
+// NEW: single string that represents our OTP search identity
+function otpSearchKeyOf(order) {
+  return pkgKeyOf(order) || driverRefSearchOf(order) || "";
+}
+
 function CollapsibleCard({ order, children, initiallyOpen = false }) {
   const [open, setOpen] = useState(initiallyOpen);
   const statusVal = order.currentStatus || order.orderStatus;
@@ -67,12 +77,25 @@ function CollapsibleCard({ order, children, initiallyOpen = false }) {
             <span className="font-semibold text-slate-900 dark:text-slate-100">
               {safeText(order.orderNo)}
             </span>
+
             <span className="inline-block align-middle ml-2">
               <StatusBadge value={statusVal} />
             </span>
-            {/* Show driverRefSearch inline for quick visual confirmation */}
-            {driverRefSearchOf(order) && (
-              <span className="ml-3 text-[11px] px-1.5 py-[1px] rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+
+            {/* NEW: prominent OTP/pkgKey pill visible even when collapsed */}
+            {pkgKeyOf(order) && (
+              <span
+                className="ml-3 inline-flex items-center gap-1 text-[11px] px-2 py-[3px] rounded-full bg-indigo-600 text-white shadow-sm"
+                title="OTP package key"
+              >
+                <span className="opacity-90">OTP</span>
+                <span className="font-semibold">{pkgKeyOf(order)}</span>
+              </span>
+            )}
+
+            {/* Keep the existing tiny ref chip (shown only if distinct from pkgKey) */}
+            {driverRefSearchOf(order) && driverRefSearchOf(order) !== pkgKeyOf(order) && (
+              <span className="ml-2 text-[11px] px-1.5 py-[1px] rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
                 {driverRefSearchOf(order)}
               </span>
             )}
@@ -106,7 +129,7 @@ export default function OrdersList() {
   // Driver sub-tab: 'undelivered' | 'delivered'
   const [subTab, setSubTab] = useState("undelivered");
 
-  // Search query (driverRefSearch), debounce
+  // Search query (driverRefSearch / pkgKey), debounce
   const [q, setQ] = useState("");
   const [qLive, setQLive] = useState("");
   useEffect(() => {
@@ -191,12 +214,18 @@ export default function OrdersList() {
 
   // --- DRIVER VIEW PROCESSING ---
 
-  // Filter by driverRefSearch (server returns it as __pkg.driverRefSearch)
+  // Filter by pkgKey OR driverRefSearch OR orderNo (after normalizing)
   const filteredByQuery = useMemo(() => {
     if (!isDriver) return orders;
     const query = norm(q);
     if (!query) return orders;
-    return orders.filter((o) => norm(driverRefSearchOf(o)).includes(query));
+
+    return orders.filter((o) => {
+      const a = norm(pkgKeyOf(o));            // e.g., "PK-9757E"
+      const b = norm(driverRefSearchOf(o));   // e.g., "PK-9757E" or similar
+      const c = norm(o.orderNo);              // optional convenience
+      return a.includes(query) || b.includes(query) || c.includes(query);
+    });
   }, [orders, q, isDriver]);
 
   // Split lists for driver view based on package status *after filtering*
@@ -333,7 +362,7 @@ export default function OrdersList() {
           {isDriver ? "My Orders" : t("orders_title")}
         </h2>
 
-        {/* Driver-only search box for __pkg.driverRefSearch */}
+        {/* Driver-only search box now matches PK key, driverRefSearch, or orderNo */}
         {isDriver && (
           <div className="w-full md:w-auto md:min-w-[360px]">
             <div className="relative">
@@ -341,7 +370,7 @@ export default function OrdersList() {
               <input
                 type="text"
                 inputMode="search"
-                placeholder="Search by code (e.g., 208556883-P1-CDD04)"
+                placeholder="Search by OTP key (e.g., PK-9757E) or code"
                 value={qLive}
                 onChange={(e) => setQLive(e.target.value)}
                 className="w-full pl-9 pr-8 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
@@ -358,7 +387,7 @@ export default function OrdersList() {
               )}
             </div>
             <div className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
-              Tip: paste the code you see in SMS/label (format <code>Order-P#-XXXXX</code>)
+              Tip: paste the <code>PK-XXXXX</code> OTP key or the label code from the SMS/label
             </div>
           </div>
         )}
