@@ -16,6 +16,7 @@ import {
   AUTH_BASE_URL,
   verifyOrderOtp,
   fetchMyInTransit,
+  fetchMyDelivered,
 } from "../lib/api.js";
 import { getAuth } from "../lib/auth.js";
 import StatusBadge from "./StatusBadge.jsx";
@@ -116,7 +117,7 @@ function CollapsibleCard({ order, children, initiallyOpen = false }) {
   );
 }
 
-export default function OrdersList() {
+export default function OrdersList({ showDeliveredOnly = false }) {
   const { t } = useTranslation();
   const [orders, setOrders] = useState([]);
   const [page, setPage] = useState(1);
@@ -172,6 +173,22 @@ export default function OrdersList() {
     }
   };
 
+  const driverDeliveredLoad = async ({ reset }) => {
+    const res = await fetchMyDelivered({
+      page: reset ? 1 : page,
+      limit,
+    });
+    setCount(res.count || 0);
+    const next = Array.isArray(res.orders) ? res.orders : [];
+    if (reset) {
+      setOrders(next);
+      setPage(2);
+    } else {
+      setOrders((prev) => [...prev, ...next]);
+      setPage((p) => p + 1);
+    }
+  };
+
   const staffLoad = async ({ reset }) => {
     const res = await fetchAssignedOrders({
       page: reset ? 1 : page,
@@ -196,8 +213,10 @@ export default function OrdersList() {
       if (reset) setLoading(true);
       else setLoadingMore(true);
 
-      if (isDriver) await driverLoad({ reset });
-      else await staffLoad({ reset });
+      if (isDriver) {
+        if (showDeliveredOnly) await driverDeliveredLoad({ reset });
+        else await driverLoad({ reset });
+      } else await staffLoad({ reset });
     } catch (e) {
       console.error("Orders load error:", e);
       setError(`${errorToString(e)} [AUTH_BASE=${AUTH_BASE_URL}]`);
@@ -210,7 +229,7 @@ export default function OrdersList() {
   useEffect(() => {
     load({ reset: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isDriver]);
+  }, [isDriver, showDeliveredOnly]);
 
   // --- DRIVER VIEW PROCESSING ---
 
@@ -239,9 +258,11 @@ export default function OrdersList() {
   );
 
   const shownOrders = isDriver
-    ? subTab === "delivered"
-      ? driverDelivered
-      : driverUndelivered
+    ? showDeliveredOnly
+      ? filteredByQuery
+      : subTab === "delivered"
+        ? driverDelivered
+        : driverUndelivered
     : orders;
 
   const onVerifyOtp = async (code) => {
@@ -359,7 +380,11 @@ export default function OrdersList() {
     <section className="card bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-5 mb-6 border border-slate-200 dark:border-slate-700 mx-auto">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
         <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">
-          {isDriver ? "My Orders" : t("orders_title")}
+          {isDriver
+            ? showDeliveredOnly
+              ? t("delivered_title") || t("delivered_nav")
+              : "My Orders"
+            : t("orders_title")}
         </h2>
 
         {/* Driver-only search box now matches PK key, driverRefSearch, or orderNo */}
@@ -402,7 +427,7 @@ export default function OrdersList() {
       </div>
 
       {/* Driver sub-tabs */}
-      {isDriver && (
+      {isDriver && !showDeliveredOnly && (
         <div className="mb-4 flex items-center gap-2">
           <button
             onClick={() => setSubTab("undelivered")}

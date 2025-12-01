@@ -208,6 +208,48 @@ async function fetchMyInTransit({ page = 1, limit = 20 } = {}) {
   };
 }
 
+/* --------------- DRIVER: My delivered (server paginated) --------------- */
+async function fetchMyDelivered({ page = 1, limit = 20 } = {}) {
+  const auth = getAuth();
+  if (!auth?.token) throw new Error("No auth token. Please log in.");
+
+  const url = `${AUTH_BASE_URL}/orders/my-assigned?status=DELIVERED&page=${page}&limit=${limit}`;
+
+  const res = await fetch(url, {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      Authorization: `Bearer ${auth.token}`,
+    },
+  });
+
+  let data = null;
+  let raw = "";
+  try { data = await res.clone().json(); } catch {}
+  try { raw = await res.text(); } catch {}
+
+  const okBody =
+    typeof data?.status === "number" ? data.status === 200 : res.ok;
+  if (!res.ok || !okBody) {
+    const serverMsg =
+      (data && (data.message || data.error)) || (raw && raw.slice(0, 300)) || "";
+    throw new Error(
+      `My delivered fetch failed (HTTP ${res.status}${
+        res.statusText ? " " + res.statusText : ""
+      })${serverMsg ? " - " + serverMsg : ""}`
+    );
+  }
+
+  return {
+    status: 200,
+    page: data?.page ?? page,
+    limit: data?.limit ?? limit,
+    count:
+      data?.count ?? (Array.isArray(data?.orders) ? data.orders.length : 0),
+    orders: Array.isArray(data?.orders) ? data.orders : [],
+  };
+}
+
 /* --------------- DRIVER: Claim by scanned orderNo --------------- */
 async function claimPickupByOrderNo(orderNo) {
   const auth = getAuth();
@@ -357,6 +399,7 @@ export {
   fetchAwaitingPickupOrders,
   fetchAwaitingPickupMine,
   fetchMyInTransit,
+  fetchMyDelivered,
   claimPickupByOrderNo,
   verifyOrderOtp,
 };
