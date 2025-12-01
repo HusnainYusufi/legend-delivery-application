@@ -37,7 +37,7 @@ export default function App() {
     return () => clearTimeout(tm);
   }, []);
 
-  // views: "home" | "orders" | "scan-claim"
+  // views: "home" | "orders" | "delivered" | "scan-claim"
   const [view, setView] = useState("home");
 
   // scanner bits (home screen)
@@ -193,8 +193,10 @@ export default function App() {
         language={language}
         onChangeLanguage={setLanguage}
         isAuthenticated={isAuthenticated}
+        isDriver={isDriver}
         onMenuClick={() => setIsDrawerOpen(true)}
         onOrdersClick={() => setView("orders")}
+        onDeliveredClick={() => setView("delivered")}
       />
 
       <Drawer
@@ -208,6 +210,7 @@ export default function App() {
         }}
         onLogout={handleLogout}
         onOrdersClick={() => setView("orders")}
+        onDeliveredClick={() => setView("delivered")}
         onScanProductClick={() => setView("scan-claim")}  // ✅ NEW
         language={language}
       />
@@ -325,6 +328,8 @@ export default function App() {
         )}
 
         {view === "orders" && <OrdersList />}
+
+        {view === "delivered" && <OrdersList showDeliveredOnly />}
 
         {/* ✅ NEW: dedicated quick-claim scanner page */}
         {view === "scan-claim" && <ScanClaim onBack={() => setView("orders")} />}

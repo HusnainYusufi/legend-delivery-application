@@ -8,8 +8,10 @@ export default function Navbar({
   language,
   onChangeLanguage,
   isAuthenticated,
+  isDriver = false,
   onMenuClick,
   onOrdersClick,
+  onDeliveredClick,
   onLogoClick, // NEW
 }) {
   const { t } = useTranslation();
@@ -63,6 +65,15 @@ export default function Navbar({
                 <ListChecks className="h-4 w-4" />
                 {t("orders_nav")}
               </button>
+              {isDriver && (
+                <button
+                  onClick={onDeliveredClick}
+                  className="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium rounded-lg border border-slate-300 dark:border-slate-600 px-2.5 py-1.5 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-600"
+                >
+                  <ListChecks className="h-4 w-4" />
+                  {t("delivered_nav")}
+                </button>
+              )}
             </>
           )}
 

@@ -12,6 +12,7 @@ export default function Drawer({
   onLoginClick,
   onLogout,
   onOrdersClick,
+  onDeliveredClick,
   onPickupClick,           // (kept if you had it wired elsewhere)
   onScanProductClick,      // ✅ NEW
   language,
@@ -97,6 +98,17 @@ export default function Drawer({
 
               {isDriver && (
                 <>
+                  <button
+                    onClick={() => {
+                      onDeliveredClick?.();
+                      onClose();
+                    }}
+                    className="w-full flex items-center gap-3 p-3 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                  >
+                    <ListChecks className="h-5 w-5" />
+                    <span className="text-base">{t("delivered_nav")}</span>
+                  </button>
+
                   {/* ✅ NEW: Scan Product quick-claim page */}
                   <button
                     onClick={() => {
