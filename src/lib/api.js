@@ -292,16 +292,19 @@ async function claimPickupByOrderNo(orderNo) {
 /* --------------- DRIVER: Verify OTP (no "send OTP") --------------- */
 /**
  * POST /orders/:orderNo/otp/verify
- * Body: { code: "1234" }
+ * Body: { code: "1234", pkgKey: "PK-AB12C" }
  * On success: { status: 200, message: "OTP verified. Order delivered." }
  */
-async function verifyOrderOtp(orderNo, code) {
+async function verifyOrderOtp(orderNo, code, pkgKey) {
   const auth = getAuth();
   if (!auth?.token) throw new Error("No auth token. Please log in.");
   if (!orderNo) throw new Error("Missing order number.");
   if (!code) throw new Error("Missing OTP code.");
 
   const url = `${AUTH_BASE_URL}/orders/${encodeURIComponent(orderNo)}/otp/verify`;
+
+  const payload = { code };
+  if (pkgKey) payload.pkgKey = pkgKey;
 
   const res = await fetch(url, {
     method: "POST",
@@ -310,7 +313,7 @@ async function verifyOrderOtp(orderNo, code) {
       Accept: "application/json",
       Authorization: `Bearer ${auth.token}`,
     },
-    body: JSON.stringify({ code }),
+    body: JSON.stringify(payload),
   });
 
   let data = null;
