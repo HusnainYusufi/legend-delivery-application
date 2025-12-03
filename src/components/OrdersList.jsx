@@ -270,7 +270,7 @@ export default function OrdersList({ showDeliveredOnly = false }) {
     setOtpLoading(true);
     setOtpError("");
     try {
-      await verifyOrderOtp(otpOrder.orderNo, code);
+      await verifyOrderOtp(otpOrder.orderNo, code, pkgKeyOf(otpOrder));
       setOtpOpen(false);
       setDeliveredMsg("OTP verified. Order delivered ✅");
       setTimeout(() => setDeliveredMsg(""), 1500);
