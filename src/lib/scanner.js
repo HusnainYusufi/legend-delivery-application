@@ -13,6 +13,8 @@ export async function ensureCameraPermission() {
   }
 }
 
+
+
 export async function openAppSettings() {
   try { await App.openSettings(); } catch {}
 }
