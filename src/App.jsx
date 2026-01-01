@@ -11,6 +11,7 @@ import Drawer from "./components/Drawer";
 import LoginModal from "./components/LoginModal";
 import OrdersList from "./components/OrdersList.jsx";
 import ScanClaim from "./components/ScanClaim.jsx"; // ✅ NEW
+import Dashboard from "./components/Dashboard.jsx";
 
 import { CONFIG, apiFetch, parseOrderNumberFromScan } from "./lib/api.js";
 import {
@@ -37,7 +38,7 @@ export default function App() {
     return () => clearTimeout(tm);
   }, []);
 
-  // views: "home" | "orders" | "delivered" | "scan-claim"
+  // views: "home" | "dashboard" | "orders" | "delivered" | "scan-claim"
   const [view, setView] = useState("home");
 
   // scanner bits (home screen)
@@ -66,7 +67,10 @@ export default function App() {
 
   useEffect(() => {
     const saved = loadAuth();
-    if (saved?.token) setAuthState(saved);
+    if (saved?.token) {
+      setAuthState(saved);
+      setView("dashboard");
+    }
   }, []);
 
   const handleLogin = (authData) => {
@@ -75,7 +79,7 @@ export default function App() {
     setIsDrawerOpen(false);
     setIsLoginModalOpen(false);
     // Land driver on Orders
-    setView("orders");
+    setView("dashboard");
     setToast({ type: "success", msg: "Logged in ✓" });
     setTimeout(() => setToast(null), 1200);
   };
@@ -197,6 +201,7 @@ export default function App() {
         onMenuClick={() => setIsDrawerOpen(true)}
         onOrdersClick={() => setView("orders")}
         onDeliveredClick={() => setView("delivered")}
+        onLogoClick={() => setView(isAuthenticated ? "dashboard" : "home")}
       />
 
       <Drawer
@@ -212,6 +217,7 @@ export default function App() {
         onOrdersClick={() => setView("orders")}
         onDeliveredClick={() => setView("delivered")}
         onScanProductClick={() => setView("scan-claim")}  // ✅ NEW
+        onDashboardClick={() => setView("dashboard")}
         language={language}
       />
 
@@ -225,7 +231,7 @@ export default function App() {
       <main className="content safe-b max-w-3xl mx-auto px-4 pb-6">
         {view === "home" && (
           <>
-            <div className={`${current ? "" : "min-h-[70dvh] flex items-center justify-center"}`}>
+            <div className={`${current ? "" : "min-h-[70dvh] flex items-center justify-center"} view-animate`}>
               <section className="card bg-white dark:bg-slate-800 rounded-xl shadow-lg p-5 mb-6 border border-slate-200 dark:border-slate-700 mx-auto max-w-md w-full">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl brand-gradient text-white">
@@ -325,6 +331,16 @@ export default function App() {
               </section>
             )}
           </>
+        )}
+
+        {view === "dashboard" && (
+          <Dashboard
+            isDriver={isDriver}
+            onTrackOrder={() => setView("home")}
+            onOrders={() => setView("orders")}
+            onDelivered={() => setView("delivered")}
+            onScanClaim={() => setView("scan-claim")}
+          />
         )}
 
         {view === "orders" && <OrdersList />}

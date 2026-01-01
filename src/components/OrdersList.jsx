@@ -71,7 +71,7 @@ function CollapsibleCard({ order, children, initiallyOpen = false }) {
   const statusVal = order.currentStatus || order.orderStatus;
 
   return (
-    <article className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+    <article className="order-card rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
       <div className="w-full flex items-stretch justify-between px-3 py-2">
         <button onClick={() => setOpen((o) => !o)} className="min-w-0 flex-1 text-left">
           <div className="overflow-x-auto no-scrollbar whitespace-nowrap pr-2">
@@ -377,7 +377,7 @@ export default function OrdersList({ showDeliveredOnly = false }) {
   }, [shownOrders]);
 
   return (
-    <section className="card bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-5 mb-6 border border-slate-200 dark:border-slate-700 mx-auto">
+    <section className="card orders-shell bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-5 mb-6 border border-slate-200 dark:border-slate-700 mx-auto">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
         <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">
           {isDriver
@@ -483,7 +483,7 @@ export default function OrdersList({ showDeliveredOnly = false }) {
             return (
               <article
                 key={o._id || o.orderNo}
-                className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-700/30 p-4"
+                className="order-card order-card--compact rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-700/30 p-4"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
