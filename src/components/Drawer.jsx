@@ -1,6 +1,6 @@
 // src/components/Drawer.jsx
 import React, { useEffect, useRef } from "react";
-import { X, User, Lock, ListChecks, Truck, Camera } from "lucide-react";
+import { X, User, Lock, ListChecks, Truck, Camera, LayoutDashboard } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { App as CapApp } from "@capacitor/app";
 
@@ -11,6 +11,7 @@ export default function Drawer({
   isDriver = false,
   onLoginClick,
   onLogout,
+  onDashboardClick,
   onOrdersClick,
   onDeliveredClick,
   onPickupClick,           // (kept if you had it wired elsewhere)
@@ -85,6 +86,17 @@ export default function Drawer({
         <div className="p-2">
           {isAuthenticated ? (
             <>
+              <button
+                onClick={() => {
+                  onDashboardClick?.();
+                  onClose();
+                }}
+                className="w-full flex items-center gap-3 p-3 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+              >
+                <LayoutDashboard className="h-5 w-5" />
+                <span className="text-base">{t("dashboard_title")}</span>
+              </button>
+
               <button
                 onClick={() => {
                   onOrdersClick?.();

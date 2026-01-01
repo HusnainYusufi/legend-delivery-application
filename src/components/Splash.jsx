@@ -20,9 +20,9 @@ export default function Splash() {
       </div>
 
       {/* Brand text (centered) */}
-      <div className="flex flex-col items-center w-[86%] max-w-md relative z-[2]">
-        <div className="splash-brand">{t("brand")}</div>
-        <div className="splash-tagline">{t("splash_tagline")}</div>
+      <div className="flex flex-col items-center w-[86%] max-w-md relative z-[2] splash-content">
+        <div className="splash-brand splash-brand-animate">{t("brand")}</div>
+        <div className="splash-tagline splash-tagline-animate">{t("splash_tagline")}</div>
       </div>
     </div>
   );
