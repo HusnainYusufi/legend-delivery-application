@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   X,
   Search,
+  AlertTriangle,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
@@ -17,6 +18,7 @@ import {
   verifyOrderOtp,
   fetchMyInTransit,
   fetchMyDelivered,
+  setDeliveryNote,
 } from "../lib/api.js";
 import { getAuth } from "../lib/auth.js";
 import StatusBadge from "./StatusBadge.jsx";
@@ -143,6 +145,20 @@ export default function OrdersList({ showDeliveredOnly = false }) {
   const [otpOpen, setOtpOpen] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
   const [otpError, setOtpError] = useState("");
+
+  // Delivery note modal (for failed delivery)
+  const [noteOrder, setNoteOrder] = useState(null);
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [noteLoading, setNoteLoading] = useState(false);
+  const [noteError, setNoteError] = useState("");
+  const [noteSuccess, setNoteSuccess] = useState("");
+
+  // Delivery note options
+  const DELIVERY_NOTES = [
+    { value: "POSTPONED", label: "Postponed", description: "Customer requested later delivery" },
+    { value: "NEEDS_ACTION", label: "Needs Action", description: "Requires admin attention" },
+    { value: "NOT_AVAILABLE", label: "Not Available", description: "Customer not reachable" },
+  ];
 
   // Delivery celebration
   const [deliveredMsg, setDeliveredMsg] = useState("");
@@ -282,6 +298,23 @@ export default function OrdersList({ showDeliveredOnly = false }) {
     }
   };
 
+  const onSubmitDeliveryNote = async (note) => {
+    if (!noteOrder?.orderNo) return;
+    setNoteLoading(true);
+    setNoteError("");
+    try {
+      await setDeliveryNote(noteOrder.orderNo, note);
+      setNoteOpen(false);
+      setNoteSuccess(`Delivery note set: ${DELIVERY_NOTES.find(n => n.value === note)?.label || note}`);
+      setTimeout(() => setNoteSuccess(""), 2000);
+      await load({ reset: true });
+    } catch (e) {
+      setNoteError(errorToString(e));
+    } finally {
+      setNoteLoading(false);
+    }
+  };
+
   const MineList = useMemo(() => {
     if (shownOrders.length === 0) return null;
 
@@ -359,14 +392,24 @@ export default function OrdersList({ showDeliveredOnly = false }) {
                 </button>
 
                 {canVerify && (
-                  <button
-                    onClick={() => { setOtpOrder(o); setOtpOpen(true); setOtpError(""); }}
-                    className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-white brand-gradient"
-                    title="Verify OTP"
-                  >
-                    <CheckCircle2 className="h-4 w-4" />
-                    Verify OTP
-                  </button>
+                  <>
+                    <button
+                      onClick={() => { setOtpOrder(o); setOtpOpen(true); setOtpError(""); }}
+                      className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-white brand-gradient"
+                      title="Verify OTP"
+                    >
+                      <CheckCircle2 className="h-4 w-4" />
+                      Verify OTP
+                    </button>
+                    <button
+                      onClick={() => { setNoteOrder(o); setNoteOpen(true); setNoteError(""); }}
+                      className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-white bg-amber-500 hover:bg-amber-600"
+                      title="Can't deliver - add note"
+                    >
+                      <AlertTriangle className="h-4 w-4" />
+                      Can't Deliver
+                    </button>
+                  </>
                 )}
               </div>
             </CollapsibleCard>
@@ -544,6 +587,79 @@ export default function OrdersList({ showDeliveredOnly = false }) {
         onClose={() => setDetailsOpen(false)}
       />
 
+      {/* Delivery Note Modal */}
+      {noteOpen && (
+        <div className="fixed inset-0 z-[120] bg-black/60 flex items-end sm:items-center justify-center">
+          <div className="w-full max-w-md mx-auto bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xl overflow-hidden">
+            {/* Header */}
+            <div className="bg-amber-500 px-4 py-3 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5" />
+                <span className="font-semibold">Can't Deliver</span>
+              </div>
+              <button
+                onClick={() => setNoteOpen(false)}
+                className="p-1 hover:bg-white/20 rounded"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-4">
+              <div className="mb-3 text-sm text-slate-600 dark:text-slate-300">
+                Order: <span className="font-semibold">{noteOrder?.orderNo}</span>
+              </div>
+
+              <div className="mb-4 text-sm text-slate-500 dark:text-slate-400">
+                Select a reason why this delivery cannot be completed:
+              </div>
+
+              {noteError && (
+                <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-200 text-sm">
+                  {noteError}
+                </div>
+              )}
+
+              <div className="space-y-2">
+                {DELIVERY_NOTES.map((note) => (
+                  <button
+                    key={note.value}
+                    onClick={() => onSubmitDeliveryNote(note.value)}
+                    disabled={noteLoading}
+                    className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 text-left transition-colors disabled:opacity-50"
+                  >
+                    <div className="font-medium text-slate-800 dark:text-slate-100">
+                      {note.label}
+                    </div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      {note.description}
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              {noteLoading && (
+                <div className="mt-4 flex items-center justify-center text-slate-500">
+                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                  Submitting...
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="px-4 pb-4">
+              <button
+                onClick={() => setNoteOpen(false)}
+                className="w-full py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Delivered celebration (simple) */}
       {deliveredMsg && (
         <div className="fixed inset-0 z-[150] bg-black/70 flex items-center justify-center">
@@ -553,6 +669,23 @@ export default function OrdersList({ showDeliveredOnly = false }) {
             </div>
             <div className="text-lg font-semibold text-slate-800 dark:text-slate-100">
               {deliveredMsg}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Note success toast */}
+      {noteSuccess && (
+        <div className="fixed inset-0 z-[150] bg-black/70 flex items-center justify-center">
+          <div className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-8 py-6 text-center shadow-2xl">
+            <div className="mx-auto mb-3 w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center">
+              <AlertTriangle className="h-10 w-10 text-amber-600" />
+            </div>
+            <div className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+              {noteSuccess}
+            </div>
+            <div className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+              Admin will review and reschedule this order.
             </div>
           </div>
         </div>

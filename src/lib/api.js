@@ -366,6 +366,50 @@ async function apiFetch(path, options = {}) {
   }
 }
 
+/* --------------- DRIVER: Set delivery note (failed delivery) --------------- */
+/**
+ * POST /orders/:orderNo/delivery-note
+ * Body: { note: "POSTPONED" | "NEEDS_ACTION" | "NOT_AVAILABLE" }
+ * Called when driver marks delivery as failed and adds a note
+ */
+async function setDeliveryNote(orderNo, note) {
+  const auth = getAuth();
+  if (!auth?.token) throw new Error("No auth token. Please log in.");
+  if (!orderNo) throw new Error("Missing order number.");
+  if (!note) throw new Error("Missing delivery note.");
+
+  const url = `${AUTH_BASE_URL}/orders/${encodeURIComponent(orderNo)}/delivery-note`;
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      Authorization: `Bearer ${auth.token}`,
+    },
+    body: JSON.stringify({ note }),
+  });
+
+  let data = null;
+  let raw = "";
+  try { data = await res.clone().json(); } catch {}
+  try { raw = await res.text(); } catch {}
+
+  const okByBody =
+    typeof data?.status === "number" ? data.status === 200 : res.ok;
+
+  if (!res.ok || !okByBody) {
+    const serverMsg =
+      (data && (data.message || data.error)) || (raw && raw.slice(0, 300)) || "";
+    throw new Error(
+      `Set delivery note failed (HTTP ${res.status}${
+        res.statusText ? " " + res.statusText : ""
+      })${serverMsg ? " - " + serverMsg : ""}`
+    );
+  }
+  return data || { status: 200 };
+}
+
 /* ---------------- QR helper ---------------- */
 function parseOrderNumberFromScan(payload) {
   if (!payload) return "";
@@ -405,4 +449,5 @@ export {
   fetchMyDelivered,
   claimPickupByOrderNo,
   verifyOrderOtp,
+  setDeliveryNote,
 };
