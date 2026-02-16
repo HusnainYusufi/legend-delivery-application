@@ -213,7 +213,7 @@ async function fetchMyDelivered({ page = 1, limit = 20 } = {}) {
   const auth = getAuth();
   if (!auth?.token) throw new Error("No auth token. Please log in.");
 
-  const url = `${AUTH_BASE_URL}/orders/my-assigned?status=DELIVERED&page=${page}&limit=${limit}`;
+  const url = `${AUTH_BASE_URL}/orders/my-delivered?page=${page}&limit=${limit}`;
 
   const res = await fetch(url, {
     method: "GET",
