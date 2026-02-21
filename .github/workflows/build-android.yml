@@ -12,6 +12,47 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Java must come first so keytool is available for the keystore step
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      # ── Consistent signing key ──────────────────────────────────────────────
+      # On first run (no secret yet): generates a keystore and prints its
+      # base64 in the logs. Copy that value and add it as a GitHub secret
+      # named DEBUG_KEYSTORE_BASE64 (Settings → Secrets → Actions → New).
+      # All future builds will use that fixed key, so Android won't reject
+      # the APK as having a different signature from the previous install.
+      # ───────────────────────────────────────────────────────────────────────
+      - name: Restore or create debug keystore
+        run: |
+          mkdir -p ~/.android
+          if [ -n "${{ secrets.DEBUG_KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.DEBUG_KEYSTORE_BASE64 }}" | base64 -d > ~/.android/debug.keystore
+            echo "Using stored keystore from secret — signature will be consistent."
+          else
+            keytool -genkeypair -v \
+              -keystore ~/.android/debug.keystore \
+              -storepass android \
+              -alias androiddebugkey \
+              -keypass android \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US" \
+              -noprompt
+            echo ""
+            echo "========================================================="
+            echo "  No DEBUG_KEYSTORE_BASE64 secret found."
+            echo "  Copy the base64 below and add it as a GitHub secret"
+            echo "  named DEBUG_KEYSTORE_BASE64 to fix signature mismatch."
+            echo "========================================================="
+            base64 -w 0 ~/.android/debug.keystore
+            echo ""
+          fi
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -31,12 +72,6 @@ jobs:
 
       - name: Sync Capacitor
         run: npx cap sync android
-
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 21
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -58,11 +93,11 @@ jobs:
 
       - name: Suppress unsupported compileSdk warning
         run: echo "android.suppressUnsupportedCompileSdk=35" >> android/gradle.properties
+
       - name: Ensure CAMERA permission
         run: |
           MANIFEST=android/app/src/main/AndroidManifest.xml
           sed -i '/<manifest[^>]*>/a\    <uses-permission android:name="android.permission.CAMERA" />' "$MANIFEST"
-
 
       - name: Show AndroidManifest first lines (sanity)
         run: |
