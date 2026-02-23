@@ -250,6 +250,50 @@ async function fetchMyDelivered({ page = 1, limit = 20 } = {}) {
   };
 }
 
+/* --------------- DRIVER: (Re)send OTP to customer --------------- */
+/**
+ * POST /orders/:orderNo/otp/send
+ * Triggers an OTP SMS to the customer for the given order.
+ * Optional body: { packageId }
+ */
+async function sendOrderOtp(orderNo, packageId = null) {
+  const auth = getAuth();
+  if (!auth?.token) throw new Error("No auth token. Please log in.");
+  if (!orderNo) throw new Error("Missing order number.");
+
+  const url = `${AUTH_BASE_URL}/orders/${encodeURIComponent(orderNo)}/otp/send`;
+  const body = {};
+  if (packageId) body.packageId = packageId;
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      Authorization: `Bearer ${auth.token}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  let data = null;
+  let raw = "";
+  try { data = await res.clone().json(); } catch {}
+  try { raw = await res.text(); } catch {}
+
+  const okByBody =
+    typeof data?.status === "number" ? data.status === 200 : res.ok;
+  if (!res.ok || !okByBody) {
+    const serverMsg =
+      (data && (data.message || data.error)) || (raw && raw.slice(0, 300)) || "";
+    throw new Error(
+      `Send OTP failed (HTTP ${res.status}${
+        res.statusText ? " " + res.statusText : ""
+      })${serverMsg ? " - " + serverMsg : ""}`
+    );
+  }
+  return data || { status: 200 };
+}
+
 /* --------------- DRIVER: Claim by scanned orderNo --------------- */
 async function claimPickupByOrderNo(orderNo) {
   const auth = getAuth();
@@ -448,6 +492,7 @@ export {
   fetchMyInTransit,
   fetchMyDelivered,
   claimPickupByOrderNo,
+  sendOrderOtp,
   verifyOrderOtp,
   setDeliveryNote,
 };
