@@ -267,7 +267,10 @@ export default function OrdersList({ showDeliveredOnly = false }) {
 
   // Split lists for driver view based on package status *after filtering*
   const driverUndelivered = useMemo(
-    () => filteredByQuery.filter((o) => pkgStatusOf(o) === "IN_TRANSIT"),
+    () => filteredByQuery.filter((o) => {
+      const s = pkgStatusOf(o);
+      return s === "IN_TRANSIT" || s === "OUT_FOR_DELIVERY";
+    }),
     [filteredByQuery]
   );
   const driverDelivered = useMemo(
@@ -324,7 +327,7 @@ export default function OrdersList({ showDeliveredOnly = false }) {
       <div className="space-y-2">
         {shownOrders.map((o) => {
           const pStatus = pkgStatusOf(o);
-          const canVerify = pStatus === "IN_TRANSIT";
+          const canVerify = pStatus === "IN_TRANSIT" || pStatus === "OUT_FOR_DELIVERY";
 
           return (
             <CollapsibleCard key={(o._id || o.orderNo) + ":" + (o.__pkg?.id || "")} order={o}>
