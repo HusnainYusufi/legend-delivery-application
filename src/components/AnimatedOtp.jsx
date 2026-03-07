@@ -10,6 +10,9 @@ import { X, CheckCircle2 } from "lucide-react";
  *  - orderNo: string
  *  - onClose: () => void
  *  - onVerify: (code: string) => void
+ * 
+ * 
+ * 
  */
 export default function AnimatedOtp({ open, orderNo, onClose, onVerify }) {
   const host = useMemo(() => {
