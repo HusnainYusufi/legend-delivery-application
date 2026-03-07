@@ -202,8 +202,8 @@ async function fetchMyInTransit({ page = 1, limit = 20 } = {}) {
     status: 200,
     page: data?.page ?? page,
     limit: data?.limit ?? limit,
-    count:
-      data?.count ?? (Array.isArray(data?.orders) ? data.orders.length : 0),
+    total: data?.total ?? 0,
+    hasMore: data?.hasMore ?? false,
     orders: Array.isArray(data?.orders) ? data.orders : [],
   };
 }
@@ -244,8 +244,8 @@ async function fetchMyDelivered({ page = 1, limit = 20 } = {}) {
     status: 200,
     page: data?.page ?? page,
     limit: data?.limit ?? limit,
-    count:
-      data?.count ?? (Array.isArray(data?.orders) ? data.orders.length : 0),
+    total: data?.total ?? 0,
+    hasMore: data?.hasMore ?? false,
     orders: Array.isArray(data?.orders) ? data.orders : [],
   };
 }

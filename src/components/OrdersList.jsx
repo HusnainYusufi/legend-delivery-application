@@ -123,8 +123,9 @@ export default function OrdersList({ showDeliveredOnly = false }) {
   const { t } = useTranslation();
   const [orders, setOrders] = useState([]);
   const [page, setPage] = useState(1);
-  const [limit] = useState(100); // fetch wide — backend filters to this driver's packages after
+  const [limit] = useState(20);
   const [count, setCount] = useState(0);
+  const [serverHasMore, setServerHasMore] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
@@ -171,14 +172,14 @@ export default function OrdersList({ showDeliveredOnly = false }) {
   const role = auth?.role || auth?.userType || null;
   const isDriver = role && String(role).toLowerCase() === "driver";
 
-  const hasMore = orders.length < count;
+  const hasMore = isDriver ? serverHasMore : orders.length < count;
 
   const driverLoad = async ({ reset }) => {
     const res = await fetchMyInTransit({
       page: reset ? 1 : page,
       limit,
     });
-    setCount(res.count || 0);
+    setServerHasMore(res.hasMore ?? false);
     const next = Array.isArray(res.orders) ? res.orders : [];
     if (reset) {
       setOrders(next);
@@ -194,7 +195,8 @@ export default function OrdersList({ showDeliveredOnly = false }) {
       page: reset ? 1 : page,
       limit,
     });
-    setCount(res.count || 0);
+    setServerHasMore(res.hasMore ?? false);
+    setCount(res.total || 0);
     const next = Array.isArray(res.orders) ? res.orders : [];
     if (reset) {
       setOrders(next);
@@ -226,7 +228,7 @@ export default function OrdersList({ showDeliveredOnly = false }) {
   const load = async ({ reset = false } = {}) => {
     try {
       setError("");
-      if (reset) setLoading(true);
+      if (reset) { setLoading(true); setServerHasMore(false); }
       else setLoadingMore(true);
 
       if (isDriver) {
