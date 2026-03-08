@@ -1,4 +1,4 @@
-name: Android APK (Capacitor)
+name: Android AAB (Play Store)
 
 on:
   push:
@@ -12,44 +12,46 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Java must come first so keytool is available for the keystore step
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 21
 
-      # ── Consistent signing key ──────────────────────────────────────────────
-      # On first run (no secret yet): generates a keystore and prints its
-      # base64 in the logs. Copy that value and add it as a GitHub secret
-      # named DEBUG_KEYSTORE_BASE64 (Settings → Secrets → Actions → New).
-      # All future builds will use that fixed key, so Android won't reject
-      # the APK as having a different signature from the previous install.
-      # ───────────────────────────────────────────────────────────────────────
-      - name: Restore or create debug keystore
+      # ── Release keystore ─────────────────────────────────────────────────────
+      # First run (no secret): generates a keystore, prints its base64 in logs.
+      # Copy that base64 value → GitHub repo Settings → Secrets → Actions →
+      # New secret named RELEASE_KEYSTORE_BASE64.
+      # The passwords default to "legend123" — change via KEYSTORE_PASSWORD /
+      # KEY_PASSWORD secrets if you want something different.
+      # ─────────────────────────────────────────────────────────────────────────
+      - name: Restore or create release keystore
         run: |
-          mkdir -p ~/.android
-          if [ -n "${{ secrets.DEBUG_KEYSTORE_BASE64 }}" ]; then
-            echo "${{ secrets.DEBUG_KEYSTORE_BASE64 }}" | base64 -d > ~/.android/debug.keystore
-            echo "Using stored keystore from secret — signature will be consistent."
+          mkdir -p /tmp/keystore
+          KS=/tmp/keystore/release.keystore
+          if [ -n "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 -d > "$KS"
+            echo "Using stored release keystore from secret."
           else
             keytool -genkeypair -v \
-              -keystore ~/.android/debug.keystore \
-              -storepass android \
-              -alias androiddebugkey \
-              -keypass android \
+              -keystore "$KS" \
+              -storepass legend123 \
+              -alias legend-release \
+              -keypass legend123 \
               -keyalg RSA \
               -keysize 2048 \
               -validity 10000 \
-              -dname "CN=Android Debug,O=Android,C=US" \
+              -dname "CN=Legend Delivery,O=Legend,C=SA" \
               -noprompt
             echo ""
             echo "========================================================="
-            echo "  No DEBUG_KEYSTORE_BASE64 secret found."
-            echo "  Copy the base64 below and add it as a GitHub secret"
-            echo "  named DEBUG_KEYSTORE_BASE64 to fix signature mismatch."
+            echo "  IMPORTANT: No RELEASE_KEYSTORE_BASE64 secret found."
+            echo "  Copy the base64 string below and save it as a GitHub"
+            echo "  secret named RELEASE_KEYSTORE_BASE64. Every future"
+            echo "  release MUST be signed with the same key — if you lose"
+            echo "  it, you cannot update the app on the Play Store."
             echo "========================================================="
-            base64 -w 0 ~/.android/debug.keystore
+            base64 -w 0 "$KS"
             echo ""
           fi
 
@@ -60,11 +62,12 @@ jobs:
 
       - name: Install deps
         run: npm ci || npm install
+        working-directory: c:\Users\PC\legend-delivery-application
 
       - name: Build web (Vite)
         run: npm run build
 
-      - name: Remove existing android folder (if any)
+      - name: Remove existing android folder
         run: rm -rf android
 
       - name: Add Android platform
@@ -88,8 +91,6 @@ jobs:
             sed -i 's/compileSdkVersion = [0-9]\+/compileSdkVersion = 35/' android/variables.gradle
             sed -i 's/targetSdkVersion = [0-9]\+/targetSdkVersion = 35/' android/variables.gradle
           fi
-          sed -i 's/compileSdkVersion [0-9]\+/compileSdkVersion 35/' android/app/build.gradle || true
-          sed -i 's/targetSdkVersion [0-9]\+/targetSdkVersion 35/' android/app/build.gradle || true
 
       - name: Suppress unsupported compileSdk warning
         run: echo "android.suppressUnsupportedCompileSdk=35" >> android/gradle.properties
@@ -99,18 +100,35 @@ jobs:
           MANIFEST=android/app/src/main/AndroidManifest.xml
           sed -i '/<manifest[^>]*>/a\    <uses-permission android:name="android.permission.CAMERA" />' "$MANIFEST"
 
-      - name: Show AndroidManifest first lines (sanity)
+      - name: Configure release signing
         run: |
-          MANIFEST=android/app/src/main/AndroidManifest.xml
-          test -f "$MANIFEST" || (echo "Manifest missing"; exit 1)
-          head -n 40 "$MANIFEST"
+          KS=/tmp/keystore/release.keystore
+          STOREPASS="${{ secrets.KEYSTORE_PASSWORD }}"
+          KEYPASS="${{ secrets.KEY_PASSWORD }}"
+          # Fall back to default password if secrets not set
+          [ -z "$STOREPASS" ] && STOREPASS="legend123"
+          [ -z "$KEYPASS" ]   && KEYPASS="legend123"
 
-      - name: Build debug APK
+          cat >> android/app/build.gradle << EOF
+
+          android.signingConfigs {
+            release {
+              storeFile file("$KS")
+              storePassword "$STOREPASS"
+              keyAlias "legend-release"
+              keyPassword "$KEYPASS"
+            }
+          }
+          android.buildTypes.release.signingConfig android.signingConfigs.release
+          EOF
+
+      - name: Build release AAB
         working-directory: android
-        run: ./gradlew assembleDebug
+        run: ./gradlew bundleRelease
 
-      - name: Upload APK artifact
+      - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug.apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: app-release.aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          retention-days: 30

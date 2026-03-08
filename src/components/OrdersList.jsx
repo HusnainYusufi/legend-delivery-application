@@ -232,7 +232,7 @@ export default function OrdersList({ showDeliveredOnly = false }) {
       else setLoadingMore(true);
 
       if (isDriver) {
-        if (showDeliveredOnly) await driverDeliveredLoad({ reset });
+        if (showDeliveredOnly || subTab === "delivered") await driverDeliveredLoad({ reset });
         else await driverLoad({ reset });
       } else await staffLoad({ reset });
     } catch (e) {
@@ -247,7 +247,7 @@ export default function OrdersList({ showDeliveredOnly = false }) {
   useEffect(() => {
     load({ reset: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isDriver, showDeliveredOnly]);
+  }, [isDriver, showDeliveredOnly, subTab]);
 
   // --- DRIVER VIEW PROCESSING ---
 
