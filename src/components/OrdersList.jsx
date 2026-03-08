@@ -570,7 +570,7 @@ export default function OrdersList({ showDeliveredOnly = false }) {
             ) : (
               <ChevronDown className="h-4 w-4" />
             )}
-            <span className="ml-2">{t("load_more") || "Load more"}</span>
+            <span className="ms-2">{t("load_more")}</span>
           </button>
         </div>
       )}
