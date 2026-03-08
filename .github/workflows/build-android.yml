@@ -62,7 +62,6 @@ jobs:
 
       - name: Install deps
         run: npm ci || npm install
-        working-directory: c:\Users\PC\legend-delivery-application
 
       - name: Build web (Vite)
         run: npm run build
