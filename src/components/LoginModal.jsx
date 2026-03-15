@@ -1,11 +1,12 @@
 // src/components/LoginModal.jsx
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { gsap } from "gsap";
+import { motion } from "framer-motion";
 import { Eye, EyeOff, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { loginRequest } from "../lib/api.js";
 import { decodeJwt } from "../lib/auth.js";
+import { backdrop, sheet } from "../lib/motion.js";
 import logoUrl from "/sh-logo.png";
 
 function ModalContent({ onClose, onLogin }) {
@@ -14,15 +15,11 @@ function ModalContent({ onClose, onLogin }) {
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const sheetRef = useRef(null);
-  const backdropRef = useRef(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    if (backdropRef.current) gsap.fromTo(backdropRef.current, { opacity: 0 }, { opacity: 1, duration: 0.25 });
-    if (sheetRef.current) gsap.fromTo(sheetRef.current, { y: "100%" }, { y: "0%", duration: 0.4, ease: "power3.out" });
     return () => { document.body.style.overflow = prev; };
   }, []);
 
@@ -53,9 +50,25 @@ function ModalContent({ onClose, onLogin }) {
   };
 
   return (
-    <div ref={backdropRef} className="fixed inset-0 z-[60] bg-black/40 modal-backdrop flex items-end sm:items-center justify-center">
-      <div ref={sheetRef} className="bg-white w-full sm:max-w-md sm:rounded-2xl rounded-t-2xl shadow-2xl overflow-hidden modal-panel">
-        {/* Drag handle (mobile) */}
+    <motion.div
+      key="login-backdrop"
+      variants={backdrop}
+      initial="hidden"
+      animate="show"
+      exit="exit"
+      className="fixed inset-0 z-[60] bg-black/40 flex items-end sm:items-center justify-center"
+      onClick={onClose}
+    >
+      <motion.div
+        key="login-sheet"
+        variants={sheet}
+        initial="hidden"
+        animate="show"
+        exit="exit"
+        className="bg-white w-full sm:max-w-md sm:rounded-2xl rounded-t-2xl shadow-2xl overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Drag handle (mobile only) */}
         <div className="flex justify-center pt-3 pb-1 sm:hidden">
           <div className="w-10 h-1 bg-[#DDDDDD] rounded-full" />
         </div>
@@ -117,16 +130,25 @@ function ModalContent({ onClose, onLogin }) {
             </div>
 
             {error && (
-              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+              >
                 {error}
-              </div>
+              </motion.div>
             )}
 
-            <button type="submit" disabled={isLoading} className="btn-primary btn w-full mt-2">
+            <motion.button
+              type="submit"
+              disabled={isLoading}
+              whileTap={{ scale: 0.98 }}
+              className="btn-primary btn w-full mt-2"
+            >
               {isLoading
-                ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full" style={{ animation: 'spin 0.7s linear infinite' }} />
+                ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 : t("login_button")}
-            </button>
+            </motion.button>
 
             <div className="text-center text-sm text-[#717171] pt-1">
               {t("forgot_password")}{" "}
@@ -134,8 +156,8 @@ function ModalContent({ onClose, onLogin }) {
             </div>
           </form>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 

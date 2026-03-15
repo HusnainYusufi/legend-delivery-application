@@ -1,5 +1,6 @@
 // src/components/OrdersList.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { gsap } from "gsap";
 import {
   RefreshCcw, Loader2, Info, CheckCircle2, X, Search, AlertTriangle, ChevronDown,
@@ -191,11 +192,11 @@ export default function OrdersList({ showDeliveredOnly = false }) {
     <section className="view-animate">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-4 border-b border-[#DDDDDD] bg-white">
-        <h2 className="text-[17px] font-bold text-[#222222]">{pageTitle}</h2>
+        <h2 className="text-[17px] font-bold text-[var(--text)]">{pageTitle}</h2>
         <button
           onClick={() => load({ reset: true })}
           disabled={loading}
-          className="p-2 text-[#717171] rounded-full hover:bg-[#F7F7F7]"
+          className="p-2 text-[var(--muted)] rounded-full hover:bg-[#F7F7F7]"
         >
           {loading ? <Loader2 size={18} className="animate-spin" /> : <RefreshCcw size={18} />}
         </button>
@@ -224,7 +225,7 @@ export default function OrdersList({ showDeliveredOnly = false }) {
       {/* Search bar */}
       {isDriver && (
         <div className="search-bar">
-          <Search size={16} className="text-[#717171] flex-shrink-0" />
+          <Search size={16} className="text-[var(--muted)] flex-shrink-0" />
           <input
             type="text"
             inputMode="search"
@@ -233,7 +234,7 @@ export default function OrdersList({ showDeliveredOnly = false }) {
             onChange={(e) => setQLive(e.target.value)}
           />
           {qLive && (
-            <button onClick={() => { setQLive(""); setQ(""); }} className="text-[#717171]">
+            <button onClick={() => { setQLive(""); setQ(""); }} className="text-[var(--muted)]">
               <X size={16} />
             </button>
           )}
@@ -248,12 +249,12 @@ export default function OrdersList({ showDeliveredOnly = false }) {
 
       {/* Order list */}
       {loading && orders.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-[#717171]">
+        <div className="flex flex-col items-center justify-center py-20 text-[var(--muted)]">
           <Loader2 size={28} className="animate-spin mb-3 text-[#FF385C]" />
           <span className="text-sm">{t("loading")}</span>
         </div>
       ) : shownOrders.length === 0 ? (
-        <div className="py-20 text-center text-[#717171] text-sm">
+        <div className="py-20 text-center text-[var(--muted)] text-sm">
           {q ? "No orders match your search." : t("no_orders") || "No orders"}
         </div>
       ) : isDriver ? (
@@ -265,25 +266,25 @@ export default function OrdersList({ showDeliveredOnly = false }) {
             const dateStr = o.orderDate ? new Date(o.orderDate).toLocaleDateString() : "";
 
             return (
-              <article key={(o._id || o.orderNo) + ":" + (o.__pkg?.id || "")} className="card overflow-hidden">
+              <motion.article key={(o._id || o.orderNo) + ":" + (o.__pkg?.id || "")} className="card overflow-hidden" whileTap={{ scale: 0.985 }}>
                 <div className="p-4">
                   {/* Top row: status + date */}
                   <div className="flex items-center justify-between mb-2">
                     <StatusBadge value={pStatus || o.currentStatus} />
-                    {dateStr && <span className="text-xs text-[#717171]">{dateStr}</span>}
+                    {dateStr && <span className="text-xs text-[var(--muted)]">{dateStr}</span>}
                   </div>
 
                   {/* Order # */}
-                  <div className="text-[16px] font-bold text-[#222222] mb-0.5 break-all">
+                  <div className="text-[16px] font-bold text-[var(--text)] mb-0.5 break-all">
                     {safeText(o.orderNo)}
                   </div>
 
                   {/* Customer + city */}
                   {o.customerName && (
-                    <div className="text-sm text-[#717171]">{safeText(o.customerName)}</div>
+                    <div className="text-sm text-[var(--muted)]">{safeText(o.customerName)}</div>
                   )}
                   {o.city && (
-                    <div className="text-sm text-[#717171]">{safeText(o.city)}</div>
+                    <div className="text-sm text-[var(--muted)]">{safeText(o.city)}</div>
                   )}
 
                   {/* OTP key badge */}
@@ -300,7 +301,7 @@ export default function OrdersList({ showDeliveredOnly = false }) {
                 <div className="border-t border-[#DDDDDD] px-4 py-3 flex items-center gap-3">
                   <button
                     onClick={() => { setDetailsOrder(o); setDetailsOpen(true); }}
-                    className="text-sm font-semibold text-[#222222] underline underline-offset-2"
+                    className="text-sm font-semibold text-[var(--text)] underline underline-offset-2"
                   >
                     Details
                   </button>
@@ -323,7 +324,7 @@ export default function OrdersList({ showDeliveredOnly = false }) {
                     </>
                   )}
                 </div>
-              </article>
+              </motion.article>
             );
           })}
         </div>
@@ -333,24 +334,24 @@ export default function OrdersList({ showDeliveredOnly = false }) {
           {shownOrders.map((o) => {
             const statusVal = o.currentStatus || o.orderStatus;
             return (
-              <article key={o._id || o.orderNo} className="card p-4">
+              <motion.article key={o._id || o.orderNo} className="card p-4" whileTap={{ scale: 0.985 }}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <StatusBadge value={statusVal} />
-                    <div className="text-[16px] font-bold text-[#222222] mt-1.5 break-all">
+                    <div className="text-[16px] font-bold text-[var(--text)] mt-1.5 break-all">
                       {safeText(o.orderNo)}
                     </div>
-                    {o.customerName && <div className="text-sm text-[#717171] mt-0.5">{safeText(o.customerName)}</div>}
-                    {o.city && <div className="text-sm text-[#717171]">{safeText(o.city)}</div>}
+                    {o.customerName && <div className="text-sm text-[var(--muted)] mt-0.5">{safeText(o.customerName)}</div>}
+                    {o.city && <div className="text-sm text-[var(--muted)]">{safeText(o.city)}</div>}
                   </div>
                   <button
                     onClick={() => { setDetailsOrder(o); setDetailsOpen(true); }}
-                    className="flex-shrink-0 text-sm font-semibold text-[#222222] underline underline-offset-2 mt-1"
+                    className="flex-shrink-0 text-sm font-semibold text-[var(--text)] underline underline-offset-2 mt-1"
                   >
                     Details
                   </button>
                 </div>
-              </article>
+              </motion.article>
             );
           })}
         </div>
@@ -384,24 +385,37 @@ export default function OrdersList({ showDeliveredOnly = false }) {
       <OrderDetailsModal open={detailsOpen} order={detailsOrder} onClose={() => setDetailsOpen(false)} />
 
       {/* Delivery Note Sheet */}
+      <AnimatePresence>
       {noteOpen && (
-        <div className="fixed inset-0 z-[120] bg-black/50 modal-backdrop flex items-end justify-center">
-          <div className="bg-white w-full max-w-[480px] rounded-t-2xl shadow-2xl sheet-animate">
+        <motion.div
+          key="note-backdrop"
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="fixed inset-0 z-[120] bg-black/50 flex items-end justify-center"
+          onClick={() => setNoteOpen(false)}
+        >
+          <motion.div
+            key="note-sheet"
+            initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+            transition={{ type: "spring", damping: 32, stiffness: 320 }}
+            className="bg-white w-full max-w-[480px] rounded-t-2xl shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex justify-center pt-3 pb-1">
               <div className="w-10 h-1 bg-[#DDDDDD] rounded-full" />
             </div>
             <div className="flex items-center justify-between px-5 py-3 border-b border-[#DDDDDD]">
-              <div className="font-semibold text-[#222222] flex items-center gap-2">
+              <div className="font-semibold text-[var(--text)] flex items-center gap-2">
                 <AlertTriangle size={18} className="text-amber-500" />
                 Can't Deliver
               </div>
-              <button onClick={() => setNoteOpen(false)} className="p-1.5 text-[#717171] rounded-full">
+              <button onClick={() => setNoteOpen(false)} className="p-1.5 text-[var(--muted)] rounded-full">
                 <X size={20} />
               </button>
             </div>
             <div className="px-5 pt-4 pb-8">
-              <p className="text-sm text-[#717171] mb-1">Order</p>
-              <p className="font-semibold text-[#222222] mb-4">{noteOrder?.orderNo}</p>
+              <p className="text-sm text-[var(--muted)] mb-1">Order</p>
+              <p className="font-semibold text-[var(--text)] mb-4">{noteOrder?.orderNo}</p>
 
               {noteError && (
                 <div className="mb-3 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">{noteError}</div>
@@ -415,14 +429,14 @@ export default function OrdersList({ showDeliveredOnly = false }) {
                     disabled={noteLoading}
                     className="w-full p-4 rounded-xl border border-[#DDDDDD] bg-[#F7F7F7] hover:bg-[#EEEEEE] text-left transition-colors disabled:opacity-50"
                   >
-                    <div className="font-semibold text-[#222222] text-sm">{note.label}</div>
-                    <div className="text-xs text-[#717171] mt-0.5">{note.description}</div>
+                    <div className="font-semibold text-[var(--text)] text-sm">{note.label}</div>
+                    <div className="text-xs text-[var(--muted)] mt-0.5">{note.description}</div>
                   </button>
                 ))}
               </div>
 
               {noteLoading && (
-                <div className="mt-4 flex items-center justify-center text-[#717171] gap-2">
+                <div className="mt-4 flex items-center justify-center text-[var(--muted)] gap-2">
                   <Loader2 size={18} className="animate-spin" />
                   <span className="text-sm">Submitting…</span>
                 </div>
@@ -435,21 +449,32 @@ export default function OrdersList({ showDeliveredOnly = false }) {
                 Cancel
               </button>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       {/* Delivery success */}
+      <AnimatePresence>
       {deliveredMsg && (
-        <div className="fixed inset-0 z-[150] bg-black/60 flex items-center justify-center p-6 modal-backdrop">
-          <div className="card p-8 text-center max-w-xs w-full modal-panel">
+        <motion.div
+          key="delivered-overlay"
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[150] bg-black/60 flex items-center justify-center p-6"
+        >
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", damping: 20, stiffness: 300 }}
+            className="card p-8 text-center max-w-xs w-full"
+          >
             <div className="mx-auto mb-4 w-16 h-16 rounded-full bg-green-50 flex items-center justify-center">
               <CheckCircle2 size={36} className="text-green-600" />
             </div>
-            <div className="text-[17px] font-bold text-[#222222]">{deliveredMsg}</div>
-          </div>
-        </div>
+            <div className="text-[17px] font-bold text-[var(--text)]">{deliveredMsg}</div>
+          </motion.div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       {/* Note success */}
       {noteSuccess && (

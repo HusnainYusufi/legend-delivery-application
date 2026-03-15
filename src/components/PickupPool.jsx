@@ -55,14 +55,14 @@ function OrderCard({ order, actionSlot, delay = 0 }) {
       {/* Top row */}
       <div className="flex items-start justify-between px-4 pt-4 pb-3 border-b border-[#DDDDDD]">
         <div>
-          <div className="text-xs text-[#717171] mb-0.5">Order</div>
-          <div className="text-[15px] font-bold text-[#222222] break-all leading-tight">
+          <div className="text-xs text-[var(--muted)] mb-0.5">Order</div>
+          <div className="text-[15px] font-bold text-[var(--text)] break-all leading-tight">
             {safe(order.orderNo)}
           </div>
         </div>
         <div className="flex flex-col items-end gap-1.5">
           <StatusBadge value={statusVal} />
-          <span className="text-[11px] text-[#717171]">{dateStr}</span>
+          <span className="text-[11px] text-[var(--muted)]">{dateStr}</span>
         </div>
       </div>
 
@@ -74,8 +74,8 @@ function OrderCard({ order, actionSlot, delay = 0 }) {
           { icon: Hash,     val: safe(order.trackingNumber) },
         ].map(({ icon: Icon, val }, i) => (
           <div key={i} className="flex items-center gap-2">
-            <Icon size={13} className="text-[#717171] flex-shrink-0" />
-            <span className="text-sm text-[#717171] truncate">{val}</span>
+            <Icon size={13} className="text-[var(--muted)] flex-shrink-0" />
+            <span className="text-sm text-[var(--muted)] truncate">{val}</span>
           </div>
         ))}
       </div>
@@ -83,16 +83,16 @@ function OrderCard({ order, actionSlot, delay = 0 }) {
       {/* Items */}
       {Array.isArray(order.items) && order.items.length > 0 && (
         <div className="mx-4 mb-3 rounded-xl bg-[#F7F7F7] px-3 py-2">
-          <div className="text-[10px] font-semibold text-[#717171] uppercase tracking-wide mb-1">Items</div>
+          <div className="text-[10px] font-semibold text-[var(--muted)] uppercase tracking-wide mb-1">Items</div>
           <ul className="space-y-0.5">
             {order.items.slice(0, 4).map((it, idx) => (
-              <li key={idx} className="flex justify-between text-xs text-[#222222]">
+              <li key={idx} className="flex justify-between text-xs text-[var(--text)]">
                 <span className="truncate">{safe(it.productName || it.sku)}</span>
                 <span className="font-semibold ml-2">×{safe(it.quantity ?? 1)}</span>
               </li>
             ))}
             {order.items.length > 4 && (
-              <li className="text-[10px] text-[#717171]">+{order.items.length - 4} more</li>
+              <li className="text-[10px] text-[var(--muted)]">+{order.items.length - 4} more</li>
             )}
           </ul>
         </div>
@@ -295,13 +295,13 @@ export default function PickupPool() {
     <section className="view-animate pb-2">
       {/* Header */}
       <div ref={headerRef} className="flex items-center justify-between px-4 py-4 bg-white border-b border-[#DDDDDD]">
-        <h2 className="text-[17px] font-semibold text-[#222222]">
+        <h2 className="text-[17px] font-semibold text-[var(--text)]">
           {t("pickup_pool") || "Pickup Pool"}
         </h2>
         <button
           onClick={() => tab === "pool" ? loadPool({ reset: true }) : loadMine({ reset: true })}
           disabled={currentList.loading}
-          className="p-2 rounded-full text-[#717171] hover:bg-[#F7F7F7] transition-colors"
+          className="p-2 rounded-full text-[var(--muted)] hover:bg-[#F7F7F7] transition-colors"
         >
           {currentList.loading
             ? <Loader2 size={18} className="animate-spin text-[#FF385C]" />
@@ -335,12 +335,12 @@ export default function PickupPool() {
         {/* Search */}
         <form onSubmit={onSearch} className="mb-4">
           <div className="search-bar">
-            <Search size={16} className="text-[#717171] flex-shrink-0" />
+            <Search size={16} className="text-[var(--muted)] flex-shrink-0" />
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder={t("search_orders") || "Search orders…"}
-              className="flex-1 bg-transparent outline-none text-sm text-[#222222] placeholder-[#AAAAAA]"
+              className="flex-1 bg-transparent outline-none text-sm text-[var(--text)] placeholder-[#AAAAAA]"
             />
           </div>
         </form>
@@ -355,12 +355,12 @@ export default function PickupPool() {
 
       {/* Lists */}
       {currentList.loading && currentList.items.length === 0 ? (
-        <div className="py-16 flex flex-col items-center justify-center text-[#717171]">
+        <div className="py-16 flex flex-col items-center justify-center text-[var(--muted)]">
           <Loader2 size={28} className="animate-spin text-[#FF385C] mb-3" />
           <span className="text-sm">{t("loading") || "Loading…"}</span>
         </div>
       ) : (tab === "pool" ? pool.items.length === 0 : mine.items.length === 0) ? (
-        <div className="py-16 flex flex-col items-center justify-center text-[#717171]">
+        <div className="py-16 flex flex-col items-center justify-center text-[var(--muted)]">
           <PackageOpen size={40} className="mb-3 opacity-40" />
           <span className="text-sm">{t("no_orders") || "No orders"}</span>
         </div>
@@ -372,7 +372,7 @@ export default function PickupPool() {
 
           {tab === "mine" && mineSub === "undelivered" && (
             undeliveredMine.length === 0 ? (
-              <div className="py-16 flex flex-col items-center justify-center text-[#717171]">
+              <div className="py-16 flex flex-col items-center justify-center text-[var(--muted)]">
                 <PackageOpen size={40} className="mb-3 opacity-40" />
                 <span className="text-sm">{t("no_orders") || "No active orders"}</span>
               </div>
@@ -383,7 +383,7 @@ export default function PickupPool() {
 
           {tab === "mine" && mineSub === "delivered" && (
             deliveredMine.length === 0 ? (
-              <div className="py-16 flex flex-col items-center justify-center text-[#717171]">
+              <div className="py-16 flex flex-col items-center justify-center text-[var(--muted)]">
                 <CheckCircle2 size={40} className="mb-3 opacity-40" />
                 <span className="text-sm">{t("no_delivered") || "No delivered orders"}</span>
               </div>

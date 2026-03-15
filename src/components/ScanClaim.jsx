@@ -58,10 +58,10 @@ export default function ScanClaim({ onBack }) {
     <section className="view-animate">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-4 border-b border-[#DDDDDD] bg-white">
-        <button onClick={onBack} className="p-2 text-[#717171] rounded-full hover:bg-[#F7F7F7]">
+        <button onClick={onBack} className="p-2 text-[var(--muted)] rounded-full hover:bg-[#F7F7F7]">
           <ArrowLeft size={22} />
         </button>
-        <h2 className="text-[17px] font-semibold text-[#222222]">
+        <h2 className="text-[17px] font-semibold text-[var(--text)]">
           {t("scan_product") || "Scan to Claim"}
         </h2>
       </div>
@@ -72,10 +72,10 @@ export default function ScanClaim({ onBack }) {
           style={{ background: 'rgba(255,56,92,0.08)' }}>
           <QrCode size={40} className="text-[#FF385C]" />
         </div>
-        <h3 className="text-[20px] font-bold text-[#222222] mb-2">
+        <h3 className="text-[20px] font-bold text-[var(--text)] mb-2">
           {t("claim_any_order") || "Claim any order"}
         </h3>
-        <p className="text-sm text-[#717171] max-w-xs mx-auto leading-relaxed">
+        <p className="text-sm text-[var(--muted)] max-w-xs mx-auto leading-relaxed">
           {t("scan_product_hint")}
         </p>
 

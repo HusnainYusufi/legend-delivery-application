@@ -3,37 +3,52 @@
 @tailwind components;
 @tailwind utilities;
 
-/* =========================
-   Airbnb Design Tokens
-   ========================= */
+/* ============================================================
+   Design Tokens
+   ============================================================ */
 :root {
-  --red:     #FF385C;
-  --red-dk:  #E31C5F;
-  --text:    #222222;
-  --muted:   #717171;
-  --border:  #DDDDDD;
-  --bg:      #F7F7F7;
-  --surface: #FFFFFF;
+  --red:      #FF385C;
+  --red-dk:   #E31C5F;
+  --text:     #1A1A1A;
+  --text-2:   #444444;
+  --muted:    #888888;
+  --border:   #EBEBEB;
+  --bg:       #F5F5F5;
+  --surface:  #FFFFFF;
+  --shadow-sm: 0 1px 4px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 20px rgba(0,0,0,0.09);
+  --shadow-lg: 0 8px 40px rgba(0,0,0,0.12);
 }
 
-/* =========================
-   Resets
-   ========================= */
-* { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-html, body, #root { height: 100%; width: 100%; margin: 0; padding: 0; }
+/* ============================================================
+   Reset & Base
+   ============================================================ */
+*, *::before, *::after {
+  -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
 
 body {
-  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   color: var(--text);
   background: var(--bg);
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
-body.scanner-open, body.overflow-hidden { overflow: hidden; }
 
-/* =========================
+body.overflow-hidden { overflow: hidden; }
+
+/* ============================================================
    Layout shell
-   ========================= */
+   ============================================================ */
 .app-shell {
   min-height: 100dvh;
   background: var(--bg);
@@ -42,22 +57,23 @@ body.scanner-open, body.overflow-hidden { overflow: hidden; }
 .content {
   max-width: 480px;
   margin: 0 auto;
-  padding: 0 0 88px 0;
+  padding-bottom: 88px;
   width: 100%;
+  min-height: 100dvh;
 }
 
-/* =========================
+/* ============================================================
    Card
-   ========================= */
+   ============================================================ */
 .card {
   background: var(--surface);
-  border-radius: 16px;
-  box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+  border-radius: 20px;
+  box-shadow: var(--shadow-md);
 }
 
-/* =========================
+/* ============================================================
    Buttons
-   ========================= */
+   ============================================================ */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -65,42 +81,49 @@ body.scanner-open, body.overflow-hidden { overflow: hidden; }
   gap: 8px;
   font-family: inherit;
   font-weight: 600;
+  font-size: 14px;
   cursor: pointer;
-  transition: opacity 0.15s, transform 0.1s;
+  border: none;
+  letter-spacing: -0.01em;
 }
-.btn:active { transform: scale(0.97); }
 
 .btn-primary {
-  background: linear-gradient(to right, var(--red), var(--red-dk));
+  background: linear-gradient(135deg, var(--red) 0%, var(--red-dk) 100%);
   color: #fff;
-  border-radius: 9999px;
-  border: none;
-  padding: 13px 24px;
-  font-size: 15px;
+  border-radius: 14px;
+  padding: 14px 24px;
+  box-shadow: 0 4px 14px rgba(255, 56, 92, 0.35);
+  transition: box-shadow 0.2s, opacity 0.15s;
 }
-.btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+.btn-primary:active {
+  box-shadow: 0 2px 8px rgba(255, 56, 92, 0.25);
+  opacity: 0.92;
+}
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
 
 .btn-outline {
-  background: transparent;
+  background: var(--surface);
   color: var(--text);
   border: 1.5px solid var(--border);
-  border-radius: 9999px;
-  padding: 12px 24px;
-  font-size: 15px;
+  border-radius: 14px;
+  padding: 13px 24px;
+  transition: background 0.15s;
 }
+.btn-outline:active { background: var(--bg); }
 
 .btn-outline-red {
   background: transparent;
   color: var(--red);
   border: 1.5px solid var(--red);
-  border-radius: 9999px;
-  padding: 10px 20px;
-  font-size: 14px;
+  border-radius: 14px;
+  padding: 11px 20px;
+  transition: background 0.15s;
 }
+.btn-outline-red:active { background: rgba(255, 56, 92, 0.06); }
 
-/* =========================
+/* ============================================================
    Bottom Tab Bar
-   ========================= */
+   ============================================================ */
 .bottom-tab-bar {
   position: fixed;
   bottom: 0;
@@ -112,6 +135,7 @@ body.scanner-open, body.overflow-hidden { overflow: hidden; }
   display: flex;
   z-index: 100;
   padding-bottom: env(safe-area-inset-bottom, 0px);
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.06);
 }
 
 .bottom-tab {
@@ -128,13 +152,15 @@ body.scanner-open, body.overflow-hidden { overflow: hidden; }
   border: none;
   padding: 0;
   cursor: pointer;
-  transition: color 0.15s;
+  letter-spacing: 0.02em;
+  transition: color 0.2s;
+  position: relative;
 }
 .bottom-tab.active { color: var(--red); }
 
-/* =========================
+/* ============================================================
    Top mini-bar (unauthenticated)
-   ========================= */
+   ============================================================ */
 .top-mini-bar {
   position: sticky;
   top: 0;
@@ -145,54 +171,35 @@ body.scanner-open, body.overflow-hidden { overflow: hidden; }
   display: flex;
   align-items: center;
   justify-content: space-between;
+  box-shadow: var(--shadow-sm);
 }
 
-/* =========================
-   Animations
-   ========================= */
-@keyframes slide-up {
-  from { opacity: 0; transform: translateY(20px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.view-animate { animation: slide-up 280ms ease both; }
-
-@keyframes sheet-up {
-  from { transform: translateY(100%); }
-  to   { transform: translateY(0); }
-}
-.sheet-animate { animation: sheet-up 300ms cubic-bezier(.32,0,.67,0) both; }
-
-@keyframes fade-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-.modal-backdrop { animation: fade-in 200ms ease both; }
-
-@keyframes pop-in {
-  0%   { opacity: 0; transform: translateY(12px) scale(.97); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
-}
-.modal-panel { animation: pop-in 280ms cubic-bezier(.2,.9,.2,1) both; }
-
-/* =========================
+/* ============================================================
    Pill tabs
-   ========================= */
+   ============================================================ */
 .pill-tabs {
   display: flex;
   gap: 8px;
   padding: 0 16px 12px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
+.pill-tabs::-webkit-scrollbar { display: none; }
+
 .pill-tab {
-  padding: 7px 18px;
-  border-radius: 9999px;
+  padding: 8px 20px;
+  border-radius: 12px;
   font-size: 13px;
   font-weight: 600;
   border: 1.5px solid var(--border);
   color: var(--muted);
-  background: transparent;
+  background: var(--surface);
   cursor: pointer;
-  transition: all 0.15s;
+  white-space: nowrap;
   font-family: inherit;
+  letter-spacing: -0.01em;
+  transition: all 0.18s;
 }
 .pill-tab.active {
   background: var(--text);
@@ -200,48 +207,51 @@ body.scanner-open, body.overflow-hidden { overflow: hidden; }
   border-color: var(--text);
 }
 
-/* =========================
+/* ============================================================
    Section header
-   ========================= */
+   ============================================================ */
 .section-title {
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text);
   padding: 20px 16px 12px;
+  letter-spacing: -0.02em;
 }
 
-/* =========================
+/* ============================================================
    Inputs
-   ========================= */
+   ============================================================ */
 .input-field {
   width: 100%;
-  border-radius: 12px;
+  border-radius: 14px;
   border: 1.5px solid var(--border);
   background: var(--surface);
   color: var(--text);
-  padding: 13px 16px;
+  padding: 14px 16px;
   font-size: 15px;
   font-family: inherit;
   outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: border-color 0.18s, box-shadow 0.18s;
 }
 .input-field:focus {
   border-color: var(--red);
-  box-shadow: 0 0 0 3px rgba(255,56,92,0.12);
+  box-shadow: 0 0 0 3px rgba(255, 56, 92, 0.1);
 }
+.input-field::placeholder { color: var(--muted); }
 
-/* =========================
+/* ============================================================
    Search bar
-   ========================= */
+   ============================================================ */
 .search-bar {
   display: flex;
   align-items: center;
   gap: 10px;
   background: var(--surface);
   border: 1.5px solid var(--border);
-  border-radius: 9999px;
-  padding: 10px 16px;
+  border-radius: 14px;
+  padding: 11px 16px;
   margin: 0 16px 12px;
+  box-shadow: var(--shadow-sm);
 }
 .search-bar input {
   flex: 1;
@@ -254,28 +264,41 @@ body.scanner-open, body.overflow-hidden { overflow: hidden; }
 }
 .search-bar input::placeholder { color: var(--muted); }
 
-/* =========================
-   Splash
-   ========================= */
+/* ============================================================
+   Splash screen
+   ============================================================ */
 .splash {
-  position: fixed; inset: 0; z-index: 120;
-  display: grid; place-items: center;
-  background: linear-gradient(135deg, #FF385C 0%, #E31C5F 100%);
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(150deg, #FF385C 0%, #C13515 100%);
 }
 .splash-anim-stage { position: absolute; inset: 0; z-index: 1; pointer-events: none; overflow: visible; }
 .splash-anim-track { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); height: 0; overflow: visible; }
-.splash-logo-drive { position: relative; width: 4.5rem; height: auto; filter: drop-shadow(0 10px 14px rgba(0,0,0,.25)); animation: drive-across 800ms cubic-bezier(.22,1,.36,1) 0ms both; will-change: transform, opacity; }
-.splash-brand { font-size: 1.75rem; font-weight: 700; color: #fff; letter-spacing: -0.02em; }
-.splash-tagline { margin-top: 4px; font-size: 0.9rem; color: rgba(255,255,255,0.85); }
+.splash-logo-drive { position: relative; width: 4.5rem; height: auto; filter: drop-shadow(0 10px 14px rgba(0,0,0,.25)); animation: drive-across 800ms cubic-bezier(.22,1,.36,1) 0ms both; }
+.splash-brand { font-size: 1.75rem; font-weight: 700; color: #fff; letter-spacing: -0.03em; }
+.splash-tagline { margin-top: 4px; font-size: 0.9rem; color: rgba(255,255,255,0.8); }
 .splash-content { animation: splash-rise 500ms ease-out 120ms both; }
 .splash-brand-animate { animation: splash-pop 500ms ease-out 200ms both; }
 .splash-tagline-animate { animation: splash-pop 500ms ease-out 320ms both; }
 
-@keyframes drive-across { 0% { transform: translateX(-50vw) rotate(-2deg); opacity: 0; } 10% { opacity: 1; } 100% { transform: translateX(120vw) rotate(0deg); opacity: 1; } }
-@keyframes splash-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes splash-pop { 0% { opacity: 0; transform: scale(0.95); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes drive-across {
+  0%   { transform: translateX(-50vw) rotate(-2deg); opacity: 0; }
+  10%  { opacity: 1; }
+  100% { transform: translateX(120vw) rotate(0deg); opacity: 1; }
+}
+@keyframes splash-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes splash-pop {
+  0%   { opacity: 0; transform: scale(0.94); }
+  100% { opacity: 1; transform: scale(1); }
+}
 
-/* =========================
+/* ============================================================
    Utility
-   ========================= */
+   ============================================================ */
 @keyframes spin { to { transform: rotate(360deg); } }
