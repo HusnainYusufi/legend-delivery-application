@@ -11,13 +11,14 @@
   --red-dk:   #E31C5F;
   --text:     #1A1A1A;
   --text-2:   #444444;
-  --muted:    #888888;
+  --muted:    #8A8A8A;
   --border:   #EBEBEB;
-  --bg:       #F5F5F5;
+  --bg:       #F2F2F2;
   --surface:  #FFFFFF;
+  --hero-bg:  #111111;
   --shadow-sm: 0 1px 4px rgba(0,0,0,0.06);
-  --shadow-md: 0 4px 20px rgba(0,0,0,0.09);
-  --shadow-lg: 0 8px 40px rgba(0,0,0,0.12);
+  --shadow-md: 0 4px 24px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 40px rgba(0,0,0,0.14);
 }
 
 /* ============================================================
@@ -43,7 +44,6 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
-
 body.overflow-hidden { overflow: hidden; }
 
 /* ============================================================
@@ -57,7 +57,7 @@ body.overflow-hidden { overflow: hidden; }
 .content {
   max-width: 480px;
   margin: 0 auto;
-  padding-bottom: 88px;
+  padding-bottom: 80px;
   width: 100%;
   min-height: 100dvh;
 }
@@ -92,14 +92,11 @@ body.overflow-hidden { overflow: hidden; }
   color: #fff;
   border-radius: 14px;
   padding: 14px 24px;
-  box-shadow: 0 4px 14px rgba(255, 56, 92, 0.35);
+  box-shadow: 0 4px 16px rgba(255,56,92,0.32);
   transition: box-shadow 0.2s, opacity 0.15s;
 }
-.btn-primary:active {
-  box-shadow: 0 2px 8px rgba(255, 56, 92, 0.25);
-  opacity: 0.92;
-}
-.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+.btn-primary:active { box-shadow: 0 2px 8px rgba(255,56,92,0.22); opacity: 0.9; }
+.btn-primary:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
 
 .btn-outline {
   background: var(--surface);
@@ -119,7 +116,7 @@ body.overflow-hidden { overflow: hidden; }
   padding: 11px 20px;
   transition: background 0.15s;
 }
-.btn-outline-red:active { background: rgba(255, 56, 92, 0.06); }
+.btn-outline-red:active { background: rgba(255,56,92,0.06); }
 
 /* ============================================================
    Bottom Tab Bar
@@ -135,7 +132,7 @@ body.overflow-hidden { overflow: hidden; }
   display: flex;
   z-index: 100;
   padding-bottom: env(safe-area-inset-bottom, 0px);
-  box-shadow: 0 -4px 20px rgba(0,0,0,0.06);
+  box-shadow: 0 -4px 24px rgba(0,0,0,0.07);
 }
 
 .bottom-tab {
@@ -144,22 +141,15 @@ body.overflow-hidden { overflow: hidden; }
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
-  color: var(--muted);
-  font-size: 10px;
-  font-weight: 500;
   background: none;
   border: none;
   padding: 0;
   cursor: pointer;
-  letter-spacing: 0.02em;
-  transition: color 0.2s;
   position: relative;
 }
-.bottom-tab.active { color: var(--red); }
 
 /* ============================================================
-   Top mini-bar (unauthenticated)
+   Top mini-bar
    ============================================================ */
 .top-mini-bar {
   position: sticky;
@@ -235,7 +225,7 @@ body.overflow-hidden { overflow: hidden; }
 }
 .input-field:focus {
   border-color: var(--red);
-  box-shadow: 0 0 0 3px rgba(255, 56, 92, 0.1);
+  box-shadow: 0 0 0 3px rgba(255,56,92,0.1);
 }
 .input-field::placeholder { color: var(--muted); }
 
@@ -265,38 +255,211 @@ body.overflow-hidden { overflow: hidden; }
 .search-bar input::placeholder { color: var(--muted); }
 
 /* ============================================================
-   Splash screen
+   Dashboard hero
    ============================================================ */
-.splash {
+.dash-hero {
+  background: var(--hero-bg);
+  position: relative;
+  overflow: hidden;
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.dash-hero::before {
+  content: '';
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,56,92,0.18) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.dash-hero::after {
+  content: '';
+  position: absolute;
+  bottom: -40px;
+  left: -40px;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.dash-hero-inner {
+  position: relative;
+  z-index: 1;
+  padding: 24px 16px 28px;
+}
+
+.dash-logo-ring {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.dash-stat-card {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  padding: 14px 12px;
+}
+
+/* ============================================================
+   Dashboard actions
+   ============================================================ */
+.dash-action-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  background: var(--surface);
+  border-radius: 18px;
+  padding: 14px 16px;
+  box-shadow: var(--shadow-md);
+  position: relative;
+  overflow: hidden;
+  text-align: start;
+}
+
+.dash-action-accent {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  border-radius: 4px 0 0 4px;
+}
+
+/* RTL: accent line on right side */
+[dir="rtl"] .dash-action-accent {
+  left: auto;
+  right: 0;
+  border-radius: 0 4px 4px 0;
+}
+
+/* ============================================================
+   Splash screen — complete redesign
+   ============================================================ */
+.splash-wrapper {
   position: fixed;
   inset: 0;
   z-index: 200;
-  display: grid;
-  place-items: center;
-  background: linear-gradient(150deg, #FF385C 0%, #C13515 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0A0A0A;
+  overflow: hidden;
 }
-.splash-anim-stage { position: absolute; inset: 0; z-index: 1; pointer-events: none; overflow: visible; }
-.splash-anim-track { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); height: 0; overflow: visible; }
-.splash-logo-drive { position: relative; width: 4.5rem; height: auto; filter: drop-shadow(0 10px 14px rgba(0,0,0,.25)); animation: drive-across 800ms cubic-bezier(.22,1,.36,1) 0ms both; }
-.splash-brand { font-size: 1.75rem; font-weight: 700; color: #fff; letter-spacing: -0.03em; }
-.splash-tagline { margin-top: 4px; font-size: 0.9rem; color: rgba(255,255,255,0.8); }
-.splash-content { animation: splash-rise 500ms ease-out 120ms both; }
-.splash-brand-animate { animation: splash-pop 500ms ease-out 200ms both; }
-.splash-tagline-animate { animation: splash-pop 500ms ease-out 320ms both; }
 
-@keyframes drive-across {
-  0%   { transform: translateX(-50vw) rotate(-2deg); opacity: 0; }
-  10%  { opacity: 1; }
-  100% { transform: translateX(120vw) rotate(0deg); opacity: 1; }
+.splash-rings {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
 }
-@keyframes splash-rise {
-  from { opacity: 0; transform: translateY(14px); }
-  to   { opacity: 1; transform: translateY(0); }
+
+.splash-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid rgba(255,56,92,0.15);
 }
-@keyframes splash-pop {
-  0%   { opacity: 0; transform: scale(0.94); }
-  100% { opacity: 1; transform: scale(1); }
+
+.splash-center-dot {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--red);
+  box-shadow: 0 0 12px 4px rgba(255,56,92,0.4);
 }
+
+.splash-content-block {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+.splash-logo-wrap {
+  width: 80px;
+  height: 80px;
+  border-radius: 24px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  backdrop-filter: blur(8px);
+}
+
+.splash-logo-img {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+}
+
+.splash-brand-row {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  margin-bottom: 8px;
+  perspective: 400px;
+}
+
+.splash-letter {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+  font-family: 'Inter', sans-serif;
+  line-height: 1;
+}
+
+.splash-tagline {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: rgba(255,255,255,0.35);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin: 0;
+  margin-bottom: 32px;
+}
+
+.splash-line-track {
+  width: 120px;
+  height: 2px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.splash-line-fill {
+  height: 100%;
+  background: linear-gradient(to right, var(--red), var(--red-dk));
+  border-radius: 2px;
+  transform-origin: left center;
+}
+
+/* ============================================================
+   RTL support
+   ============================================================ */
+[dir="rtl"] .pill-tabs { flex-direction: row-reverse; }
+[dir="rtl"] .search-bar { flex-direction: row-reverse; }
+[dir="rtl"] .bottom-tab-bar { flex-direction: row-reverse; }
 
 /* ============================================================
    Utility

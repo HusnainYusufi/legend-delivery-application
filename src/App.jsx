@@ -25,6 +25,9 @@ export default function App() {
   const [language, setLanguage] = useState("ar");
   useEffect(() => {
     if (language !== i18n.language) i18n.changeLanguage(language);
+    const isRtl = language === "ar";
+    document.documentElement.dir = isRtl ? "rtl" : "ltr";
+    document.documentElement.lang = language;
   }, [language, i18n]);
 
   const [showSplash, setShowSplash] = useState(true);
