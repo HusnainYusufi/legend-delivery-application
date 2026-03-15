@@ -22,31 +22,33 @@ export default function Dashboard({ isDriver = false, onTrackOrder, onOrders, on
     const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
 
     if (heroRef.current) {
-      tl.fromTo(heroRef.current, { opacity: 0, y: -20 }, { opacity: 1, y: 0, duration: 0.5 });
+      tl.from(heroRef.current, { opacity: 0, y: -20, duration: 0.5 });
     }
 
     if (statsRef.current) {
       const cards = statsRef.current.querySelectorAll(".stat-card");
       const nums = statsRef.current.querySelectorAll(".stat-num");
 
-      tl.fromTo(cards,
-        { opacity: 0, y: 24, scale: 0.9 },
-        { opacity: 1, y: 0, scale: 1, duration: 0.5, stagger: 0.09 },
+      tl.from(cards,
+        { opacity: 0, y: 24, scale: 0.9, duration: 0.5, stagger: 0.09 },
         "-=0.2"
       );
 
       nums.forEach((el) => {
         const target = parseInt(el.dataset.val, 10);
-        tl.fromTo({ val: 0 }, { val: target, duration: 1.1, ease: "power2.out",
-          onUpdate: function () { el.textContent = Math.round(this.targets()[0].val); }
+        const obj = { val: 0 };
+        tl.to(obj, {
+          val: target,
+          duration: 1.1,
+          ease: "power2.out",
+          onUpdate: () => { el.textContent = Math.round(obj.val); },
         }, "<0.15");
       });
     }
 
     if (actionsRef.current) {
-      tl.fromTo(actionsRef.current.querySelectorAll(".action-row"),
-        { opacity: 0, x: -18 },
-        { opacity: 1, x: 0, duration: 0.4, stagger: 0.07 },
+      tl.from(actionsRef.current.querySelectorAll(".action-row"),
+        { opacity: 0, x: -18, duration: 0.4, stagger: 0.07 },
         "-=0.6"
       );
     }
@@ -62,7 +64,7 @@ export default function Dashboard({ isDriver = false, onTrackOrder, onOrders, on
   return (
     <section className="pb-6">
       {/* Dark hero */}
-      <div ref={heroRef} className="dash-hero" style={{ opacity: 0 }}>
+      <div ref={heroRef} className="dash-hero">
         <div className="dash-hero-inner">
           <div className="flex items-center gap-3 mb-6">
             <div className="dash-logo-ring">
@@ -83,7 +85,7 @@ export default function Dashboard({ isDriver = false, onTrackOrder, onOrders, on
             {STATS.map((s) => {
               const Icon = s.icon;
               return (
-                <div key={s.labelKey} className="stat-card dash-stat-card" style={{ opacity: 0 }}>
+                <div key={s.labelKey} className="stat-card dash-stat-card">
                   <Icon size={14} style={{ color: s.accent }} className="mb-1.5" />
                   <div className="stat-num text-[26px] font-bold text-white tracking-tight" data-val={s.value}>0</div>
                   <div className="text-[10px] font-medium text-white/40 uppercase tracking-wider mt-0.5">
@@ -109,7 +111,6 @@ export default function Dashboard({ isDriver = false, onTrackOrder, onOrders, on
               onClick={onClick}
               whileTap={{ scale: 0.982 }}
               className="action-row dash-action-card"
-              style={{ opacity: 0 }}
             >
               {/* Left accent line */}
               <div className="dash-action-accent" style={{ background: accent }} />
