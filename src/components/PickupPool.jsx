@@ -304,7 +304,7 @@ export default function PickupPool() {
           className="p-2 rounded-full text-[var(--muted)] hover:bg-[#F7F7F7] transition-colors"
         >
           {currentList.loading
-            ? <Loader2 size={18} className="animate-spin text-[#FF385C]" />
+            ? <Loader2 size={18} className="animate-spin text-[#ffcc02]" />
             : <RefreshCcw size={18} />}
         </button>
       </div>
@@ -356,7 +356,7 @@ export default function PickupPool() {
       {/* Lists */}
       {currentList.loading && currentList.items.length === 0 ? (
         <div className="py-16 flex flex-col items-center justify-center text-[var(--muted)]">
-          <Loader2 size={28} className="animate-spin text-[#FF385C] mb-3" />
+          <Loader2 size={28} className="animate-spin text-[#ffcc02] mb-3" />
           <span className="text-sm">{t("loading") || "Loading…"}</span>
         </div>
       ) : (tab === "pool" ? pool.items.length === 0 : mine.items.length === 0) ? (
@@ -415,7 +415,7 @@ export default function PickupPool() {
         <div
           ref={toastRef}
           className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[120] rounded-full px-5 py-3 shadow-lg text-white flex items-center gap-2"
-          style={{ background: "linear-gradient(to right, #FF385C, #E31C5F)" }}
+          style={{ background: "linear-gradient(to right, #ffcc02, #e6b800)" }}
         >
           <CheckCircle2 size={18} />
           <span className="font-semibold text-sm">{toast.msg}</span>

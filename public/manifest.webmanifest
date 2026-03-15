@@ -3,7 +3,7 @@
   "short_name": "SHAHEENE",
   "start_url": "/",
   "display": "standalone",
-  "theme_color": "#072c41",
+  "theme_color": "#ffcc02",
   "background_color": "#ffffff",
   "icons": [
     { "src": "/sh-logo.png", "sizes": "192x192", "type": "image/png" },

@@ -250,7 +250,7 @@ export default function OrdersList({ showDeliveredOnly = false }) {
       {/* Order list */}
       {loading && orders.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-[var(--muted)]">
-          <Loader2 size={28} className="animate-spin mb-3 text-[#FF385C]" />
+          <Loader2 size={28} className="animate-spin mb-3 text-[#ffcc02]" />
           <span className="text-sm">{t("loading")}</span>
         </div>
       ) : shownOrders.length === 0 ? (
@@ -290,7 +290,7 @@ export default function OrdersList({ showDeliveredOnly = false }) {
                   {/* OTP key badge */}
                   {key && (
                     <div className="mt-2">
-                      <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-[rgba(255,56,92,0.08)] text-[#FF385C] font-semibold">
+                      <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-[rgba(255,204,2,0.08)] text-[#ffcc02] font-semibold">
                         OTP: {key}
                       </span>
                     </div>

@@ -152,7 +152,7 @@ function ModalContent({ onClose, onLogin }) {
 
             <div className="text-center text-sm text-[#717171] pt-1">
               {t("forgot_password")}{" "}
-              <button type="button" className="text-[#FF385C] font-semibold">{t("reset_here")}</button>
+              <button type="button" className="text-[#ffcc02] font-semibold">{t("reset_here")}</button>
             </div>
           </form>
         </div>

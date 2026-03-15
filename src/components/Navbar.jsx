@@ -27,7 +27,7 @@ export default function BottomTabBar({ view, setView, isDriver = false, onLogout
       { id: "scan-claim", icon: QrCode,      label: t("scan_product") || "Scan" },
       { id: "delivered",  icon: CheckCircle, label: t("delivered_nav") || "Done" },
     ] : []),
-    { id: "__menu",     icon: User,          label: t("menu") || "Menu" },
+    { id: "__menu",     icon: Globe,         label: t("menu") || "Menu" },
   ];
 
   const handleTab = (id) => {
@@ -52,7 +52,7 @@ export default function BottomTabBar({ view, setView, isDriver = false, onLogout
                   <motion.div
                     layoutId="tab-pill"
                     className="absolute inset-x-2 -inset-y-0.5 rounded-2xl"
-                    style={{ background: "rgba(255,56,92,0.1)" }}
+                    style={{ background: "rgba(255,204,2,0.1)" }}
                     transition={{ type: "spring", damping: 26, stiffness: 340 }}
                   />
                 )}
@@ -120,10 +120,10 @@ export default function BottomTabBar({ view, setView, isDriver = false, onLogout
                   onClick={() => { setMenuOpen(false); onLogout?.(); }}
                   className="flex items-center gap-3 w-full py-4"
                 >
-                  <div className="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center">
-                    <LogOut size={18} className="text-[#FF385C]" />
+                  <div className="w-9 h-9 rounded-xl bg-yellow-50 flex items-center justify-center">
+                    <LogOut size={18} className="text-[#ffcc02]" />
                   </div>
-                  <span className="font-semibold text-[#FF385C] text-[15px]">{t("logout") || "Logout"}</span>
+                  <span className="font-semibold text-[#ffcc02] text-[15px]">{t("logout") || "Logout"}</span>
                 </motion.button>
               </div>
 

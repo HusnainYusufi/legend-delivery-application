@@ -106,7 +106,7 @@ export default function OrderDetailsModal({ open, onClose, order }) {
                   <div className="space-y-2.5">
                     {order.statusHistory.slice().reverse().map((h, i) => (
                       <div key={i} className="flex items-center gap-3">
-                        <div className="w-2 h-2 rounded-full bg-[#FF385C] flex-shrink-0" />
+                        <div className="w-2 h-2 rounded-full bg-[#ffcc02] flex-shrink-0" />
                         <span className="text-sm font-medium text-[#222222]">{safe(h.status).replace(/_/g, " ")}</span>
                         <span className="text-xs text-[#717171] ms-auto">{h.at ? new Date(h.at).toLocaleDateString() : "-"}</span>
                       </div>

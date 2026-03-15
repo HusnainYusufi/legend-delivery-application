@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 import logoUrl from "/sh-logo.png";
 
 const STATS = [
-  { labelKey: "dashboard_stat_active",    value: 128, icon: Truck,  accent: "#FF385C" },
+  { labelKey: "dashboard_stat_active",    value: 128, icon: Truck,  accent: "#ffcc02" },
   { labelKey: "dashboard_stat_delivered", value: 86,  icon: Box,    accent: "#00B87C" },
   { labelKey: "dashboard_stat_pending",   value: 32,  icon: Clock,  accent: "#F59E0B" },
 ];
@@ -55,7 +55,7 @@ export default function Dashboard({ isDriver = false, onTrackOrder, onOrders, on
   }, []);
 
   const actions = [
-    { label: t("dashboard_action_track"),  sub: t("dashboard_action_track_sub"),  icon: QrCode,       onClick: onTrackOrder, show: true,     accent: "#FF385C" },
+    { label: t("dashboard_action_track"),  sub: t("dashboard_action_track_sub"),  icon: QrCode,       onClick: onTrackOrder, show: true,     accent: "#ffcc02" },
     { label: t("orders_nav"),              sub: t("dashboard_action_orders"),      icon: PackageCheck, onClick: onOrders,     show: true,     accent: "#6366F1" },
     { label: t("delivered_nav"),           sub: t("dashboard_action_delivered"),   icon: BadgeCheck,   onClick: onDelivered,  show: isDriver, accent: "#00B87C" },
     { label: t("scan_product"),            sub: t("dashboard_action_scan"),        icon: ScanLine,     onClick: onScanClaim,  show: isDriver, accent: "#F59E0B" },

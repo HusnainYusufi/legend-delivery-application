@@ -7,8 +7,8 @@
    Design Tokens
    ============================================================ */
 :root {
-  --red:      #FF385C;
-  --red-dk:   #E31C5F;
+  --red:      #ffcc02;
+  --red-dk:   #e6b800;
   --text:     #1A1A1A;
   --text-2:   #444444;
   --muted:    #8A8A8A;
@@ -89,13 +89,13 @@ body.overflow-hidden { overflow: hidden; }
 
 .btn-primary {
   background: linear-gradient(135deg, var(--red) 0%, var(--red-dk) 100%);
-  color: #fff;
+  color: #1A1A1A;
   border-radius: 14px;
   padding: 14px 24px;
-  box-shadow: 0 4px 16px rgba(255,56,92,0.32);
+  box-shadow: 0 4px 16px rgba(255,204,2,0.32);
   transition: box-shadow 0.2s, opacity 0.15s;
 }
-.btn-primary:active { box-shadow: 0 2px 8px rgba(255,56,92,0.22); opacity: 0.9; }
+.btn-primary:active { box-shadow: 0 2px 8px rgba(255,204,2,0.22); opacity: 0.9; }
 .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
 
 .btn-outline {
@@ -116,7 +116,7 @@ body.overflow-hidden { overflow: hidden; }
   padding: 11px 20px;
   transition: background 0.15s;
 }
-.btn-outline-red:active { background: rgba(255,56,92,0.06); }
+.btn-outline-red:active { background: rgba(255,204,2,0.06); }
 
 /* ============================================================
    Bottom Tab Bar
@@ -225,7 +225,7 @@ body.overflow-hidden { overflow: hidden; }
 }
 .input-field:focus {
   border-color: var(--red);
-  box-shadow: 0 0 0 3px rgba(255,56,92,0.1);
+  box-shadow: 0 0 0 3px rgba(255,204,2,0.1);
 }
 .input-field::placeholder { color: var(--muted); }
 
@@ -272,7 +272,7 @@ body.overflow-hidden { overflow: hidden; }
   width: 220px;
   height: 220px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255,56,92,0.18) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(255,204,2,0.18) 0%, transparent 70%);
   pointer-events: none;
 }
 
@@ -372,7 +372,7 @@ body.overflow-hidden { overflow: hidden; }
 .splash-ring {
   position: absolute;
   border-radius: 50%;
-  border: 1px solid rgba(255,56,92,0.15);
+  border: 1px solid rgba(255,204,2,0.15);
 }
 
 .splash-center-dot {
@@ -381,7 +381,7 @@ body.overflow-hidden { overflow: hidden; }
   height: 6px;
   border-radius: 50%;
   background: var(--red);
-  box-shadow: 0 0 12px 4px rgba(255,56,92,0.4);
+  box-shadow: 0 0 12px 4px rgba(255,204,2,0.4);
 }
 
 .splash-content-block {

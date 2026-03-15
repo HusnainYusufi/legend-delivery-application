@@ -194,8 +194,8 @@ export default function App() {
               <div className="card p-5 mb-4">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{ background: "rgba(255,56,92,0.08)" }}>
-                    <QrCode size={20} className="text-[#FF385C]" />
+                    style={{ background: "rgba(255,204,2,0.08)" }}>
+                    <QrCode size={20} className="text-[#ffcc02]" />
                   </div>
                   <div>
                     <h2 className="text-[17px] font-bold text-[#222222]">{t("track_order")}</h2>
@@ -337,8 +337,11 @@ export default function App() {
             initial={{ opacity: 0, y: 20, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1, transition: { type: "spring", damping: 20, stiffness: 300 } }}
             exit={{ opacity: 0, y: 10, scale: 0.95, transition: { duration: 0.15 } }}
-            className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 rounded-full px-5 py-3 shadow-lg flex items-center gap-2 text-white text-sm font-semibold"
-            style={{ background: toast.type === "success" ? "linear-gradient(to right, #FF385C, #E31C5F)" : "#C13515" }}
+            className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 rounded-full px-5 py-3 shadow-lg flex items-center gap-2 text-sm font-semibold"
+            style={{
+              background: toast.type === "success" ? "linear-gradient(to right, #ffcc02, #e6b800)" : "#C13515",
+              color: toast.type === "success" ? "#1A1A1A" : "#fff",
+            }}
           >
             <CheckCircle size={16} />
             {toast.msg}

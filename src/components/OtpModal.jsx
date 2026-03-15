@@ -64,8 +64,8 @@ export default function OtpModal({ open, orderNo, onClose, onSubmit, loading = f
                   <motion.div
                     key={i}
                     animate={{
-                      borderColor: d ? "#FF385C" : "#DDDDDD",
-                      backgroundColor: d ? "rgba(255,56,92,0.04)" : "#fff",
+                      borderColor: d ? "#ffcc02" : "#DDDDDD",
+                      backgroundColor: d ? "rgba(255,204,2,0.04)" : "#fff",
                       scale: d ? 1.04 : 1,
                     }}
                     transition={{ duration: 0.15 }}

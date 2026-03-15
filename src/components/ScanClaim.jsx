@@ -69,8 +69,8 @@ export default function ScanClaim({ onBack }) {
       {/* Hero */}
       <div className="px-4 pt-10 pb-6 text-center">
         <div className="mx-auto h-20 w-20 rounded-2xl flex items-center justify-center mb-5"
-          style={{ background: 'rgba(255,56,92,0.08)' }}>
-          <QrCode size={40} className="text-[#FF385C]" />
+          style={{ background: 'rgba(255,204,2,0.08)' }}>
+          <QrCode size={40} className="text-[#ffcc02]" />
         </div>
         <h3 className="text-[20px] font-bold text-[var(--text)] mb-2">
           {t("claim_any_order") || "Claim any order"}
@@ -108,7 +108,7 @@ export default function ScanClaim({ onBack }) {
       {/* Toast */}
       {toast && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[120] rounded-full px-5 py-3 shadow-lg text-white flex items-center gap-2"
-          style={{ background: 'linear-gradient(to right, #FF385C, #E31C5F)' }}>
+          style={{ background: 'linear-gradient(to right, #ffcc02, #e6b800)' }}>
           <CheckCircle size={18} />
           <span className="font-semibold text-sm">{toast.msg}</span>
         </div>
