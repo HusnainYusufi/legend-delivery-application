@@ -1,7 +1,8 @@
 // src/components/LoginModal.jsx
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { X, User, Lock, Eye, EyeOff } from "lucide-react";
+import { gsap } from "gsap";
+import { Eye, EyeOff, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { loginRequest } from "../lib/api.js";
 import { decodeJwt } from "../lib/auth.js";
@@ -13,12 +14,15 @@ function ModalContent({ onClose, onLogin }) {
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const sheetRef = useRef(null);
+  const backdropRef = useRef(null);
   const [error, setError] = useState("");
 
-  // prevent background scroll when modal is open
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    if (backdropRef.current) gsap.fromTo(backdropRef.current, { opacity: 0 }, { opacity: 1, duration: 0.25 });
+    if (sheetRef.current) gsap.fromTo(sheetRef.current, { y: "100%" }, { y: "0%", duration: 0.4, ease: "power3.out" });
     return () => { document.body.style.overflow = prev; };
   }, []);
 
@@ -26,7 +30,6 @@ function ModalContent({ onClose, onLogin }) {
     e.preventDefault();
     setIsLoading(true);
     setError("");
-
     try {
       const data = await loginRequest(email, password);
       const payload = decodeJwt(data.token) || {};
@@ -41,9 +44,6 @@ function ModalContent({ onClose, onLogin }) {
         iat: payload.iat ?? null,
         exp: payload.exp ?? null,
       };
-
-      // ✅ Only notify parent. DO NOT call onClose here.
-      // Parent's handleLogin will close the modal and navigate.
       onLogin?.(auth);
     } catch (err) {
       setError(err?.message || t("login_error"));
@@ -53,123 +53,97 @@ function ModalContent({ onClose, onLogin }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 modal-backdrop">
-      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl max-w-md w-full mx-4 p-6 relative modal-panel">
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute top-4 right-4 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
-          aria-label={t("close")}
-        >
-          <X className="h-6 w-6" />
-        </button>
-
-        {/* Brand logo */}
-        <div className="flex justify-center mb-6">
-          <img src={logoUrl} alt="SHAHEENE" className="h-16 w-16 object-contain" />
+    <div ref={backdropRef} className="fixed inset-0 z-[60] bg-black/40 modal-backdrop flex items-end sm:items-center justify-center">
+      <div ref={sheetRef} className="bg-white w-full sm:max-w-md sm:rounded-2xl rounded-t-2xl shadow-2xl overflow-hidden modal-panel">
+        {/* Drag handle (mobile) */}
+        <div className="flex justify-center pt-3 pb-1 sm:hidden">
+          <div className="w-10 h-1 bg-[#DDDDDD] rounded-full" />
         </div>
 
-        <h2 className="text-2xl font-bold text-center text-slate-800 dark:text-slate-100 mb-2">
-          {t("login_title")}
-        </h2>
-        <p className="text-slate-500 dark:text-slate-400 text-center mb-8">
-          {t("login_subtitle")}
-        </p>
+        <div className="px-6 pt-4 pb-8">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <img src={logoUrl} alt="SHAHEENE" className="h-9 w-9 object-contain" />
+              <span className="text-lg font-bold text-[#222222]">{t("brand")}</span>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-2 text-[#717171] hover:text-[#222222] rounded-full"
+              aria-label="Close"
+            >
+              <X size={20} />
+            </button>
+          </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="mb-5">
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-              {t("email")}
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <User className="h-5 w-5 text-slate-400" />
-              </div>
+          <h2 className="text-[22px] font-bold text-[#222222] mb-1">{t("login_title")}</h2>
+          <p className="text-sm text-[#717171] mb-6">{t("login_subtitle")}</p>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-[#222222] mb-1.5">{t("email")}</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white pl-10 pr-4 py-3 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900"
+                className="input-field"
                 placeholder={t("email_placeholder")}
                 required
                 autoComplete="username"
               />
             </div>
-          </div>
 
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-              {t("password")}
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Lock className="h-5 w-5 text-slate-400" />
+            <div>
+              <label className="block text-sm font-medium text-[#222222] mb-1.5">{t("password")}</label>
+              <div className="relative">
+                <input
+                  type={showPw ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="input-field pr-12"
+                  placeholder={t("password_placeholder")}
+                  required
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPw((s) => !s)}
+                  className="absolute inset-y-0 right-3 flex items-center text-[#717171]"
+                  aria-label={showPw ? t("hide_password") : t("show_password")}
+                >
+                  {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
-              <input
-                type={showPw ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white pl-10 pr-12 py-3 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900"
-                placeholder={t("password_placeholder")}
-                required
-                autoComplete="current-password"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPw((s) => !s)}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-700 dark:text-slate-300 dark:hover:text-slate-100"
-                aria-label={showPw ? t("hide_password") : t("show_password")}
-              >
-                {showPw ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-              </button>
             </div>
-          </div>
 
-          {error && (
-            <div className="mb-6 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-700 dark:text-red-200 flex items-center">
-              {error}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="btn bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white w-full py-3.5 rounded-xl font-medium flex items-center justify-center gap-2"
-          >
-            {isLoading ? (
-              <div className="border-2 border-white border-t-transparent rounded-full w-5 h-5 animate-spin"></div>
-            ) : (
-              <Lock className="h-5 w-5" />
+            {error && (
+              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {error}
+              </div>
             )}
-            {t("login_button")}
-          </button>
 
-          <div className="mt-4 text-center text-sm text-slate-500 dark:text-slate-400">
-            {t("forgot_password")}
-            <button type="button" className="text-indigo-600 dark:text-indigo-400 font-medium ml-1">
-              {t("reset_here")}
+            <button type="submit" disabled={isLoading} className="btn-primary btn w-full mt-2">
+              {isLoading
+                ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full" style={{ animation: 'spin 0.7s linear infinite' }} />
+                : t("login_button")}
             </button>
-          </div>
-        </form>
+
+            <div className="text-center text-sm text-[#717171] pt-1">
+              {t("forgot_password")}{" "}
+              <button type="button" className="text-[#FF385C] font-semibold">{t("reset_here")}</button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );
 }
 
 export default function LoginModal({ onClose, onLogin }) {
-  // Create (or reuse) a portal host for modals
   const host = useMemo(() => {
     let el = document.getElementById("modal-root");
-    if (!el) {
-      el = document.createElement("div");
-      el.id = "modal-root";
-      document.body.appendChild(el);
-    }
+    if (!el) { el = document.createElement("div"); el.id = "modal-root"; document.body.appendChild(el); }
     return el;
   }, []);
-
-  return createPortal(
-    <ModalContent onClose={onClose} onLogin={onLogin} />,
-    host
-  );
+  return createPortal(<ModalContent onClose={onClose} onLogin={onLogin} />, host);
 }

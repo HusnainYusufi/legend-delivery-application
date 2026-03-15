@@ -1,88 +1,115 @@
-import React from "react";
-import { X } from "lucide-react";
+import React, { useEffect, useRef } from "react";
+import { gsap } from "gsap";
+import { X, MapPin, Calendar, Hash, User } from "lucide-react";
 import StatusBadge from "./StatusBadge.jsx";
 
 const safe = (v, fb = "-") => (v === null || v === undefined ? fb : String(v));
 
 export default function OrderDetailsModal({ open, onClose, order }) {
+  const sheetRef = useRef(null);
+  const backdropRef = useRef(null);
+
+  useEffect(() => {
+    if (open && sheetRef.current && backdropRef.current) {
+      gsap.fromTo(backdropRef.current, { opacity: 0 }, { opacity: 1, duration: 0.25 });
+      gsap.fromTo(sheetRef.current, { y: "100%" }, { y: "0%", duration: 0.38, ease: "power3.out" });
+    }
+  }, [open]);
+
+  const handleClose = () => {
+    if (sheetRef.current && backdropRef.current) {
+      gsap.to(sheetRef.current, { y: "100%", duration: 0.28, ease: "power2.in" });
+      gsap.to(backdropRef.current, { opacity: 0, duration: 0.25, onComplete: onClose });
+    } else {
+      onClose?.();
+    }
+  };
+
   if (!open || !order) return null;
 
   return (
-    <div className="fixed inset-0 z-[120] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xl overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-700">
-          <div className="flex items-center gap-3">
-            <img src="/sh-logo.png" alt="SHAHEENE" className="h-8 w-8 object-contain" />
-            <div className="font-semibold text-slate-900 dark:text-slate-100">Order Details</div>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-lg bg-white/10 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-100"
-            aria-label="Close"
-          >
-            <X className="h-5 w-5" />
+    <div ref={backdropRef} className="fixed inset-0 z-[120] bg-black/50 modal-backdrop flex items-end justify-center">
+      <div ref={sheetRef} className="bg-white w-full max-w-[480px] rounded-t-2xl shadow-2xl overflow-hidden">
+        {/* Drag handle */}
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="w-10 h-1 bg-[#DDDDDD] rounded-full" />
+        </div>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-3 border-b border-[#DDDDDD]">
+          <div className="font-semibold text-[#222222]">Order Details</div>
+          <button onClick={handleClose} className="p-1.5 text-[#717171] rounded-full" aria-label="Close">
+            <X size={20} />
           </button>
         </div>
 
-        <div className="max-h-[75vh] overflow-auto p-4 space-y-4">
-          <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="max-h-[75vh] overflow-auto">
+          {/* Order # + status */}
+          <div className="flex items-start justify-between px-5 pt-5 pb-3 border-b border-[#DDDDDD]">
             <div>
-              <div className="text-xs text-slate-500">Order</div>
-              <div className="text-lg font-semibold break-all">{safe(order.orderNo)}</div>
+              <div className="text-xs text-[#717171] mb-0.5">Order</div>
+              <div className="text-lg font-bold text-[#222222] break-all">{safe(order.orderNo)}</div>
             </div>
             <StatusBadge value={order.currentStatus || order.orderStatus} />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="rounded-xl bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-700 p-3">
-              <div className="text-xs text-slate-500">Customer</div>
-              <div className="font-medium">{safe(order.customerName)}</div>
-            </div>
-            <div className="rounded-xl bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-700 p-3">
-              <div className="text-xs text-slate-500">City</div>
-              <div className="font-medium">
-                {safe(order.city)}{order.country ? `, ${safe(order.country)}` : ""}
+          {/* Info grid */}
+          <div className="px-5 py-4 space-y-3">
+            {[
+              { icon: User,     label: "Customer",    value: safe(order.customerName) },
+              { icon: MapPin,   label: "City",        value: safe(order.city) + (order.country ? `, ${order.country}` : "") },
+              { icon: Calendar, label: "Order Date",  value: order.orderDate ? new Date(order.orderDate).toLocaleDateString() : "-" },
+              { icon: Hash,     label: "Tracking #",  value: safe(order.trackingNumber) },
+            ].map(({ icon: Icon, label, value }) => (
+              <div key={label} className="flex items-start gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg flex-shrink-0 bg-[#F7F7F7]">
+                  <Icon size={15} className="text-[#717171]" />
+                </div>
+                <div>
+                  <div className="text-xs text-[#717171]">{label}</div>
+                  <div className="text-sm font-medium text-[#222222] break-words">{value}</div>
+                </div>
               </div>
-            </div>
-            <div className="rounded-xl bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-700 p-3">
-              <div className="text-xs text-slate-500">Order Date</div>
-              <div className="font-medium">
-                {order.orderDate ? new Date(order.orderDate).toLocaleString() : "-"}
+            ))}
+
+            {order.customerAddress && (
+              <div className="flex items-start gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg flex-shrink-0 bg-[#F7F7F7]">
+                  <MapPin size={15} className="text-[#717171]" />
+                </div>
+                <div>
+                  <div className="text-xs text-[#717171]">Address</div>
+                  <div className="text-sm font-medium text-[#222222] break-words">{safe(order.customerAddress)}</div>
+                </div>
               </div>
-            </div>
-            <div className="rounded-xl bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-700 p-3">
-              <div className="text-xs text-slate-500">Tracking #</div>
-              <div className="font-medium break-all">{safe(order.trackingNumber)}</div>
-            </div>
-            <div className="rounded-xl bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-700 p-3 md:col-span-2">
-              <div className="text-xs text-slate-500">Address</div>
-              <div className="font-medium break-words">{safe(order.customerAddress)}</div>
-            </div>
+            )}
           </div>
 
+          {/* Items */}
           {Array.isArray(order.items) && order.items.length > 0 && (
-            <div className="rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3">
-              <div className="text-sm text-slate-500 mb-2">Items</div>
-              <ul className="list-disc pl-5 space-y-1">
+            <div className="mx-5 mb-4 rounded-xl bg-[#F7F7F7] p-4">
+              <div className="text-xs font-semibold text-[#717171] uppercase tracking-wide mb-2">Items</div>
+              <ul className="space-y-1.5">
                 {order.items.map((it, idx) => (
-                  <li key={idx} className="text-sm">
-                    {safe(it.productName || it.sku)} × {safe(it.quantity ?? 1)}
+                  <li key={idx} className="flex items-center justify-between text-sm text-[#222222]">
+                    <span>{safe(it.productName || it.sku)}</span>
+                    <span className="font-semibold">×{safe(it.quantity ?? 1)}</span>
                   </li>
                 ))}
               </ul>
             </div>
           )}
 
+          {/* Status history */}
           {Array.isArray(order.statusHistory) && order.statusHistory.length > 0 && (
-            <div className="rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3">
-              <div className="text-sm text-slate-500 mb-2">Status History</div>
-              <div className="space-y-2">
+            <div className="mx-5 mb-6 rounded-xl bg-[#F7F7F7] p-4">
+              <div className="text-xs font-semibold text-[#717171] uppercase tracking-wide mb-3">Status History</div>
+              <div className="space-y-2.5">
                 {order.statusHistory.slice().reverse().map((h, i) => (
-                  <div key={i} className="text-sm flex items-center gap-3">
-                    <span className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-700">
-                      {safe(h.status)}
-                    </span>
-                    <span className="text-slate-500">{h.at ? new Date(h.at).toLocaleString() : "-"}</span>
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full bg-[#FF385C] flex-shrink-0" />
+                    <span className="text-sm font-medium text-[#222222]">{safe(h.status).replace(/_/g, " ")}</span>
+                    <span className="text-xs text-[#717171] ms-auto">{h.at ? new Date(h.at).toLocaleDateString() : "-"}</span>
                   </div>
                 ))}
               </div>

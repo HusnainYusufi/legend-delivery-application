@@ -1,24 +1,13 @@
 // src/components/OrdersList.jsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { gsap } from "gsap";
 import {
-  RefreshCcw,
-  Loader2,
-  ChevronDown,
-  ChevronUp,
-  Info,
-  CheckCircle2,
-  X,
-  Search,
-  AlertTriangle,
+  RefreshCcw, Loader2, Info, CheckCircle2, X, Search, AlertTriangle, ChevronDown,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
-  fetchAssignedOrders,
-  AUTH_BASE_URL,
-  verifyOrderOtp,
-  fetchMyInTransit,
-  fetchMyDelivered,
-  setDeliveryNote,
+  fetchAssignedOrders, AUTH_BASE_URL, verifyOrderOtp,
+  fetchMyInTransit, fetchMyDelivered, setDeliveryNote,
 } from "../lib/api.js";
 import { getAuth } from "../lib/auth.js";
 import StatusBadge from "./StatusBadge.jsx";
@@ -41,86 +30,22 @@ const errorToString = (e) => {
 const norm = (s) => String(s || "").trim().toUpperCase();
 
 function pkgStatusOf(order) {
-  const s =
-    order?.__pkg?.pkgStatus ||
-    order?.driverView?.package?.status ||
-    order?.currentStatus ||
-    order?.orderStatus ||
-    "";
+  const s = order?.__pkg?.pkgStatus || order?.driverView?.package?.status || order?.currentStatus || order?.orderStatus || "";
   return String(s).toUpperCase();
 }
-
 function driverRefSearchOf(order) {
-  return (
-    order?.__pkg?.driverRefSearch ||
-    order?.driverView?.driverRefSearch ||
-    ""
-  );
+  return order?.__pkg?.driverRefSearch || order?.driverView?.driverRefSearch || "";
 }
-
-// NEW: OTP/package key used in SMS/labels (e.g., "PK-9757E")
 function pkgKeyOf(order) {
   return order?.__pkg?.pkgKey || order?.driverView?.pkgKey || "";
 }
-
-// NEW: single string that represents our OTP search identity
 function otpSearchKeyOf(order) {
   return pkgKeyOf(order) || driverRefSearchOf(order) || "";
 }
 
-function CollapsibleCard({ order, children, initiallyOpen = false }) {
-  const [open, setOpen] = useState(initiallyOpen);
-  const statusVal = order.currentStatus || order.orderStatus;
-
-  return (
-    <article className="order-card rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
-      <div className="w-full flex items-stretch justify-between px-3 py-2">
-        <button onClick={() => setOpen((o) => !o)} className="min-w-0 flex-1 text-left">
-          <div className="overflow-x-auto no-scrollbar whitespace-nowrap pr-2">
-            <span className="font-semibold text-slate-900 dark:text-slate-100">
-              {safeText(order.orderNo)}
-            </span>
-
-            <span className="inline-block align-middle ml-2">
-              <StatusBadge value={statusVal} />
-            </span>
-
-            {/* NEW: prominent OTP/pkgKey pill visible even when collapsed */}
-            {pkgKeyOf(order) && (
-              <span
-                className="ml-3 inline-flex items-center gap-1 text-[11px] px-2 py-[3px] rounded-full bg-indigo-600 text-white shadow-sm"
-                title="OTP package key"
-              >
-                <span className="opacity-90">OTP</span>
-                <span className="font-semibold">{pkgKeyOf(order)}</span>
-              </span>
-            )}
-
-            {/* Keep the existing tiny ref chip (shown only if distinct from pkgKey) */}
-            {driverRefSearchOf(order) && driverRefSearchOf(order) !== pkgKeyOf(order) && (
-              <span className="ml-2 text-[11px] px-1.5 py-[1px] rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
-                {driverRefSearchOf(order)}
-              </span>
-            )}
-          </div>
-        </button>
-        <div className="flex items-center gap-2 pl-2">
-          <button
-            onClick={() => setOpen((o) => !o)}
-            className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-600"
-            aria-label={open ? "Collapse" : "Expand"}
-          >
-            {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </button>
-        </div>
-      </div>
-      {open && <div className="px-3 pb-3">{children}</div>}
-    </article>
-  );
-}
-
 export default function OrdersList({ showDeliveredOnly = false }) {
   const { t } = useTranslation();
+  const listRef = useRef(null);
   const [orders, setOrders] = useState([]);
   const [page, setPage] = useState(1);
   const [limit] = useState(20);
@@ -129,428 +54,301 @@ export default function OrdersList({ showDeliveredOnly = false }) {
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
-
-  // Driver sub-tab: 'undelivered' | 'delivered'
   const [subTab, setSubTab] = useState("undelivered");
-
-  // Search query (driverRefSearch / pkgKey), debounce
   const [q, setQ] = useState("");
   const [qLive, setQLive] = useState("");
-  useEffect(() => {
-    const id = setTimeout(() => setQ(qLive), 200);
-    return () => clearTimeout(id);
-  }, [qLive]);
+  useEffect(() => { const id = setTimeout(() => setQ(qLive), 200); return () => clearTimeout(id); }, [qLive]);
 
-  // OTP modal
   const [otpOrder, setOtpOrder] = useState(null);
   const [otpOpen, setOtpOpen] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
   const [otpError, setOtpError] = useState("");
 
-  // Delivery note modal (for failed delivery)
   const [noteOrder, setNoteOrder] = useState(null);
   const [noteOpen, setNoteOpen] = useState(false);
   const [noteLoading, setNoteLoading] = useState(false);
   const [noteError, setNoteError] = useState("");
   const [noteSuccess, setNoteSuccess] = useState("");
 
-  // Delivery note options
   const DELIVERY_NOTES = [
-    { value: "POSTPONED", label: "Postponed", description: "Customer requested later delivery" },
-    { value: "NEEDS_ACTION", label: "Needs Action", description: "Requires admin attention" },
-    { value: "NOT_AVAILABLE", label: "Not Available", description: "Customer not reachable" },
+    { value: "POSTPONED",    label: "Postponed",     description: "Customer requested later delivery" },
+    { value: "NEEDS_ACTION", label: "Needs Action",  description: "Requires admin attention" },
+    { value: "NOT_AVAILABLE",label: "Not Available", description: "Customer not reachable" },
   ];
 
-  // Delivery celebration
   const [deliveredMsg, setDeliveredMsg] = useState("");
-
-  // Details modal
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [detailsOrder, setDetailsOrder] = useState(null);
 
   const auth = getAuth();
   const role = auth?.role || auth?.userType || null;
   const isDriver = role && String(role).toLowerCase() === "driver";
-
   const hasMore = isDriver ? serverHasMore : orders.length < count;
 
   const driverLoad = async ({ reset }) => {
-    const res = await fetchMyInTransit({
-      page: reset ? 1 : page,
-      limit,
-    });
+    const res = await fetchMyInTransit({ page: reset ? 1 : page, limit });
     setServerHasMore(res.hasMore ?? false);
     const next = Array.isArray(res.orders) ? res.orders : [];
-    if (reset) {
-      setOrders(next);
-      setPage(2);
-    } else {
-      setOrders((prev) => [...prev, ...next]);
-      setPage((p) => p + 1);
-    }
+    if (reset) { setOrders(next); setPage(2); } else { setOrders((prev) => [...prev, ...next]); setPage((p) => p + 1); }
   };
 
   const driverDeliveredLoad = async ({ reset }) => {
-    const res = await fetchMyDelivered({
-      page: reset ? 1 : page,
-      limit,
-    });
+    const res = await fetchMyDelivered({ page: reset ? 1 : page, limit });
     setServerHasMore(res.hasMore ?? false);
     setCount(res.total || 0);
     const next = Array.isArray(res.orders) ? res.orders : [];
-    if (reset) {
-      setOrders(next);
-      setPage(2);
-    } else {
-      setOrders((prev) => [...prev, ...next]);
-      setPage((p) => p + 1);
-    }
+    if (reset) { setOrders(next); setPage(2); } else { setOrders((prev) => [...prev, ...next]); setPage((p) => p + 1); }
   };
 
   const staffLoad = async ({ reset }) => {
-    const res = await fetchAssignedOrders({
-      page: reset ? 1 : page,
-      limit: 15,
-      sortBy: "orderDate",
-      sortDir: "desc",
-    });
+    const res = await fetchAssignedOrders({ page: reset ? 1 : page, limit: 15, sortBy: "orderDate", sortDir: "desc" });
     setCount(res.count || 0);
     const next = Array.isArray(res.orders) ? res.orders : [];
-    if (reset) {
-      setOrders(next);
-      setPage(2);
-    } else {
-      setOrders((prev) => [...prev, ...next]);
-      setPage((p) => p + 1);
-    }
+    if (reset) { setOrders(next); setPage(2); } else { setOrders((prev) => [...prev, ...next]); setPage((p) => p + 1); }
   };
 
   const load = async ({ reset = false } = {}) => {
     try {
       setError("");
-      if (reset) { setLoading(true); setServerHasMore(false); }
-      else setLoadingMore(true);
-
+      if (reset) { setLoading(true); setServerHasMore(false); } else setLoadingMore(true);
       if (isDriver) {
         if (showDeliveredOnly || subTab === "delivered") await driverDeliveredLoad({ reset });
         else await driverLoad({ reset });
       } else await staffLoad({ reset });
     } catch (e) {
-      console.error("Orders load error:", e);
       setError(`${errorToString(e)} [AUTH_BASE=${AUTH_BASE_URL}]`);
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-    }
+    } finally { setLoading(false); setLoadingMore(false); }
   };
 
-  useEffect(() => {
-    load({ reset: true });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isDriver, showDeliveredOnly, subTab]);
+  useEffect(() => { load({ reset: true }); }, [isDriver, showDeliveredOnly, subTab]); // eslint-disable-line
 
-  // --- DRIVER VIEW PROCESSING ---
-
-  // Filter by pkgKey OR driverRefSearch OR orderNo (after normalizing)
   const filteredByQuery = useMemo(() => {
     if (!isDriver) return orders;
     const query = norm(q);
     if (!query) return orders;
-
     return orders.filter((o) => {
-      const a = norm(pkgKeyOf(o));            // e.g., "PK-9757E"
-      const b = norm(driverRefSearchOf(o));   // e.g., "PK-9757E" or similar
-      const c = norm(o.orderNo);              // optional convenience
+      const a = norm(pkgKeyOf(o));
+      const b = norm(driverRefSearchOf(o));
+      const c = norm(o.orderNo);
       return a.includes(query) || b.includes(query) || c.includes(query);
     });
   }, [orders, q, isDriver]);
 
-  // Split lists for driver view based on package status *after filtering*
   const driverUndelivered = useMemo(
-    () => filteredByQuery.filter((o) => {
-      const s = pkgStatusOf(o);
-      return s === "IN_TRANSIT" || s === "OUT_FOR_DELIVERY";
-    }),
+    () => filteredByQuery.filter((o) => { const s = pkgStatusOf(o); return s === "IN_TRANSIT" || s === "OUT_FOR_DELIVERY"; }),
     [filteredByQuery]
   );
-  const driverDelivered = useMemo(
-    () => filteredByQuery.filter((o) => pkgStatusOf(o) === "DELIVERED"),
-    [filteredByQuery]
-  );
+  const driverDelivered = useMemo(() => filteredByQuery.filter((o) => pkgStatusOf(o) === "DELIVERED"), [filteredByQuery]);
 
   const shownOrders = isDriver
-    ? showDeliveredOnly
-      ? filteredByQuery
-      : subTab === "delivered"
-        ? driverDelivered
-        : driverUndelivered
+    ? showDeliveredOnly ? filteredByQuery
+      : subTab === "delivered" ? driverDelivered
+      : driverUndelivered
     : orders;
+
+  /* Animate cards in when list changes */
+  useEffect(() => {
+    if (!listRef.current) return;
+    const cards = listRef.current.querySelectorAll("article");
+    if (!cards.length) return;
+    gsap.fromTo(cards,
+      { opacity: 0, y: 20 },
+      { opacity: 1, y: 0, duration: 0.4, stagger: 0.05, ease: "power3.out", clearProps: "transform" }
+    );
+  }, [shownOrders]);
 
   const onVerifyOtp = async (code) => {
     if (!otpOrder?.orderNo) return;
-    setOtpLoading(true);
-    setOtpError("");
+    setOtpLoading(true); setOtpError("");
     try {
       await verifyOrderOtp(otpOrder.orderNo, code, pkgKeyOf(otpOrder));
       setOtpOpen(false);
       setDeliveredMsg("OTP verified. Order delivered ✅");
-      setTimeout(() => setDeliveredMsg(""), 1500);
+      setTimeout(() => setDeliveredMsg(""), 2000);
       await load({ reset: true });
-    } catch (e) {
-      setOtpError(errorToString(e));
-    } finally {
-      setOtpLoading(false);
-    }
+    } catch (e) { setOtpError(errorToString(e)); }
+    finally { setOtpLoading(false); }
   };
 
   const onSubmitDeliveryNote = async (note) => {
     if (!noteOrder?.orderNo) return;
-    setNoteLoading(true);
-    setNoteError("");
+    setNoteLoading(true); setNoteError("");
     try {
       await setDeliveryNote(noteOrder.orderNo, note);
       setNoteOpen(false);
-      setNoteSuccess(`Delivery note set: ${DELIVERY_NOTES.find(n => n.value === note)?.label || note}`);
+      setNoteSuccess(`Note set: ${DELIVERY_NOTES.find((n) => n.value === note)?.label || note}`);
       setTimeout(() => setNoteSuccess(""), 2000);
       await load({ reset: true });
-    } catch (e) {
-      setNoteError(errorToString(e));
-    } finally {
-      setNoteLoading(false);
-    }
+    } catch (e) { setNoteError(errorToString(e)); }
+    finally { setNoteLoading(false); }
   };
 
-  const MineList = useMemo(() => {
-    if (shownOrders.length === 0) return null;
-
-    return (
-      <div className="space-y-2">
-        {shownOrders.map((o) => {
-          const pStatus = pkgStatusOf(o);
-          const canVerify = pStatus === "IN_TRANSIT" || pStatus === "OUT_FOR_DELIVERY";
-
-          return (
-            <CollapsibleCard key={(o._id || o.orderNo) + ":" + (o.__pkg?.id || "")} order={o}>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                <div className="rounded-lg bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-700 p-3">
-                  <div className="text-slate-500 dark:text-slate-400">Search Ref</div>
-                  <div className="font-medium text-slate-800 dark:text-slate-100">
-                    {driverRefSearchOf(o) || "-"}
-                  </div>
-                </div>
-                <div className="rounded-lg bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-700 p-3">
-                  <div className="text-slate-500 dark:text-slate-400">Customer</div>
-                  <div className="font-medium text-slate-800 dark:text-slate-100">
-                    {safeText(o.customerName)}
-                  </div>
-                </div>
-                <div className="rounded-lg bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-700 p-3">
-                  <div className="text-slate-500 dark:text-slate-400">City</div>
-                  <div className="font-medium text-slate-800 dark:text-slate-100">
-                    {safeText(o.city)}{o.country ? `, ${safeText(o.country)}` : ""}
-                  </div>
-                </div>
-                <div className="rounded-lg bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-700 p-3">
-                  <div className="text-slate-500 dark:text-slate-400">Order Date</div>
-                  <div className="font-medium text-slate-800 dark:text-slate-100">
-                    {o.orderDate ? new Date(o.orderDate).toLocaleString() : "-"}
-                  </div>
-                </div>
-                <div className="rounded-lg bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-700 p-3">
-                  <div className="text-slate-500 dark:text-slate-400">Tracking #</div>
-                  <div className="font-medium text-slate-800 dark:text-slate-100 break-all">
-                    {safeText(o.trackingNumber)}
-                  </div>
-                </div>
-
-                {o?.driverView?.package && (
-                  <div className="rounded-lg bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-700 p-3 sm:col-span-2">
-                    <div className="text-slate-500 dark:text-slate-400 text-sm mb-1">
-                      Package {o.driverView.package.number} / {o.driverView.package.of} — Status: {o.driverView.package.status}
-                    </div>
-                    {Array.isArray(o.driverView.items) && o.driverView.items.length > 0 && (
-                      <ul className="list-disc pl-5 space-y-1">
-                        {o.driverView.items.slice(0, 6).map((it, idx) => (
-                          <li key={idx} className="text-sm text-slate-700 dark:text-slate-200">
-                            {safeText(it.name || it.sku)} × {safeText(it.qty ?? 1)}
-                          </li>
-                        ))}
-                        {o.driverView.items.length > 6 && (
-                          <li className="text-xs text-slate-500 dark:text-slate-400">
-                            +{o.driverView.items.length - 6} more
-                          </li>
-                        )}
-                      </ul>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-3 flex items-center gap-2">
-                <button
-                  onClick={() => { setDetailsOrder(o); setDetailsOpen(true); }}
-                  className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-600"
-                  title="Details"
-                >
-                  <Info className="h-4 w-4" />
-                  Details
-                </button>
-
-                {canVerify && (
-                  <>
-                    <button
-                      onClick={() => { setOtpOrder(o); setOtpOpen(true); setOtpError(""); }}
-                      className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-white brand-gradient"
-                      title="Verify OTP"
-                    >
-                      <CheckCircle2 className="h-4 w-4" />
-                      Verify OTP
-                    </button>
-                    <button
-                      onClick={() => { setNoteOrder(o); setNoteOpen(true); setNoteError(""); }}
-                      className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-white bg-amber-500 hover:bg-amber-600"
-                      title="Can't deliver - add note"
-                    >
-                      <AlertTriangle className="h-4 w-4" />
-                      Can't Deliver
-                    </button>
-                  </>
-                )}
-              </div>
-            </CollapsibleCard>
-          );
-        })}
-      </div>
-    );
-  }, [shownOrders]);
+  const pageTitle = isDriver
+    ? showDeliveredOnly ? (t("delivered_title") || t("delivered_nav")) : (t("orders_title") || "My Orders")
+    : (t("orders_title") || "Assigned Orders");
 
   return (
-    <section className="card orders-shell bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-5 mb-6 border border-slate-200 dark:border-slate-700 mx-auto">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
-        <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">
-          {isDriver
-            ? showDeliveredOnly
-              ? t("delivered_title") || t("delivered_nav")
-              : "My Orders"
-            : t("orders_title")}
-        </h2>
-
-        {/* Driver-only search box now matches PK key, driverRefSearch, or orderNo */}
-        {isDriver && (
-          <div className="w-full md:w-auto md:min-w-[360px]">
-            <div className="relative">
-              <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                inputMode="search"
-                placeholder="Search by OTP key (e.g., PK-9757E) or code"
-                value={qLive}
-                onChange={(e) => setQLive(e.target.value)}
-                className="w-full pl-9 pr-8 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-              {qLive && (
-                <button
-                  onClick={() => { setQLive(""); setQ(""); }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                  aria-label="Clear search"
-                  title="Clear"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-            <div className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
-              Tip: paste the <code>PK-XXXXX</code> OTP key or the label code from the SMS/label
-            </div>
-          </div>
-        )}
-
+    <section className="view-animate">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-4 border-b border-[#DDDDDD] bg-white">
+        <h2 className="text-[17px] font-bold text-[#222222]">{pageTitle}</h2>
         <button
           onClick={() => load({ reset: true })}
           disabled={loading}
-          className="btn shrink-0 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600 px-3 py-2"
+          className="p-2 text-[#717171] rounded-full hover:bg-[#F7F7F7]"
         >
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
+          {loading ? <Loader2 size={18} className="animate-spin" /> : <RefreshCcw size={18} />}
         </button>
       </div>
 
       {/* Driver sub-tabs */}
       {isDriver && !showDeliveredOnly && (
-        <div className="mb-4 flex items-center gap-2">
+        <div className="pill-tabs pt-4">
           <button
+            className={`pill-tab${subTab === "undelivered" ? " active" : ""}`}
             onClick={() => setSubTab("undelivered")}
-            className={`px-3 py-1.5 rounded-lg text-sm border ${
-              subTab === "undelivered"
-                ? "border-emerald-500 text-emerald-700 bg-emerald-50"
-                : "border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-700"
-            }`}
           >
-            Undelivered
-            <span className="ml-2 inline-flex items-center justify-center text-[11px] px-1.5 py-[1px] rounded bg-black/10">
-              {driverUndelivered.length}
-            </span>
+            Active
+            <span className="ms-1.5 text-[11px] opacity-70">({driverUndelivered.length})</span>
           </button>
           <button
+            className={`pill-tab${subTab === "delivered" ? " active" : ""}`}
             onClick={() => setSubTab("delivered")}
-            className={`px-3 py-1.5 rounded-lg text-sm border ${
-              subTab === "delivered"
-                ? "border-blue-500 text-blue-700 bg-blue-50"
-                : "border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-700"
-            }`}
           >
             Delivered
-            <span className="ml-2 inline-flex items-center justify-center text-[11px] px-1.5 py-[1px] rounded bg-black/10">
-              {driverDelivered.length}
-            </span>
+            <span className="ms-1.5 text-[11px] opacity-70">({driverDelivered.length})</span>
           </button>
+        </div>
+      )}
+
+      {/* Search bar */}
+      {isDriver && (
+        <div className="search-bar">
+          <Search size={16} className="text-[#717171] flex-shrink-0" />
+          <input
+            type="text"
+            inputMode="search"
+            placeholder="Search by OTP key or order no."
+            value={qLive}
+            onChange={(e) => setQLive(e.target.value)}
+          />
+          {qLive && (
+            <button onClick={() => { setQLive(""); setQ(""); }} className="text-[#717171]">
+              <X size={16} />
+            </button>
+          )}
         </div>
       )}
 
       {error && (
-        <div className="mb-4 rounded-lg border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-700 dark:text-red-200 break-words">
+        <div className="mx-4 mb-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 break-words">
           {error}
         </div>
       )}
 
+      {/* Order list */}
       {loading && orders.length === 0 ? (
-        <div className="py-8 flex items-center justify-center text-slate-500 dark:text-slate-400 min-h-[30vh]">
-          <Loader2 className="h-5 w-5 animate-spin mr-2" />
-          {t("loading")}
+        <div className="flex flex-col items-center justify-center py-20 text-[#717171]">
+          <Loader2 size={28} className="animate-spin mb-3 text-[#FF385C]" />
+          <span className="text-sm">{t("loading")}</span>
         </div>
       ) : shownOrders.length === 0 ? (
-        <div className="py-10 text-center text-slate-500 dark:text-slate-400 min-h-[30vh]">
-          {q ? "No orders match your search." : "No orders"}
+        <div className="py-20 text-center text-[#717171] text-sm">
+          {q ? "No orders match your search." : t("no_orders") || "No orders"}
         </div>
       ) : isDriver ? (
-        MineList
+        <div ref={listRef} className="px-4 pt-2 space-y-3">
+          {shownOrders.map((o) => {
+            const pStatus = pkgStatusOf(o);
+            const canVerify = pStatus === "IN_TRANSIT" || pStatus === "OUT_FOR_DELIVERY";
+            const key = pkgKeyOf(o);
+            const dateStr = o.orderDate ? new Date(o.orderDate).toLocaleDateString() : "";
+
+            return (
+              <article key={(o._id || o.orderNo) + ":" + (o.__pkg?.id || "")} className="card overflow-hidden">
+                <div className="p-4">
+                  {/* Top row: status + date */}
+                  <div className="flex items-center justify-between mb-2">
+                    <StatusBadge value={pStatus || o.currentStatus} />
+                    {dateStr && <span className="text-xs text-[#717171]">{dateStr}</span>}
+                  </div>
+
+                  {/* Order # */}
+                  <div className="text-[16px] font-bold text-[#222222] mb-0.5 break-all">
+                    {safeText(o.orderNo)}
+                  </div>
+
+                  {/* Customer + city */}
+                  {o.customerName && (
+                    <div className="text-sm text-[#717171]">{safeText(o.customerName)}</div>
+                  )}
+                  {o.city && (
+                    <div className="text-sm text-[#717171]">{safeText(o.city)}</div>
+                  )}
+
+                  {/* OTP key badge */}
+                  {key && (
+                    <div className="mt-2">
+                      <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-[rgba(255,56,92,0.08)] text-[#FF385C] font-semibold">
+                        OTP: {key}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Divider + actions */}
+                <div className="border-t border-[#DDDDDD] px-4 py-3 flex items-center gap-3">
+                  <button
+                    onClick={() => { setDetailsOrder(o); setDetailsOpen(true); }}
+                    className="text-sm font-semibold text-[#222222] underline underline-offset-2"
+                  >
+                    Details
+                  </button>
+
+                  {canVerify && (
+                    <>
+                      <button
+                        onClick={() => { setOtpOrder(o); setOtpOpen(true); setOtpError(""); }}
+                        className="btn-primary btn text-sm px-4 py-2 ms-auto"
+                      >
+                        <CheckCircle2 size={15} />
+                        Verify OTP
+                      </button>
+                      <button
+                        onClick={() => { setNoteOrder(o); setNoteOpen(true); setNoteError(""); }}
+                        className="btn-outline-red btn text-sm px-3 py-2"
+                      >
+                        <AlertTriangle size={15} />
+                      </button>
+                    </>
+                  )}
+                </div>
+              </article>
+            );
+          })}
+        </div>
       ) : (
-        // Staff view (non-driver)
-        <div className="space-y-3">
+        // Staff view
+        <div ref={listRef} className="px-4 pt-2 space-y-3">
           {shownOrders.map((o) => {
             const statusVal = o.currentStatus || o.orderStatus;
             return (
-              <article
-                key={o._id || o.orderNo}
-                className="order-card order-card--compact rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-700/30 p-4"
-              >
+              <article key={o._id || o.orderNo} className="card p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="text-sm text-slate-500 dark:text-slate-400">{t("order")}</div>
-                    <div className="text-base font-semibold text-slate-800 dark:text-white break-all">
+                    <StatusBadge value={statusVal} />
+                    <div className="text-[16px] font-bold text-[#222222] mt-1.5 break-all">
                       {safeText(o.orderNo)}
                     </div>
+                    {o.customerName && <div className="text-sm text-[#717171] mt-0.5">{safeText(o.customerName)}</div>}
+                    {o.city && <div className="text-sm text-[#717171]">{safeText(o.city)}</div>}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <StatusBadge value={statusVal} />
-                    <button
-                      onClick={() => { setDetailsOrder(o); setDetailsOpen(true); }}
-                      className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-600"
-                      title="Details"
-                    >
-                      <Info className="h-4 w-4" />
-                      Details
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => { setDetailsOrder(o); setDetailsOpen(true); }}
+                    className="flex-shrink-0 text-sm font-semibold text-[#222222] underline underline-offset-2 mt-1"
+                  >
+                    Details
+                  </button>
                 </div>
               </article>
             );
@@ -558,24 +356,21 @@ export default function OrdersList({ showDeliveredOnly = false }) {
         </div>
       )}
 
+      {/* Load more */}
       {hasMore && (
-        <div className="mt-4 flex justify-center">
+        <div className="flex justify-center mt-4 mb-2">
           <button
             onClick={() => load({ reset: false })}
             disabled={loadingMore}
-            className="btn bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600 px-4 py-2"
+            className="btn-outline btn px-6 py-2.5 text-sm"
           >
-            {loadingMore ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <ChevronDown className="h-4 w-4" />
-            )}
-            <span className="ms-2">{t("load_more")}</span>
+            {loadingMore ? <Loader2 size={16} className="animate-spin" /> : <ChevronDown size={16} />}
+            <span className="ms-1">{t("load_more")}</span>
           </button>
         </div>
       )}
 
-      {/* OTP Modal (verify only) */}
+      {/* OTP Modal */}
       <OtpModal
         open={otpOpen}
         orderNo={otpOrder?.orderNo}
@@ -586,77 +381,56 @@ export default function OrdersList({ showDeliveredOnly = false }) {
       />
 
       {/* Details Modal */}
-      <OrderDetailsModal
-        open={detailsOpen}
-        order={detailsOrder}
-        onClose={() => setDetailsOpen(false)}
-      />
+      <OrderDetailsModal open={detailsOpen} order={detailsOrder} onClose={() => setDetailsOpen(false)} />
 
-      {/* Delivery Note Modal */}
+      {/* Delivery Note Sheet */}
       {noteOpen && (
-        <div className="fixed inset-0 z-[120] bg-black/60 flex items-end sm:items-center justify-center">
-          <div className="w-full max-w-md mx-auto bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xl overflow-hidden">
-            {/* Header */}
-            <div className="bg-amber-500 px-4 py-3 text-white flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5" />
-                <span className="font-semibold">Can't Deliver</span>
+        <div className="fixed inset-0 z-[120] bg-black/50 modal-backdrop flex items-end justify-center">
+          <div className="bg-white w-full max-w-[480px] rounded-t-2xl shadow-2xl sheet-animate">
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 bg-[#DDDDDD] rounded-full" />
+            </div>
+            <div className="flex items-center justify-between px-5 py-3 border-b border-[#DDDDDD]">
+              <div className="font-semibold text-[#222222] flex items-center gap-2">
+                <AlertTriangle size={18} className="text-amber-500" />
+                Can't Deliver
               </div>
-              <button
-                onClick={() => setNoteOpen(false)}
-                className="p-1 hover:bg-white/20 rounded"
-              >
-                <X className="h-5 w-5" />
+              <button onClick={() => setNoteOpen(false)} className="p-1.5 text-[#717171] rounded-full">
+                <X size={20} />
               </button>
             </div>
-
-            {/* Content */}
-            <div className="p-4">
-              <div className="mb-3 text-sm text-slate-600 dark:text-slate-300">
-                Order: <span className="font-semibold">{noteOrder?.orderNo}</span>
-              </div>
-
-              <div className="mb-4 text-sm text-slate-500 dark:text-slate-400">
-                Select a reason why this delivery cannot be completed:
-              </div>
+            <div className="px-5 pt-4 pb-8">
+              <p className="text-sm text-[#717171] mb-1">Order</p>
+              <p className="font-semibold text-[#222222] mb-4">{noteOrder?.orderNo}</p>
 
               {noteError && (
-                <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-200 text-sm">
-                  {noteError}
-                </div>
+                <div className="mb-3 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">{noteError}</div>
               )}
 
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 {DELIVERY_NOTES.map((note) => (
                   <button
                     key={note.value}
                     onClick={() => onSubmitDeliveryNote(note.value)}
                     disabled={noteLoading}
-                    className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 text-left transition-colors disabled:opacity-50"
+                    className="w-full p-4 rounded-xl border border-[#DDDDDD] bg-[#F7F7F7] hover:bg-[#EEEEEE] text-left transition-colors disabled:opacity-50"
                   >
-                    <div className="font-medium text-slate-800 dark:text-slate-100">
-                      {note.label}
-                    </div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                      {note.description}
-                    </div>
+                    <div className="font-semibold text-[#222222] text-sm">{note.label}</div>
+                    <div className="text-xs text-[#717171] mt-0.5">{note.description}</div>
                   </button>
                 ))}
               </div>
 
               {noteLoading && (
-                <div className="mt-4 flex items-center justify-center text-slate-500">
-                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                  Submitting...
+                <div className="mt-4 flex items-center justify-center text-[#717171] gap-2">
+                  <Loader2 size={18} className="animate-spin" />
+                  <span className="text-sm">Submitting…</span>
                 </div>
               )}
-            </div>
 
-            {/* Footer */}
-            <div className="px-4 pb-4">
               <button
                 onClick={() => setNoteOpen(false)}
-                className="w-full py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700"
+                className="btn-outline btn w-full mt-4"
               >
                 Cancel
               </button>
@@ -665,34 +439,23 @@ export default function OrdersList({ showDeliveredOnly = false }) {
         </div>
       )}
 
-      {/* Delivered celebration (simple) */}
+      {/* Delivery success */}
       {deliveredMsg && (
-        <div className="fixed inset-0 z-[150] bg-black/70 flex items-center justify-center">
-          <div className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-8 py-6 text-center shadow-2xl">
-            <div className="mx-auto mb-3 w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center">
-              <CheckCircle2 className="h-10 w-10 text-emerald-600" />
+        <div className="fixed inset-0 z-[150] bg-black/60 flex items-center justify-center p-6 modal-backdrop">
+          <div className="card p-8 text-center max-w-xs w-full modal-panel">
+            <div className="mx-auto mb-4 w-16 h-16 rounded-full bg-green-50 flex items-center justify-center">
+              <CheckCircle2 size={36} className="text-green-600" />
             </div>
-            <div className="text-lg font-semibold text-slate-800 dark:text-slate-100">
-              {deliveredMsg}
-            </div>
+            <div className="text-[17px] font-bold text-[#222222]">{deliveredMsg}</div>
           </div>
         </div>
       )}
 
-      {/* Note success toast */}
+      {/* Note success */}
       {noteSuccess && (
-        <div className="fixed inset-0 z-[150] bg-black/70 flex items-center justify-center">
-          <div className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-8 py-6 text-center shadow-2xl">
-            <div className="mx-auto mb-3 w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center">
-              <AlertTriangle className="h-10 w-10 text-amber-600" />
-            </div>
-            <div className="text-lg font-semibold text-slate-800 dark:text-slate-100">
-              {noteSuccess}
-            </div>
-            <div className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-              Admin will review and reschedule this order.
-            </div>
-          </div>
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[150] rounded-full px-5 py-3 shadow-lg text-white text-sm font-semibold flex items-center gap-2 bg-amber-500">
+          <AlertTriangle size={16} />
+          {noteSuccess}
         </div>
       )}
     </section>

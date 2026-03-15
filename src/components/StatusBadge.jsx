@@ -1,41 +1,31 @@
 import React from "react";
-import { CheckCircle2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+
+const STATUS_STYLES = {
+  PENDING:          "bg-gray-100 text-gray-600",
+  PREPARING:        "bg-amber-50 text-amber-700",
+  PREPARED:         "bg-cyan-50 text-cyan-700",
+  AWAITING_PICKUP:  "bg-teal-50 text-teal-700",
+  IN_TRANSIT:       "bg-blue-50 text-blue-700",
+  OUT_FOR_DELIVERY: "bg-yellow-50 text-yellow-700",
+  DELIVERED:        "bg-green-50 text-green-700",
+  DELIVERY_FAILED:  "bg-red-50 text-red-700",
+  ON_HOLD:          "bg-gray-100 text-gray-600",
+  RETURNED:         "bg-purple-50 text-purple-700",
+  CANCELLED:        "bg-red-50 text-red-700",
+};
 
 export default function StatusBadge({ value }) {
   const { t } = useTranslation();
   if (value == null) return null;
 
-  const isString = typeof value === "string";
-  const normalized = isString ? value.toUpperCase() : "";
-
-  // Keep semantic colors but with subtler, brand-friendly tones
-  const statusStyles = {
-    PENDING: "bg-slate-600",
-    PREPARING: "bg-amber-600",
-    PREPARED: "bg-cyan-700",
-    AWAITING_PICKUP: "bg-teal-700",
-    IN_TRANSIT: "bg-indigo-700",
-    OUT_FOR_DELIVERY: "bg-yellow-600",
-    DELIVERED: "bg-emerald-700",
-    DELIVERY_FAILED: "bg-rose-700",
-    ON_HOLD: "bg-slate-600",
-    RETURNED: "bg-fuchsia-700",
-    CANCELLED: "bg-rose-700",
-  };
-
-  const cls =
-    (isString && statusStyles[normalized]) || "bg-[var(--brand-600)]";
-
-  const translated =
-    isString && t(`statuses.${normalized}`, { defaultValue: null });
-  const label =
-    translated ||
-    (isString ? normalized.replace(/_/g, " ") : "—");
+  const normalized = typeof value === "string" ? value.toUpperCase() : "";
+  const cls = STATUS_STYLES[normalized] || "bg-gray-100 text-gray-600";
+  const translated = normalized && t(`statuses.${normalized}`, { defaultValue: null });
+  const label = translated || (normalized ? normalized.replace(/_/g, " ") : "—");
 
   return (
-    <span className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium flex items-center gap-2 ${cls} text-white`}>
-      <CheckCircle2 className="h-4 w-4" />
+    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${cls}`}>
       {label}
     </span>
   );

@@ -1,22 +1,24 @@
 // src/components/PickupPool.jsx
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { gsap } from "gsap";
 import {
   Loader2,
   RefreshCcw,
-  ChevronDown,
   QrCode,
   Search,
   PackageOpen,
   CheckCircle2,
   Send,
+  ChevronDown,
+  MapPin,
+  User,
+  Calendar,
+  Hash,
 } from "lucide-react";
 import ScannerOverlay from "./ScannerOverlay.jsx";
 import StatusBadge from "./StatusBadge.jsx";
-import {
-  ensureCameraPermission,
-  startWebQrScanner,
-} from "../lib/scanner.js";
+import { ensureCameraPermission, startWebQrScanner } from "../lib/scanner.js";
 import {
   parseOrderNumberFromScan,
   fetchAwaitingPickupOrders,
@@ -25,83 +27,90 @@ import {
   sendOrderOtp,
 } from "../lib/api.js";
 
-const safeText = (v, { fallback = "-" } = {}) => {
-  if (v == null) return fallback;
-  if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") return String(v);
-  try { const j = JSON.stringify(v); return j.length > 160 ? j.slice(0,157)+"…" : j; } catch { return fallback; }
-};
+const safe = (v, fb = "-") => (v === null || v === undefined ? fb : String(v));
 
-function OrderCard({ order, t, rightArea }) {
+/* ── Card ─────────────────────────────────────────────────────── */
+function OrderCard({ order, actionSlot, delay = 0 }) {
+  const cardRef = useRef(null);
+
+  useEffect(() => {
+    if (!cardRef.current) return;
+    gsap.fromTo(
+      cardRef.current,
+      { opacity: 0, y: 24 },
+      { opacity: 1, y: 0, duration: 0.45, ease: "power3.out", delay }
+    );
+  }, [delay]);
+
   const statusVal = order.currentStatus || order.orderStatus;
+  const dateStr = order.orderDate
+    ? new Date(order.orderDate).toLocaleDateString()
+    : "-";
+
   return (
-    <article className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="text-sm text-slate-500 dark:text-slate-400">{t("order")}</div>
-          <div className="text-base font-semibold text-slate-800 dark:text-white break-all">
-            {safeText(order.orderNo)}
+    <article
+      ref={cardRef}
+      className="bg-white rounded-2xl shadow-[0_2px_16px_rgba(0,0,0,0.08)] mx-4 mb-3 overflow-hidden"
+    >
+      {/* Top row */}
+      <div className="flex items-start justify-between px-4 pt-4 pb-3 border-b border-[#DDDDDD]">
+        <div>
+          <div className="text-xs text-[#717171] mb-0.5">Order</div>
+          <div className="text-[15px] font-bold text-[#222222] break-all leading-tight">
+            {safe(order.orderNo)}
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col items-end gap-1.5">
           <StatusBadge value={statusVal} />
-          {rightArea}
+          <span className="text-[11px] text-[#717171]">{dateStr}</span>
         </div>
       </div>
 
-      <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-        <div className="rounded-lg bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-700 p-3">
-          <div className="text-slate-500 dark:text-slate-400">{t("customer")}</div>
-          <div className="font-medium text-slate-800 dark:text-slate-100">
-            {safeText(order.customerName)}
+      {/* Info */}
+      <div className="px-4 py-3 space-y-2">
+        {[
+          { icon: User,     val: safe(order.customerName) },
+          { icon: MapPin,   val: safe(order.city) + (order.country ? `, ${order.country}` : "") },
+          { icon: Hash,     val: safe(order.trackingNumber) },
+        ].map(({ icon: Icon, val }, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <Icon size={13} className="text-[#717171] flex-shrink-0" />
+            <span className="text-sm text-[#717171] truncate">{val}</span>
           </div>
-        </div>
-        <div className="rounded-lg bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-700 p-3">
-          <div className="text-slate-500 dark:text-slate-400">{t("city")}</div>
-          <div className="font-medium text-slate-800 dark:text-slate-100">
-            {safeText(order.city)}{order.country ? `, ${safeText(order.country)}` : ""}
-          </div>
-        </div>
-        <div className="rounded-lg bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-700 p-3">
-          <div className="text-slate-500 dark:text-slate-400">{t("order_date")}</div>
-          <div className="font-medium text-slate-800 dark:text-slate-100">
-            {order.orderDate ? new Date(order.orderDate).toLocaleString() : "-"}
-          </div>
-        </div>
-        <div className="rounded-lg bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-700 p-3">
-          <div className="text-slate-500 dark:text-slate-400">{t("tracking_number")}</div>
-          <div className="font-medium text-slate-800 dark:text-slate-100 break-all">
-            {safeText(order.trackingNumber)}
-          </div>
-        </div>
+        ))}
       </div>
 
+      {/* Items */}
       {Array.isArray(order.items) && order.items.length > 0 && (
-        <div className="mt-3 rounded-lg bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-700 p-3">
-          <div className="text-slate-500 dark:text-slate-400 text-sm mb-1">
-            {t("items")}
-          </div>
-          <ul className="list-disc pl-5 space-y-1">
-            {order.items.slice(0, 5).map((it, idx) => (
-              <li key={idx} className="text-sm text-slate-700 dark:text-slate-200">
-                {safeText(it.productName || it.sku)} × {safeText(it.quantity ?? 1)}
+        <div className="mx-4 mb-3 rounded-xl bg-[#F7F7F7] px-3 py-2">
+          <div className="text-[10px] font-semibold text-[#717171] uppercase tracking-wide mb-1">Items</div>
+          <ul className="space-y-0.5">
+            {order.items.slice(0, 4).map((it, idx) => (
+              <li key={idx} className="flex justify-between text-xs text-[#222222]">
+                <span className="truncate">{safe(it.productName || it.sku)}</span>
+                <span className="font-semibold ml-2">×{safe(it.quantity ?? 1)}</span>
               </li>
             ))}
-            {order.items.length > 5 && (
-              <li className="text-xs text-slate-500 dark:text-slate-400">
-                +{order.items.length - 5} {t("more")}
-              </li>
+            {order.items.length > 4 && (
+              <li className="text-[10px] text-[#717171]">+{order.items.length - 4} more</li>
             )}
           </ul>
         </div>
+      )}
+
+      {/* Action */}
+      {actionSlot && (
+        <div className="px-4 pb-4">{actionSlot}</div>
       )}
     </article>
   );
 }
 
+/* ── Main ─────────────────────────────────────────────────────── */
 export default function PickupPool() {
   const { t } = useTranslation();
-  const [tab, setTab] = useState("pool"); // "pool" | "mine"
-  const [mineSub, setMineSub] = useState("undelivered"); // "undelivered" | "delivered"
+  const [tab, setTab] = useState("pool");
+  const [mineSub, setMineSub] = useState("undelivered");
   const [q, setQ] = useState("");
 
   const [pool, setPool] = useState({ items: [], page: 1, limit: 15, count: 0, loading: false, moreLoading: false });
@@ -110,55 +119,59 @@ export default function PickupPool() {
   const [error, setError] = useState("");
   const [toast, setToast] = useState(null);
 
-  // scanner (claim)
   const [scanOpen, setScanOpen] = useState(false);
   const scannerDivId = "pickup-scan-div";
   const scannerRef = useRef(null);
   const [scannerKey, setScannerKey] = useState(0);
 
-  const hasMorePool = pool.items.length < pool.count;
-  const hasMoreMine = mine.items.length < mine.count;
+  const tabBarRef = useRef(null);
+  const headerRef = useRef(null);
+  const toastRef = useRef(null);
 
-  // Helpers
+  /* Animate header on mount */
+  useEffect(() => {
+    if (headerRef.current) {
+      gsap.fromTo(headerRef.current, { opacity: 0, y: -16 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" });
+    }
+    if (tabBarRef.current) {
+      gsap.fromTo(tabBarRef.current, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.4, delay: 0.15, ease: "power2.out" });
+    }
+  }, []);
+
+  /* Animate toast */
+  useEffect(() => {
+    if (toast && toastRef.current) {
+      gsap.fromTo(toastRef.current,
+        { opacity: 0, y: 20, scale: 0.92 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.35, ease: "back.out(1.5)" }
+      );
+    }
+  }, [toast]);
+
   const isDelivered = (ord) => {
-    // Prefer package-level if present in __pkg.pkgStatus
     const pkg = ord?.__pkg;
     if (pkg?.pkgStatus) return String(pkg.pkgStatus).toUpperCase() === "DELIVERED";
-    // Fallback to order status
     const s = (ord.currentStatus || ord.orderStatus || "").toUpperCase();
     return s === "DELIVERED";
   };
 
   const undeliveredMine = mine.items.filter((o) => !isDelivered(o));
   const deliveredMine = mine.items.filter((o) => isDelivered(o));
+  const hasMorePool = pool.items.length < pool.count;
+  const hasMoreMine = mine.items.length < mine.count;
+  const currentList = tab === "pool" ? pool : mine;
+  const hasMore = tab === "pool" ? hasMorePool : hasMoreMine;
 
-  // Loaders
+  /* Loaders */
   const loadPool = useCallback(async ({ reset = false } = {}) => {
     try {
       setError("");
       if (reset) setPool((s) => ({ ...s, loading: true }));
       else setPool((s) => ({ ...s, moreLoading: true }));
-
-      const res = await fetchAwaitingPickupOrders({
-        page: reset ? 1 : pool.page,
-        limit: pool.limit,
-        unassigned: true,
-        q: q.trim() || undefined,
-      });
-
+      const res = await fetchAwaitingPickupOrders({ page: reset ? 1 : pool.page, limit: pool.limit, unassigned: true, q: q.trim() || undefined });
       const next = Array.isArray(res.orders) ? res.orders : [];
-      if (reset) {
-        setPool({ items: next, page: 2, limit: pool.limit, count: res.count || next.length, loading: false, moreLoading: false });
-      } else {
-        setPool((s) => ({
-          ...s,
-          items: [...s.items, ...next],
-          page: s.page + 1,
-          count: res.count || s.count,
-          moreLoading: false,
-          loading: false,
-        }));
-      }
+      if (reset) setPool({ items: next, page: 2, limit: pool.limit, count: res.count || next.length, loading: false, moreLoading: false });
+      else setPool((s) => ({ ...s, items: [...s.items, ...next], page: s.page + 1, count: res.count || s.count, moreLoading: false, loading: false }));
     } catch (e) {
       setError(e?.message || "Failed to load pool");
       setPool((s) => ({ ...s, loading: false, moreLoading: false }));
@@ -171,47 +184,30 @@ export default function PickupPool() {
       setError("");
       if (reset) setMine((s) => ({ ...s, loading: true }));
       else setMine((s) => ({ ...s, moreLoading: true }));
-
-      const res = await fetchMyInTransitOrders({
-        page: reset ? 1 : mine.page,
-        limit: mine.limit,
-        q: q.trim() || undefined,
-      });
-
+      const res = await fetchMyInTransitOrders({ page: reset ? 1 : mine.page, limit: mine.limit, q: q.trim() || undefined });
       const next = Array.isArray(res.orders) ? res.orders : [];
-      if (reset) {
-        setMine({ items: next, page: 2, limit: mine.limit, count: res.count || next.length, loading: false, moreLoading: false });
-      } else {
-        setMine((s) => ({
-          ...s,
-          items: [...s.items, ...next],
-          page: s.page + 1,
-          count: res.count || s.count,
-          moreLoading: false,
-          loading: false,
-        }));
-      }
+      if (reset) setMine({ items: next, page: 2, limit: mine.limit, count: res.count || next.length, loading: false, moreLoading: false });
+      else setMine((s) => ({ ...s, items: [...s.items, ...next], page: s.page + 1, count: res.count || s.count, moreLoading: false, loading: false }));
     } catch (e) {
-      setError(e?.message || "Failed to load my claimed");
+      setError(e?.message || "Failed to load my orders");
       setMine((s) => ({ ...s, loading: false, moreLoading: false }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, mine.page, mine.limit]);
 
   useEffect(() => {
-    // initial load both
     loadPool({ reset: true });
     loadMine({ reset: true });
   }, []); // eslint-disable-line
 
-  // Search
+  /* Search */
   const onSearch = (e) => {
     e?.preventDefault?.();
     if (tab === "pool") loadPool({ reset: true });
     else loadMine({ reset: true });
   };
 
-  // Scanner control
+  /* Scanner */
   const stopScanner = useCallback(async () => {
     try { await scannerRef.current?.stop?.(); } catch {}
     scannerRef.current = null;
@@ -229,12 +225,10 @@ export default function PickupPool() {
             setScanOpen(false);
             const orderNo = parseOrderNumberFromScan(decoded);
             if (!orderNo) return;
-
             try {
               await claimPickupByOrderNo(orderNo);
-              setToast({ type: "success", msg: t("claimed_success") || "Claimed ✓" });
-              setTimeout(() => setToast(null), 1200);
-              // refresh both lists
+              setToast({ type: "success", msg: t("claimed_success") || "Claimed!" });
+              setTimeout(() => setToast(null), 2000);
               await loadPool({ reset: true });
               await loadMine({ reset: true });
             } catch (err) {
@@ -244,10 +238,7 @@ export default function PickupPool() {
           (err) => { setError(err || t("camera_init_failed")); setScanOpen(false); }
         );
         scannerRef.current = s;
-      } catch {
-        setError(t("camera_init_failed"));
-        setScanOpen(false);
-      }
+      } catch { setError(t("camera_init_failed")); setScanOpen(false); }
     }, 80);
   }, [scannerDivId, stopScanner, t, loadPool, loadMine]);
 
@@ -256,188 +247,182 @@ export default function PickupPool() {
     return () => { stopScanner(); };
   }, [scanOpen, beginScan, stopScanner]);
 
-  // Current list selection
-  const currentList = tab === "pool" ? pool : mine;
-  const hasMore = tab === "pool" ? hasMorePool : hasMoreMine;
+  /* Tab switch with GSAP */
+  const handleTabSwitch = (newTab) => {
+    setTab(newTab);
+  };
 
-  // Right area for cards
-  const poolRight = (order) => (
+  /* Action slots */
+  const claimAction = (
     <button
       type="button"
-      onClick={() => { setScanOpen(true); setScannerKey((k) => k + 1); }}
-      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-white brand-gradient"
-      title={t("scan_to_claim")}
+      onClick={() => { setScannerKey((k) => k + 1); setScanOpen(true); }}
+      className="w-full flex items-center justify-center gap-2 btn-outline-red btn text-sm font-semibold"
     >
-      <QrCode className="h-4 w-4" />
-      {t("claim")}
+      <QrCode size={16} />
+      {t("scan_to_claim") || "Scan to Claim"}
     </button>
   );
 
-  const mineUndeliveredRight = (order) => (
+  const sendOtpAction = (order) => (
     <button
       type="button"
       onClick={async () => {
         try {
           await sendOrderOtp(order.orderNo);
           setToast({ type: "success", msg: t("otp_sent") || "OTP sent" });
-          setTimeout(() => setToast(null), 1200);
-          // OTP entry handled elsewhere (e.g., your existing OTP modal/flow)
+          setTimeout(() => setToast(null), 2000);
         } catch (e) {
           setError(e?.message || "Failed to send OTP");
         }
       }}
-      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-white brand-gradient"
-      title={t("send_otp")}
+      className="w-full flex items-center justify-center gap-2 btn-primary btn text-sm font-semibold"
     >
-      <Send className="h-4 w-4" />
-      {t("send_otp")}
+      <Send size={16} />
+      {t("send_otp") || "Send OTP"}
     </button>
   );
 
-  // Render
+  const deliveredBadge = (
+    <div className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-green-50 text-green-700 text-sm font-semibold">
+      <CheckCircle2 size={16} />
+      {t("DELIVERED") || "Delivered"}
+    </div>
+  );
+
+  /* Render */
   return (
-    <section className="card bg-white dark:bg-slate-800 rounded-xl shadow-lg p-5 mb-6 border border-slate-200 dark:border-slate-700 mx-auto">
-      <div className="flex items-center justify-between gap-3 mb-4">
-        <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">{t("pickup_pool") || "Pickup & Mine"}</h2>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => { if (tab === "pool") loadPool({ reset: true }); else loadMine({ reset: true }); }}
-            disabled={currentList.loading}
-            className="btn bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600 px-3 py-2"
-          >
-            {currentList.loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
-          </button>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-2 mb-3">
+    <section className="view-animate pb-2">
+      {/* Header */}
+      <div ref={headerRef} className="flex items-center justify-between px-4 py-4 bg-white border-b border-[#DDDDDD]">
+        <h2 className="text-[17px] font-semibold text-[#222222]">
+          {t("pickup_pool") || "Pickup Pool"}
+        </h2>
         <button
-          onClick={() => setTab("pool")}
-          className={`px-3 py-1.5 rounded-lg text-sm border ${tab==="pool" ? "text-white brand-gradient border-transparent" : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200"}`}
+          onClick={() => tab === "pool" ? loadPool({ reset: true }) : loadMine({ reset: true })}
+          disabled={currentList.loading}
+          className="p-2 rounded-full text-[#717171] hover:bg-[#F7F7F7] transition-colors"
         >
-          {t("tab_pool") || "Pool"}
-        </button>
-        <button
-          onClick={() => setTab("mine")}
-          className={`px-3 py-1.5 rounded-lg text-sm border ${tab==="mine" ? "text-white brand-gradient border-transparent" : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200"}`}
-        >
-          {t("tab_mine") || "Mine"}
+          {currentList.loading
+            ? <Loader2 size={18} className="animate-spin text-[#FF385C]" />
+            : <RefreshCcw size={18} />}
         </button>
       </div>
 
-      {/* Sub-tabs for Mine */}
-      {tab === "mine" && (
-        <div className="flex gap-2 mb-3">
-          <button
-            onClick={() => setMineSub("undelivered")}
-            className={`px-3 py-1.5 rounded-lg text-xs border ${mineSub==="undelivered" ? "text-white bg-emerald-600 border-transparent" : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200"}`}
-          >
-            {t("mine_undelivered") || "Undelivered"}
+      {/* Main tabs */}
+      <div ref={tabBarRef} className="px-4 pt-4 pb-0">
+        <div className="pill-tabs mb-3">
+          <button className={`pill-tab${tab === "pool" ? " active" : ""}`} onClick={() => handleTabSwitch("pool")}>
+            {t("tab_pool") || "Pool"}
           </button>
-          <button
-            onClick={() => setMineSub("delivered")}
-            className={`px-3 py-1.5 rounded-lg text-xs border ${mineSub==="delivered" ? "text-white bg-indigo-600 border-transparent" : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200"}`}
-          >
-            {t("mine_delivered") || "Delivered"}
+          <button className={`pill-tab${tab === "mine" ? " active" : ""}`} onClick={() => handleTabSwitch("mine")}>
+            {t("tab_mine") || "Mine"}
           </button>
         </div>
-      )}
 
-      {/* Search */}
-      <form onSubmit={onSearch} className="mb-3">
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search className="h-4 w-4 text-slate-400" />
+        {/* Sub-tabs for Mine */}
+        {tab === "mine" && (
+          <div className="pill-tabs mb-3">
+            <button className={`pill-tab${mineSub === "undelivered" ? " active" : ""}`} onClick={() => setMineSub("undelivered")}>
+              {t("mine_undelivered") || "Active"}
+            </button>
+            <button className={`pill-tab${mineSub === "delivered" ? " active" : ""}`} onClick={() => setMineSub("delivered")}>
+              {t("mine_delivered") || "Delivered"}
+            </button>
           </div>
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white pl-10 pr-4 py-2.5 outline-none transition-all focus:border-[var(--brand-500)]"
-            placeholder={t("search_orders") || "Search orders…"}
-          />
-        </div>
-      </form>
+        )}
 
-      {/* Errors */}
+        {/* Search */}
+        <form onSubmit={onSearch} className="mb-4">
+          <div className="search-bar">
+            <Search size={16} className="text-[#717171] flex-shrink-0" />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder={t("search_orders") || "Search orders…"}
+              className="flex-1 bg-transparent outline-none text-sm text-[#222222] placeholder-[#AAAAAA]"
+            />
+          </div>
+        </form>
+      </div>
+
+      {/* Error */}
       {error && (
-        <div className="mb-3 rounded-lg border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-700 dark:text-red-200 break-words">
+        <div className="mx-4 mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 break-words">
           {error}
         </div>
       )}
 
       {/* Lists */}
       {currentList.loading && currentList.items.length === 0 ? (
-        <div className="py-8 flex items-center justify-center text-slate-500 dark:text-slate-400">
-          <Loader2 className="h-5 w-5 animate-spin mr-2" />
-          {t("loading")}
+        <div className="py-16 flex flex-col items-center justify-center text-[#717171]">
+          <Loader2 size={28} className="animate-spin text-[#FF385C] mb-3" />
+          <span className="text-sm">{t("loading") || "Loading…"}</span>
         </div>
       ) : (tab === "pool" ? pool.items.length === 0 : mine.items.length === 0) ? (
-        <div className="py-10 text-center text-slate-500 dark:text-slate-400">
-          <PackageOpen className="h-8 w-8 mx-auto mb-2 opacity-70" />
-          {t("no_orders")}
+        <div className="py-16 flex flex-col items-center justify-center text-[#717171]">
+          <PackageOpen size={40} className="mb-3 opacity-40" />
+          <span className="text-sm">{t("no_orders") || "No orders"}</span>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3">
-          {tab === "pool" &&
-            pool.items.map((o) => (
-              <OrderCard
-                key={o._id || `${o.orderNo}-pool`}
-                order={o}
-                t={t}
-                rightArea={poolRight(o)}
-              />
-            ))}
+        <div className="mt-1">
+          {tab === "pool" && pool.items.map((o, i) => (
+            <OrderCard key={o._id || `${o.orderNo}-pool`} order={o} delay={i * 0.05} actionSlot={claimAction} />
+          ))}
 
-          {tab === "mine" && mineSub === "undelivered" &&
-            undeliveredMine.map((o) => (
-              <OrderCard
-                key={o._id || `${o.orderNo}-mine-u`}
-                order={o}
-                t={t}
-                rightArea={mineUndeliveredRight(o)}
-              />
-            ))}
+          {tab === "mine" && mineSub === "undelivered" && (
+            undeliveredMine.length === 0 ? (
+              <div className="py-16 flex flex-col items-center justify-center text-[#717171]">
+                <PackageOpen size={40} className="mb-3 opacity-40" />
+                <span className="text-sm">{t("no_orders") || "No active orders"}</span>
+              </div>
+            ) : undeliveredMine.map((o, i) => (
+              <OrderCard key={o._id || `${o.orderNo}-mine-u`} order={o} delay={i * 0.05} actionSlot={sendOtpAction(o)} />
+            ))
+          )}
 
-          {tab === "mine" && mineSub === "delivered" &&
-            deliveredMine.map((o) => (
-              <OrderCard
-                key={o._id || `${o.orderNo}-mine-d`}
-                order={o}
-                t={t}
-                rightArea={
-                  <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-green-600 text-white">
-                    <CheckCircle2 className="h-4 w-4" />
-                    {t("DELIVERED") || "Delivered"}
-                  </span>
-                }
-              />
-            ))}
+          {tab === "mine" && mineSub === "delivered" && (
+            deliveredMine.length === 0 ? (
+              <div className="py-16 flex flex-col items-center justify-center text-[#717171]">
+                <CheckCircle2 size={40} className="mb-3 opacity-40" />
+                <span className="text-sm">{t("no_delivered") || "No delivered orders"}</span>
+              </div>
+            ) : deliveredMine.map((o, i) => (
+              <OrderCard key={o._id || `${o.orderNo}-mine-d`} order={o} delay={i * 0.05} actionSlot={deliveredBadge} />
+            ))
+          )}
         </div>
       )}
 
       {/* Load more */}
       {hasMore && (
-        <div className="mt-4 flex justify-center">
+        <div className="px-4 mt-2 mb-4">
           <button
-            onClick={() => (tab === "pool" ? loadPool({ reset:false }) : loadMine({ reset:false }))}
+            onClick={() => tab === "pool" ? loadPool({ reset: false }) : loadMine({ reset: false })}
             disabled={currentList.moreLoading}
-            className="btn bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600 px-4 py-2"
+            className="btn-outline btn w-full flex items-center justify-center gap-2"
           >
-            {currentList.moreLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ChevronDown className="h-4 w-4" />}
-            <span className="ml-2">{t("load_more") || "Load more"}</span>
+            {currentList.moreLoading
+              ? <Loader2 size={16} className="animate-spin" />
+              : <ChevronDown size={16} />}
+            {t("load_more") || "Load more"}
           </button>
         </div>
       )}
 
       {/* Toast */}
       {toast && (
-        <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[120] rounded-xl px-5 py-3 shadow-lg text-white ${toast.type==="success" ? "brand-gradient" : "bg-rose-600"}`}>
-          <div className="font-medium text-sm">{toast.msg}</div>
+        <div
+          ref={toastRef}
+          className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[120] rounded-full px-5 py-3 shadow-lg text-white flex items-center gap-2"
+          style={{ background: "linear-gradient(to right, #FF385C, #E31C5F)" }}
+        >
+          <CheckCircle2 size={18} />
+          <span className="font-semibold text-sm">{toast.msg}</span>
         </div>
       )}
 
-      {/* Scanner overlay for claim */}
+      {/* Scanner */}
       <ScannerOverlay
         key={scannerKey}
         visible={scanOpen}

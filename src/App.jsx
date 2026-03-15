@@ -1,36 +1,29 @@
 // src/App.jsx
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Camera as CameraIcon, Loader2, QrCode, RefreshCcw, XCircle } from "lucide-react";
+import { Camera as CameraIcon, Loader2, QrCode, RefreshCcw, XCircle, LogIn } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import Navbar from "./components/Navbar.jsx";
+import BottomTabBar from "./components/Navbar.jsx";
 import Splash from "./components/Splash.jsx";
 import ScannerOverlay from "./components/ScannerOverlay.jsx";
 import StatusBadge from "./components/StatusBadge.jsx";
-import Drawer from "./components/Drawer";
 import LoginModal from "./components/LoginModal";
 import OrdersList from "./components/OrdersList.jsx";
-import ScanClaim from "./components/ScanClaim.jsx"; // ✅ NEW
+import ScanClaim from "./components/ScanClaim.jsx";
 import Dashboard from "./components/Dashboard.jsx";
 
 import { CONFIG, apiFetch, parseOrderNumberFromScan } from "./lib/api.js";
-import {
-  ensureCameraPermission,
-  startWebQrScanner,
-  openAppSettings,
-  scanImageFile,
-} from "./lib/scanner.js";
-
+import { ensureCameraPermission, startWebQrScanner, openAppSettings, scanImageFile } from "./lib/scanner.js";
 import { getAuth as loadAuth, setAuth as persistAuth, clearAuth as purgeAuth } from "./lib/auth.js";
+import logoUrl from "/sh-logo.png";
 
 export default function App() {
   const { t, i18n } = useTranslation();
 
   const [language, setLanguage] = useState("ar");
-  const [darkMode, setDarkMode] = useState(false);
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", darkMode);
-  }, [darkMode]);
+    if (language !== i18n.language) i18n.changeLanguage(language);
+  }, [language, i18n]);
 
   const [showSplash, setShowSplash] = useState(true);
   useEffect(() => {
@@ -38,10 +31,9 @@ export default function App() {
     return () => clearTimeout(tm);
   }, []);
 
-  // views: "home" | "dashboard" | "orders" | "delivered" | "scan-claim"
   const [view, setView] = useState("home");
 
-  // scanner bits (home screen)
+  // scanner bits
   const [isScanning, setIsScanning] = useState(false);
   const [scanError, setScanError] = useState("");
   const [permDenied, setPermDenied] = useState(false);
@@ -63,22 +55,16 @@ export default function App() {
   const isDriver = role && String(role).toLowerCase() === "driver";
 
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   useEffect(() => {
     const saved = loadAuth();
-    if (saved?.token) {
-      setAuthState(saved);
-      setView("dashboard");
-    }
+    if (saved?.token) { setAuthState(saved); setView("dashboard"); }
   }, []);
 
   const handleLogin = (authData) => {
     persistAuth(authData);
     setAuthState(authData);
-    setIsDrawerOpen(false);
     setIsLoginModalOpen(false);
-    // Land driver on Orders
     setView("dashboard");
     setToast({ type: "success", msg: "Logged in ✓" });
     setTimeout(() => setToast(null), 1200);
@@ -87,7 +73,6 @@ export default function App() {
   const handleLogout = () => {
     purgeAuth();
     setAuthState(null);
-    setIsDrawerOpen(false);
     setView("home");
     setToast({ type: "success", msg: "Logged out" });
     setTimeout(() => setToast(null), 1200);
@@ -99,17 +84,10 @@ export default function App() {
   }, []);
 
   const beginScan = useCallback(async () => {
-    setScanError("");
-    setPermDenied(false);
+    setScanError(""); setPermDenied(false);
     await stopScanner();
-
     const perm = await ensureCameraPermission();
-    if (!perm.granted) {
-      setPermDenied(true);
-      setScanError(t("camera_permission_denied"));
-      return;
-    }
-
+    if (!perm.granted) { setPermDenied(true); setScanError(t("camera_permission_denied")); return; }
     setIsScanning(true);
     setTimeout(async () => {
       try {
@@ -122,53 +100,33 @@ export default function App() {
             await stopScanner();
             setIsScanning(false);
           },
-          (err) => {
-            setScanError(err || t("camera_init_failed"));
-            setIsScanning(false);
-          }
+          (err) => { setScanError(err || t("camera_init_failed")); setIsScanning(false); }
         );
         scannerRef.current = s;
-      } catch {
-        setScanError(t("camera_init_failed"));
-        setIsScanning(false);
-      }
+      } catch { setScanError(t("camera_init_failed")); setIsScanning(false); }
     }, 120);
   }, [stopScanner, t]);
 
   useEffect(() => () => { stopScanner(); }, [stopScanner]);
 
   const getStatus = useCallback(async () => {
-    if (!orderNumber) {
-      setToast({ type: "error", msg: t("toast_need_order") });
-      return;
-    }
-    setIsLoading(true);
-    setToast(null);
+    if (!orderNumber) { setToast({ type: "error", msg: t("toast_need_order") }); return; }
+    setIsLoading(true); setToast(null);
     try {
       const data = await apiFetch(CONFIG.paths.getStatus(orderNumber));
       setCurrent(data);
     } catch (err) {
       setToast({ type: "error", msg: err.message || t("error_fetch_status") });
       setCurrent(null);
-    } finally {
-      setIsLoading(false);
-    }
+    } finally { setIsLoading(false); }
   }, [orderNumber, t]);
 
   const reset = useCallback(async () => {
     await stopScanner();
-    setIsScanning(false);
-    setScanError("");
-    setPermDenied(false);
-    setRawScan("");
-    setCurrent(null);
-    setOrderNumber("");
+    setIsScanning(false); setScanError(""); setPermDenied(false);
+    setRawScan(""); setCurrent(null); setOrderNumber("");
     setScannerKey((k) => k + 1);
   }, [stopScanner]);
-
-  useEffect(() => {
-    if (language !== i18n.language) i18n.changeLanguage(language);
-  }, [language, i18n]);
 
   const onPickImage = async (e) => {
     const file = e.target.files?.[0];
@@ -184,153 +142,121 @@ export default function App() {
         },
         (err) => setToast({ type: "error", msg: err || t("error_scan_image") })
       );
-    } finally {
-      e.target.value = "";
-    }
+    } finally { e.target.value = ""; }
   };
 
   return (
-    <div className="app-shell min-h-screen relative">
+    <div className="app-shell">
       {showSplash && <Splash />}
 
-      <Navbar
-        language={language}
-        onChangeLanguage={setLanguage}
-        isAuthenticated={isAuthenticated}
-        isDriver={isDriver}
-        onMenuClick={() => setIsDrawerOpen(true)}
-        onOrdersClick={() => setView("orders")}
-        onDeliveredClick={() => setView("delivered")}
-        onLogoClick={() => setView(isAuthenticated ? "dashboard" : "home")}
-      />
-
-      <Drawer
-        isOpen={isDrawerOpen}
-        onClose={() => setIsDrawerOpen(false)}
-        isAuthenticated={isAuthenticated}
-        isDriver={isDriver}
-        onLoginClick={() => {
-          setIsDrawerOpen(false);
-          setIsLoginModalOpen(true);
-        }}
-        onLogout={handleLogout}
-        onOrdersClick={() => setView("orders")}
-        onDeliveredClick={() => setView("delivered")}
-        onScanProductClick={() => setView("scan-claim")}  // ✅ NEW
-        onDashboardClick={() => setView("dashboard")}
-        language={language}
-      />
-
-      {isLoginModalOpen && (
-        <LoginModal
-          onClose={() => setIsLoginModalOpen(false)}
-          onLogin={handleLogin}
-        />
+      {/* Unauthenticated top bar */}
+      {!isAuthenticated && (
+        <div className="top-mini-bar">
+          <div className="flex items-center gap-2">
+            <img src={logoUrl} alt="SHAHEENE" className="h-7 w-7 object-contain" />
+            <span className="font-bold text-[15px] text-[#222222]">SHAHEENE</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+              className="border border-[#DDDDDD] rounded-lg px-2.5 py-1.5 text-sm font-medium text-[#222222] bg-white outline-none"
+            >
+              <option value="en">EN</option>
+              <option value="ar">AR</option>
+            </select>
+            <button
+              onClick={() => setIsLoginModalOpen(true)}
+              className="btn-primary btn px-4 py-2 text-sm"
+            >
+              <LogIn size={16} />
+              {t("login")}
+            </button>
+          </div>
+        </div>
       )}
 
-      <main className="content safe-b max-w-3xl mx-auto px-4 pb-6">
+      <main className="content view-animate">
         {view === "home" && (
-          <>
-            <div className={`${current ? "" : "min-h-[70dvh] flex items-center justify-center"} view-animate`}>
-              <section className="card bg-white dark:bg-slate-800 rounded-xl shadow-lg p-5 mb-6 border border-slate-200 dark:border-slate-700 mx-auto max-w-md w-full">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl brand-gradient text-white">
-                    <QrCode className="h-5 w-5" />
-                  </div>
+          <div className="px-4 pt-6">
+            {/* Track order card */}
+            <div className="card p-5 mb-4">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'rgba(255,56,92,0.08)' }}>
+                  <QrCode size={20} className="text-[#FF385C]" />
+                </div>
+                <div>
+                  <h2 className="text-[17px] font-bold text-[#222222]">{t("track_order")}</h2>
+                  <p className="text-xs text-[#717171]">{t("scan_or_enter")}</p>
+                </div>
+              </div>
+
+              <input
+                className="input-field mb-3"
+                placeholder={t("placeholder_order")}
+                value={orderNumber}
+                onChange={(e) => setOrderNumber(e.target.value)}
+                inputMode="text"
+                autoComplete="off"
+                onPaste={(e) => e.stopPropagation()}
+              />
+
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <button onClick={beginScan} className="btn-primary btn">
+                  <CameraIcon size={18} /> {t("scan")}
+                </button>
+                <button onClick={reset} className="btn-outline btn">
+                  <RefreshCcw size={18} />
+                </button>
+              </div>
+
+              <button
+                onClick={getStatus}
+                disabled={isLoading}
+                className="btn-primary btn w-full"
+              >
+                {isLoading ? <Loader2 size={18} className="animate-spin" /> : <QrCode size={18} />}
+                {t("load_status")}
+              </button>
+
+              {scanError && (
+                <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 flex items-start gap-2">
+                  <XCircle size={16} className="flex-shrink-0 mt-0.5" />
                   <div>
-                    <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">{t("track_order")}</h2>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">{t("scan_or_enter")}</p>
+                    {scanError}
+                    {permDenied && (
+                      <button onClick={openAppSettings} className="ms-1 underline font-medium">{t("open_settings")}</button>
+                    )}
                   </div>
                 </div>
+              )}
 
-                <div className="grid grid-cols-1 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      {t("order")}
-                    </label>
-                    <input
-                      className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white px-4 py-3 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900"
-                      placeholder={t("placeholder_order")}
-                      value={orderNumber}
-                      onChange={(e) => setOrderNumber(e.target.value)}
-                      inputMode="text"
-                      autoComplete="off"
-                      onPaste={(e) => e.stopPropagation()}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      onClick={beginScan}
-                      className="btn brand-gradient hover:opacity-95 text-white flex items-center justify-center gap-2"
-                    >
-                      <CameraIcon className="h-5 w-5" /> {t("scan")}
-                    </button>
-
-                    <button
-                      onClick={reset}
-                      className="btn bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600"
-                    >
-                      <RefreshCcw className="h-5 w-5 mx-auto" />
-                    </button>
-                  </div>
-
-                  <button
-                    onClick={getStatus}
-                    disabled={isLoading}
-                    className="btn bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white flex items-center justify-center gap-2"
-                  >
-                    {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <QrCode className="h-5 w-5" />}
-                    {t("load_status")}
-                  </button>
+              {rawScan && (
+                <div className="mt-3 p-3 bg-[#F7F7F7] rounded-xl">
+                  <p className="text-xs text-[#717171]">{t("scanned_payload")}:</p>
+                  <p className="text-sm font-mono break-words mt-1 text-[#222222]">{rawScan}</p>
                 </div>
-
-                {!!scanError && (
-                  <div className="mt-4 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-700 dark:text-red-200 flex items-start">
-                    <XCircle className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
-                    <div>
-                      {scanError}
-                      {permDenied && (
-                        <button onClick={openAppSettings} className="ml-2 underline font-medium">
-                          {t("open_settings")}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {!!rawScan && (
-                  <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
-                    <p className="text-xs text-slate-500 dark:text-slate-400">{t("scanned_payload")}:</p>
-                    <p className="text-sm font-mono break-words mt-1 text-slate-700 dark:text-slate-300">{rawScan}</p>
-                  </div>
-                )}
-              </section>
+              )}
             </div>
 
             {current && (
-              <section className="card bg-white dark:bg-slate-800 rounded-xl shadow-lg p-5 mb-6 border border-slate-200 dark:border-slate-700 mx-auto">
-                <div className="flex flex-wrap items-center justify-between gap-4 mb-4 pb-4 border-b border-slate-200 dark:border-slate-700">
+              <div className="card p-5">
+                <div className="flex flex-wrap items-start justify-between gap-3 mb-3 pb-3 border-b border-[#DDDDDD]">
                   <div>
-                    <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">{t("order_details")}</h2>
-                    <div className="mt-1">
-                      <span className="text-sm text-slate-500 dark:text-slate-400">{t("order")}: </span>
-                      <span className="font-semibold text-slate-800 dark:text-slate-200 break-words">
-                        {current.orderNo}
-                      </span>
-                    </div>
-                    <div className="mt-1">
-                      <span className="text-sm text-slate-500 dark:text-slate-400">{t("tracking_number")}: </span>
-                      <span className="font-semibold text-slate-800 dark:text-slate-200 break-words">
-                        {current.trackingNumber}
-                      </span>
-                    </div>
+                    <h2 className="text-[17px] font-bold text-[#222222]">{t("order_details")}</h2>
+                    <p className="text-sm text-[#717171] mt-1">
+                      {t("order")}: <span className="font-semibold text-[#222222]">{current.orderNo}</span>
+                    </p>
+                    <p className="text-sm text-[#717171]">
+                      {t("tracking_number")}: <span className="font-semibold text-[#222222]">{current.trackingNumber}</span>
+                    </p>
                   </div>
                   <StatusBadge value={current.currentStatus} />
                 </div>
-              </section>
+              </div>
             )}
-          </>
+          </div>
         )}
 
         {view === "dashboard" && (
@@ -344,35 +270,43 @@ export default function App() {
         )}
 
         {view === "orders" && <OrdersList />}
-
         {view === "delivered" && <OrdersList showDeliveredOnly />}
-
-        {/* ✅ NEW: dedicated quick-claim scanner page */}
         {view === "scan-claim" && <ScanClaim onBack={() => setView("orders")} />}
-        
-        {toast && (
-          <div
-            className={`fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 rounded-xl px-5 py-3 shadow-lg flex items-center transition-all ${
-              toast.type === "success"
-                ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white"
-                : "bg-gradient-to-r from-red-500 to-rose-600 text-white"
-            }`}
-          >
-            <div className="font-medium text-sm">{toast.msg}</div>
-          </div>
-        )}
       </main>
+
+      {/* Bottom tab bar — only when authenticated */}
+      {isAuthenticated && (
+        <BottomTabBar
+          view={view}
+          setView={setView}
+          isDriver={isDriver}
+          onLogout={handleLogout}
+          language={language}
+          onChangeLanguage={setLanguage}
+        />
+      )}
+
+      {isLoginModalOpen && (
+        <LoginModal onClose={() => setIsLoginModalOpen(false)} onLogin={handleLogin} />
+      )}
 
       <ScannerOverlay
         key={scannerKey}
         visible={isScanning}
-        onClose={async () => {
-          await stopScanner();
-          setIsScanning(false);
-        }}
+        onClose={async () => { await stopScanner(); setIsScanning(false); }}
         scannerDivId={scannerDivId}
         title={t("scan")}
       />
+
+      {toast && (
+        <div
+          className={`fixed bottom-24 left-1/2 -translate-x-1/2 z-50 rounded-full px-5 py-3 shadow-lg flex items-center text-white text-sm font-semibold ${
+            toast.type === "success" ? "bg-[#008A05]" : "bg-[#FF385C]"
+          }`}
+        >
+          {toast.msg}
+        </div>
+      )}
     </div>
   );
 }

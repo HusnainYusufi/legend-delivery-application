@@ -4,15 +4,17 @@
 @tailwind utilities;
 
 /* =========================
-   Brand tokens & helpers
+   Airbnb Design Tokens
    ========================= */
 :root {
-  --brand: #072c41;      /* primary brand */
-  --brand-500: #08374f;
-  --brand-400: #0a4766;
+  --red:     #FF385C;
+  --red-dk:  #E31C5F;
+  --text:    #222222;
+  --muted:   #717171;
+  --border:  #DDDDDD;
+  --bg:      #F7F7F7;
+  --surface: #FFFFFF;
 }
-
-.brand-gradient { background-image: linear-gradient(90deg, var(--brand), var(--brand-500)); }
 
 /* =========================
    Resets
@@ -20,10 +22,12 @@
 * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
 html, body, #root { height: 100%; width: 100%; margin: 0; padding: 0; }
 
-/* Default to light theme */
 body {
-  @apply text-slate-900 bg-sky-50 overflow-x-hidden dark:bg-slate-900 dark:text-slate-100;
-  transition: background-color 0.3s ease;
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
 }
 body.scanner-open, body.overflow-hidden { overflow: hidden; }
 
@@ -31,249 +35,247 @@ body.scanner-open, body.overflow-hidden { overflow: hidden; }
    Layout shell
    ========================= */
 .app-shell {
-  @apply min-h-[100dvh];
-  background: linear-gradient(135deg, #f0f7fb 0%, #e5f0f6 100%);
-  display: flex; flex-direction: column;
+  min-height: 100dvh;
+  background: var(--bg);
 }
 
-/* =========================
-   Navbar (safe-area aware)
-   ========================= */
-.navbar {
-  @apply fixed top-0 inset-x-0 z-50 shadow-md border-b border-slate-200 dark:border-slate-800;
-  background: var(--brand);
-  color: #fff;
-  padding-top: max(env(safe-area-inset-top), 10px);
-  height: calc(max(env(safe-area-inset-top), 10px) + 3.5rem);
-}
-
-.navbar-inner {
-  @apply max-w-3xl mx-auto py-2 flex items-center justify-between;
-  height: 100%;
-}
-
-/* =========================
-   Main content (under navbar)
-   ========================= */
 .content {
-  @apply max-w-3xl mx-auto px-4 pb-6;
-  flex: 1;
-  padding-top: calc(max(env(safe-area-inset-top), 10px) + 4.2rem);
-  padding-bottom: env(safe-area-inset-bottom);
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0 0 88px 0;
   width: 100%;
-  overflow-y: auto;
 }
 
 /* =========================
-   Card & buttons
+   Card
    ========================= */
-.card { @apply rounded-2xl border border-slate-200 bg-white shadow-sm dark:bg-slate-800 dark:border-slate-700; }
-.btn  { @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 font-medium shadow-sm transition; }
-.icon-btn { @apply rounded-xl flex items-center justify-center border border-slate-300 bg-white hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-700 dark:hover:bg-slate-600; }
+.card {
+  background: var(--surface);
+  border-radius: 16px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+}
 
 /* =========================
-   Motion helpers
+   Buttons
    ========================= */
-.view-animate { animation: view-fade-in 420ms ease-out both; }
-.modal-backdrop { animation: fade-in 240ms ease-out both; }
-.modal-panel { animation: pop-in 320ms cubic-bezier(.2,.9,.2,1) both; }
-
-@keyframes view-fade-in {
-  0% { opacity: 0; transform: translateY(8px); }
-  100% { opacity: 1; transform: translateY(0); }
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
 }
+.btn:active { transform: scale(0.97); }
+
+.btn-primary {
+  background: linear-gradient(to right, var(--red), var(--red-dk));
+  color: #fff;
+  border-radius: 9999px;
+  border: none;
+  padding: 13px 24px;
+  font-size: 15px;
+}
+.btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.btn-outline {
+  background: transparent;
+  color: var(--text);
+  border: 1.5px solid var(--border);
+  border-radius: 9999px;
+  padding: 12px 24px;
+  font-size: 15px;
+}
+
+.btn-outline-red {
+  background: transparent;
+  color: var(--red);
+  border: 1.5px solid var(--red);
+  border-radius: 9999px;
+  padding: 10px 20px;
+  font-size: 14px;
+}
+
+/* =========================
+   Bottom Tab Bar
+   ========================= */
+.bottom-tab-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 68px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex;
+  z-index: 100;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.bottom-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 500;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.bottom-tab.active { color: var(--red); }
+
+/* =========================
+   Top mini-bar (unauthenticated)
+   ========================= */
+.top-mini-bar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: max(env(safe-area-inset-top, 0px), 12px) 16px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* =========================
+   Animations
+   ========================= */
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.view-animate { animation: slide-up 280ms ease both; }
+
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+.sheet-animate { animation: sheet-up 300ms cubic-bezier(.32,0,.67,0) both; }
 
 @keyframes fade-in {
   from { opacity: 0; }
-  to { opacity: 1; }
+  to   { opacity: 1; }
 }
+.modal-backdrop { animation: fade-in 200ms ease both; }
 
 @keyframes pop-in {
-  0% { opacity: 0; transform: translateY(16px) scale(.96); }
+  0%   { opacity: 0; transform: translateY(12px) scale(.97); }
   100% { opacity: 1; transform: translateY(0) scale(1); }
 }
+.modal-panel { animation: pop-in 280ms cubic-bezier(.2,.9,.2,1) both; }
 
 /* =========================
-   Dashboard
+   Pill tabs
    ========================= */
-.dashboard-hero::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(120deg, rgba(7, 44, 65, 0.12), rgba(14, 116, 144, 0.08));
-  pointer-events: none;
+.pill-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px 12px;
 }
-
-.dashboard-glow {
-  position: absolute;
-  inset: -40% -20% auto auto;
-  width: 320px;
-  height: 320px;
-  background: radial-gradient(circle at center, rgba(56, 189, 248, 0.45), rgba(56, 189, 248, 0));
-  filter: blur(10px);
-  animation: float-glow 6s ease-in-out infinite;
+.pill-tab {
+  padding: 7px 18px;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1.5px solid var(--border);
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
 }
-
-.shaheene-loader {
-  position: relative;
-  height: 44px;
-  width: 44px;
-  display: grid;
-  place-items: center;
-}
-
-.shaheene-loader::after {
-  content: "";
-  position: absolute;
-  inset: -6px;
-  border-radius: 999px;
-  border: 2px dashed rgba(14, 116, 144, 0.35);
-  animation: spin 4s linear infinite;
-}
-
-.shaheene-loader img {
-  animation: pulse 2s ease-in-out infinite;
-}
-
-.dashboard-action {
-  @apply flex w-full items-center gap-4 rounded-2xl border border-slate-200/80 bg-white/90 px-5 py-4 text-left shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl dark:border-slate-700/70 dark:bg-slate-900/80;
-}
-
-.dashboard-action-icon {
-  @apply flex h-11 w-11 items-center justify-center rounded-2xl text-white shadow-lg;
-  transition: transform 0.3s ease;
-}
-
-.dashboard-action:hover .dashboard-action-icon {
-  transform: scale(1.05) rotate(-2deg);
+.pill-tab.active {
+  background: var(--text);
+  color: #fff;
+  border-color: var(--text);
 }
 
 /* =========================
-   Orders list styling
+   Section header
    ========================= */
-.orders-shell {
-  background: linear-gradient(135deg, rgba(255,255,255,.9) 0%, rgba(240,248,255,.8) 100%);
-}
-
-.order-card {
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
-  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
-}
-
-.order-card::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.12), transparent 60%);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  pointer-events: none;
-}
-
-.order-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.15);
-  border-color: rgba(99, 102, 241, 0.4);
-}
-
-.order-card:hover::after {
-  opacity: 1;
-}
-
-.order-card--compact:hover {
-  transform: translateY(-2px);
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-@keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.06); }
-}
-
-@keyframes float-glow {
-  0%, 100% { transform: translateY(0); opacity: 0.7; }
-  50% { transform: translateY(12px); opacity: 1; }
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+  padding: 20px 16px 12px;
 }
 
 /* =========================
-   Splash (full-screen)
+   Inputs
+   ========================= */
+.input-field {
+  width: 100%;
+  border-radius: 12px;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  padding: 13px 16px;
+  font-size: 15px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.input-field:focus {
+  border-color: var(--red);
+  box-shadow: 0 0 0 3px rgba(255,56,92,0.12);
+}
+
+/* =========================
+   Search bar
+   ========================= */
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 9999px;
+  padding: 10px 16px;
+  margin: 0 16px 12px;
+}
+.search-bar input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--text);
+}
+.search-bar input::placeholder { color: var(--muted); }
+
+/* =========================
+   Splash
    ========================= */
 .splash {
   position: fixed; inset: 0; z-index: 120;
   display: grid; place-items: center;
-  background: linear-gradient(135deg, var(--brand) 0%, var(--brand-400) 100%);
+  background: linear-gradient(135deg, #FF385C 0%, #E31C5F 100%);
 }
-
-/* Full-screen stage: no clipping so logo can travel across the screen */
-.splash-anim-stage {
-  position: absolute; inset: 0; z-index: 1; pointer-events: none; overflow: visible;
-}
-
-/* Horizontal track centered vertically */
-.splash-anim-track {
-  position: absolute; left: 0; right: 0; top: 50%;
-  transform: translateY(-50%);
-  height: 0; overflow: visible;
-}
-
-/* The animated logo travelling across the viewport */
-.splash-logo-drive {
-  position: relative;
-  width: 4.5rem; height: auto;
-  filter: drop-shadow(0 10px 14px rgba(0,0,0,.25));
-  /* Shorter duration so it fully completes even if Splash hides after ~900–1000ms */
-  animation: drive-across 800ms cubic-bezier(.22,1,.36,1) 0ms both;
-  will-change: transform, opacity;
-}
-
-/* Brand text on splash */
-.splash-brand { @apply text-2xl md:text-3xl font-extrabold text-white tracking-tight; }
-.splash-tagline { @apply mt-1 text-sm md:text-base text-white/85; }
+.splash-anim-stage { position: absolute; inset: 0; z-index: 1; pointer-events: none; overflow: visible; }
+.splash-anim-track { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); height: 0; overflow: visible; }
+.splash-logo-drive { position: relative; width: 4.5rem; height: auto; filter: drop-shadow(0 10px 14px rgba(0,0,0,.25)); animation: drive-across 800ms cubic-bezier(.22,1,.36,1) 0ms both; will-change: transform, opacity; }
+.splash-brand { font-size: 1.75rem; font-weight: 700; color: #fff; letter-spacing: -0.02em; }
+.splash-tagline { margin-top: 4px; font-size: 0.9rem; color: rgba(255,255,255,0.85); }
 .splash-content { animation: splash-rise 500ms ease-out 120ms both; }
 .splash-brand-animate { animation: splash-pop 500ms ease-out 200ms both; }
 .splash-tagline-animate { animation: splash-pop 500ms ease-out 320ms both; }
 
-/* Drive from off-screen left to off-screen right */
-@keyframes drive-across {
-  0%   { transform: translateX(-50vw) rotate(-2deg); opacity: 0; }
-  10%  { opacity: 1; }
-  100% { transform: translateX(120vw) rotate(0deg); opacity: 1; }
-}
-
-@keyframes splash-rise {
-  from { opacity: 0; transform: translateY(14px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes splash-pop {
-  0% { opacity: 0; transform: scale(0.95); }
-  100% { opacity: 1; transform: scale(1); }
-}
+@keyframes drive-across { 0% { transform: translateX(-50vw) rotate(-2deg); opacity: 0; } 10% { opacity: 1; } 100% { transform: translateX(120vw) rotate(0deg); opacity: 1; } }
+@keyframes splash-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes splash-pop { 0% { opacity: 0; transform: scale(0.95); } 100% { opacity: 1; transform: scale(1); } }
 
 /* =========================
-   Drawer / overlay helpers
+   Utility
    ========================= */
-.drawer-content { transition: transform 0.3s ease-out; }
-.bg-black\/50 { transition: opacity 0.3s ease; }
-
-@keyframes slide-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
-@keyframes slide-out-right { from { transform: translateX(0); } to { transform: translateX(100%); } }
-@keyframes slide-out-left { from { transform: translateX(0); } to { transform: translateX(-100%); } }
-
-.animate-slide-in { animation: slide-in .3s ease-out forwards; }
-.animate-slide-out-right { animation: slide-out-right .3s ease-in forwards; }
-.animate-slide-out-left  { animation: slide-out-left .3s ease-in forwards; }
-
-/* =========================
-   Responsive tweaks
-   ========================= */
-@media (max-width: 640px) {
-  .navbar-inner { @apply py-1; }
-  .content { padding-top: calc(max(env(safe-area-inset-top), 10px) + 3.8rem); }
-  .card { @apply p-4; }
-}
+@keyframes spin { to { transform: rotate(360deg); } }

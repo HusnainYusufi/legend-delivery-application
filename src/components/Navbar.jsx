@@ -1,93 +1,126 @@
-// src/components/Navbar.jsx
-import React from "react";
-import { Menu, ListChecks } from "lucide-react";
+// src/components/Navbar.jsx — repurposed as BottomTabBar
+import React, { useEffect, useRef, useState } from "react";
+import { gsap } from "gsap";
+import { Home, ClipboardList, QrCode, CheckCircle, User, X, LogOut, Globe } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import logoUrl from "/sh-logo.png";
 
-export default function Navbar({
+export default function BottomTabBar({
+  view,
+  setView,
+  isDriver = false,
+  onLogout,
   language,
   onChangeLanguage,
-  isAuthenticated,
-  isDriver = false,
-  onMenuClick,
-  onOrdersClick,
-  onDeliveredClick,
-  onLogoClick, // NEW
 }) {
   const { t } = useTranslation();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const navRef = useRef(null);
+  const sheetRef = useRef(null);
+  const backdropRef = useRef(null);
+
+  /* Animate tab bar in on mount */
+  useEffect(() => {
+    if (navRef.current) {
+      gsap.fromTo(navRef.current, { y: 80, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: "power3.out", delay: 0.1 });
+    }
+  }, []);
+
+  /* Animate menu sheet */
+  useEffect(() => {
+    if (menuOpen && sheetRef.current && backdropRef.current) {
+      gsap.fromTo(backdropRef.current, { opacity: 0 }, { opacity: 1, duration: 0.2 });
+      gsap.fromTo(sheetRef.current, { y: "100%" }, { y: "0%", duration: 0.35, ease: "power3.out" });
+    }
+  }, [menuOpen]);
+
+  const closeMenu = () => {
+    if (sheetRef.current && backdropRef.current) {
+      gsap.to(sheetRef.current, { y: "100%", duration: 0.25, ease: "power2.in" });
+      gsap.to(backdropRef.current, { opacity: 0, duration: 0.2, onComplete: () => setMenuOpen(false) });
+    } else {
+      setMenuOpen(false);
+    }
+  };
+
+  const tabs = [
+    { id: "dashboard", icon: Home,          label: t("dashboard_title") || "Home" },
+    { id: "orders",    icon: ClipboardList, label: t("orders_nav") || "Orders" },
+    ...(isDriver ? [
+      { id: "scan-claim", icon: QrCode,       label: t("scan_product") || "Scan" },
+      { id: "delivered",  icon: CheckCircle,  label: t("delivered_nav") || "Delivered" },
+    ] : []),
+    { id: "__menu",    icon: User,           label: t("menu") || "Menu" },
+  ];
+
+  const handleTab = (id) => {
+    if (id === "__menu") { setMenuOpen(true); return; }
+    setView(id);
+  };
 
   return (
-    <nav className="navbar fixed top-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 shadow-md px-4">
-      <div className="navbar-inner max-w-3xl mx-auto py-2 flex items-center justify-between">
-        <div className="flex items-center gap-2">
+    <>
+      <nav ref={navRef} className="bottom-tab-bar">
+        {tabs.map(({ id, icon: Icon, label }) => (
           <button
-            onClick={onMenuClick}
-            className="p-2.5 rounded-lg bg-gradient-to-r from-sky-600 to-cyan-600 text-white hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-sky-300"
-            aria-label={t("menu")}
+            key={id}
+            className={`bottom-tab${view === id ? " active" : ""}`}
+            onClick={() => handleTab(id)}
           >
-            <Menu className="h-5 w-5" />
+            <Icon size={22} strokeWidth={view === id ? 2.2 : 1.8} />
+            <span>{label}</span>
           </button>
+        ))}
+      </nav>
 
-          {/* Brand is clickable -> Home */}
-          <button
-            type="button"
-            onClick={onLogoClick}
-            className="flex items-center gap-2"
-            aria-label="Home"
+      {/* Menu bottom sheet */}
+      {menuOpen && (
+        <div
+          ref={backdropRef}
+          className="fixed inset-0 z-[110] bg-black/40 modal-backdrop"
+          onClick={closeMenu}
+        >
+          <div
+            ref={sheetRef}
+            className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl p-6 pb-10 max-w-[480px] mx-auto"
+            onClick={(e) => e.stopPropagation()}
           >
-            <img
-              src={logoUrl}
-              alt="SHAHEENE"
-              className="h-7 w-7 object-contain"
-            />
-            <div className="leading-tight text-left">
-              <div className="text-sm font-bold tracking-tight text-slate-800 dark:text-white">
-                SHAHEENE
-              </div>
-              <div className="text-[10px] text-slate-500 dark:text-slate-400">
-                QR Status
-              </div>
-            </div>
-          </button>
-        </div>
+            {/* Drag handle */}
+            <div className="w-10 h-1 bg-[#DDDDDD] rounded-full mx-auto mb-6" />
 
-        <div className="flex items-center gap-2">
-          {isAuthenticated && (
-            <>
-              <div
-                className="h-2 w-2 rounded-full bg-green-500"
-                title="Authenticated"
-              />
-              <button
-                onClick={onOrdersClick}
-                className="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium rounded-lg border border-slate-300 dark:border-slate-600 px-2.5 py-1.5 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-600"
+            <button
+              className="absolute top-4 right-4 p-2 text-[#717171]"
+              onClick={closeMenu}
+            >
+              <X size={20} />
+            </button>
+
+            {/* Language */}
+            <div className="flex items-center justify-between py-4 border-b border-[#DDDDDD]">
+              <div className="flex items-center gap-3">
+                <Globe size={20} className="text-[#717171]" />
+                <span className="font-medium text-[#222222]">{t("language") || "Language"}</span>
+              </div>
+              <select
+                value={language}
+                onChange={(e) => { onChangeLanguage?.(e.target.value); }}
+                className="border border-[#DDDDDD] rounded-lg px-3 py-1.5 text-sm font-medium text-[#222222] bg-white outline-none"
               >
-                <ListChecks className="h-4 w-4" />
-                {t("orders_nav")}
-              </button>
-              {isDriver && (
-                <button
-                  onClick={onDeliveredClick}
-                  className="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium rounded-lg border border-slate-300 dark:border-slate-600 px-2.5 py-1.5 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-600"
-                >
-                  <ListChecks className="h-4 w-4" />
-                  {t("delivered_nav")}
-                </button>
-              )}
-            </>
-          )}
+                <option value="en">EN</option>
+                <option value="ar">AR</option>
+              </select>
+            </div>
 
-          <select
-            aria-label={t("language")}
-            className="rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white px-2 py-1 text-xs shadow-sm"
-            value={language}
-            onChange={(e) => onChangeLanguage?.(e.target.value)}
-          >
-            <option value="en">EN</option>
-            <option value="ar">AR</option>
-          </select>
+            {/* Logout */}
+            <button
+              onClick={() => { closeMenu(); onLogout?.(); }}
+              className="flex items-center gap-3 w-full py-4 text-[#FF385C]"
+            >
+              <LogOut size={20} />
+              <span className="font-semibold text-base">{t("logout") || "Logout"}</span>
+            </button>
+          </div>
         </div>
-      </div>
-    </nav>
+      )}
+    </>
   );
 }
