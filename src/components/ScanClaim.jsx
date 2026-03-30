@@ -13,6 +13,8 @@ export default function ScanClaim({ onBack }) {
   const [toast, setToast] = useState(null);
   const [error, setError] = useState("");
   const scannerRef = useRef(null);
+  const scanDelayTimer = useRef(null);
+  const toastTimer = useRef(null);
   const scannerDivId = "scan-claim-div";
   const [scannerKey, setScannerKey] = useState(0);
 
@@ -24,7 +26,8 @@ export default function ScanClaim({ onBack }) {
   const beginScan = useCallback(async () => {
     const perm = await ensureCameraPermission();
     if (!perm.granted) { setError(t("camera_permission_denied")); setScanOpen(false); return; }
-    setTimeout(async () => {
+    if (scanDelayTimer.current) clearTimeout(scanDelayTimer.current);
+    scanDelayTimer.current = setTimeout(async () => {
       try {
         const s = await startWebQrScanner(
           scannerDivId,
@@ -37,7 +40,8 @@ export default function ScanClaim({ onBack }) {
               setBusy(true);
               await claimPickupByOrderNo(orderNo);
               setToast({ type: "success", msg: t("claimed_success") || "Order claimed." });
-              setTimeout(() => setToast(null), 2000);
+              if (toastTimer.current) clearTimeout(toastTimer.current);
+              toastTimer.current = setTimeout(() => setToast(null), 2000);
             } catch (e) {
               setError(e?.message || "Claim failed");
             } finally { setBusy(false); }
@@ -53,6 +57,12 @@ export default function ScanClaim({ onBack }) {
     if (scanOpen) beginScan();
     return () => { stopScanner(); };
   }, [scanOpen, beginScan, stopScanner]);
+
+  /* Cleanup all timers on unmount */
+  useEffect(() => () => {
+    if (scanDelayTimer.current) clearTimeout(scanDelayTimer.current);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+  }, []);
 
   return (
     <section className="view-animate">

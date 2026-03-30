@@ -35,11 +35,12 @@ function OrderCard({ order, actionSlot, delay = 0 }) {
 
   useEffect(() => {
     if (!cardRef.current) return;
-    gsap.fromTo(
+    const tween = gsap.fromTo(
       cardRef.current,
       { opacity: 0, y: 24 },
       { opacity: 1, y: 0, duration: 0.45, ease: "power3.out", delay }
     );
+    return () => { tween.kill(); };
   }, [delay]);
 
   const statusVal = order.currentStatus || order.orderStatus;
@@ -118,6 +119,8 @@ export default function PickupPool() {
 
   const [error, setError] = useState("");
   const [toast, setToast] = useState(null);
+  const toastTimer = useRef(null);
+  const scanDelayTimer = useRef(null);
 
   const [scanOpen, setScanOpen] = useState(false);
   const scannerDivId = "pickup-scan-div";
@@ -216,7 +219,8 @@ export default function PickupPool() {
   const beginScan = useCallback(async () => {
     const perm = await ensureCameraPermission();
     if (!perm.granted) { setError(t("camera_permission_denied")); setScanOpen(false); return; }
-    setTimeout(async () => {
+    if (scanDelayTimer.current) clearTimeout(scanDelayTimer.current);
+    scanDelayTimer.current = setTimeout(async () => {
       try {
         const s = await startWebQrScanner(
           scannerDivId,
@@ -228,7 +232,8 @@ export default function PickupPool() {
             try {
               await claimPickupByOrderNo(orderNo);
               setToast({ type: "success", msg: t("claimed_success") || "Claimed!" });
-              setTimeout(() => setToast(null), 2000);
+              if (toastTimer.current) clearTimeout(toastTimer.current);
+              toastTimer.current = setTimeout(() => setToast(null), 2000);
               await loadPool({ reset: true });
               await loadMine({ reset: true });
             } catch (err) {
@@ -246,6 +251,12 @@ export default function PickupPool() {
     if (scanOpen) beginScan();
     return () => { stopScanner(); };
   }, [scanOpen, beginScan, stopScanner]);
+
+  /* Cleanup all timers on unmount */
+  useEffect(() => () => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    if (scanDelayTimer.current) clearTimeout(scanDelayTimer.current);
+  }, []);
 
   /* Tab switch with GSAP */
   const handleTabSwitch = (newTab) => {
@@ -271,7 +282,8 @@ export default function PickupPool() {
         try {
           await sendOrderOtp(order.orderNo);
           setToast({ type: "success", msg: t("otp_sent") || "OTP sent" });
-          setTimeout(() => setToast(null), 2000);
+          if (toastTimer.current) clearTimeout(toastTimer.current);
+          toastTimer.current = setTimeout(() => setToast(null), 2000);
         } catch (e) {
           setError(e?.message || "Failed to send OTP");
         }

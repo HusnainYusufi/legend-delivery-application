@@ -57,6 +57,14 @@ export default function App() {
   const isDriver = role && String(role).toLowerCase() === "driver";
 
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const toastTimer = useRef(null);
+
+  const showToast = (type, msg, duration = 2000) => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast({ type, msg });
+    toastTimer.current = setTimeout(() => setToast(null), duration);
+  };
+  useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
 
   useEffect(() => {
     const saved = loadAuth();
@@ -68,16 +76,14 @@ export default function App() {
     setAuthState(authData);
     setIsLoginModalOpen(false);
     setView("dashboard");
-    setToast({ type: "success", msg: "Logged in" });
-    setTimeout(() => setToast(null), 2000);
+    showToast("success", "Logged in");
   };
 
   const handleLogout = () => {
     purgeAuth();
     setAuthState(null);
     setView("home");
-    setToast({ type: "success", msg: "Logged out" });
-    setTimeout(() => setToast(null), 2000);
+    showToast("success", "Logged out");
   };
 
   const stopScanner = useCallback(async () => {
@@ -85,13 +91,15 @@ export default function App() {
     scannerRef.current = null;
   }, []);
 
+  const scanTimerRef = useRef(null);
   const beginScan = useCallback(async () => {
     setScanError(""); setPermDenied(false);
     await stopScanner();
+    if (scanTimerRef.current) clearTimeout(scanTimerRef.current);
     const perm = await ensureCameraPermission();
     if (!perm.granted) { setPermDenied(true); setScanError(t("camera_permission_denied")); return; }
     setIsScanning(true);
-    setTimeout(async () => {
+    scanTimerRef.current = setTimeout(async () => {
       try {
         const s = await startWebQrScanner(
           scannerDivId,
@@ -109,7 +117,10 @@ export default function App() {
     }, 120);
   }, [stopScanner, t]);
 
-  useEffect(() => () => { stopScanner(); }, [stopScanner]);
+  useEffect(() => () => {
+    stopScanner();
+    if (scanTimerRef.current) clearTimeout(scanTimerRef.current);
+  }, [stopScanner]);
 
   const getStatus = useCallback(async () => {
     if (!orderNumber) { setToast({ type: "error", msg: t("toast_need_order") }); return; }

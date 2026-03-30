@@ -52,6 +52,8 @@ export default function Dashboard({ isDriver = false, onTrackOrder, onOrders, on
         "-=0.6"
       );
     }
+
+    return () => { tl.kill(); };
   }, []);
 
   const actions = [

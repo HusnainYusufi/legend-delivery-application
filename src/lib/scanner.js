@@ -19,6 +19,9 @@ export async function openAppSettings() {
   try { await App.openSettings(); } catch {}
 }
 
+/** Max time to wait for camera to initialize (ms) */
+const CAMERA_INIT_TIMEOUT = 12000;
+
 export async function startWebQrScanner(mountDivId, onDecoded, onError) {
   try {
     const isLocalhost = (window.location.hostname || "").includes("localhost");
@@ -47,16 +50,23 @@ export async function startWebQrScanner(mountDivId, onDecoded, onError) {
       formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
     });
 
-    await scanner.start(
-      cameraConfig,
-      { fps: 12, qrbox: { width: base, height: base } },
-      (decoded) => onDecoded?.(decoded),
-      () => {}
-    );
+    // Race camera start against a timeout so it doesn't hang forever
+    await Promise.race([
+      scanner.start(
+        cameraConfig,
+        { fps: 12, qrbox: { width: base, height: base } },
+        (decoded) => onDecoded?.(decoded),
+        () => {}
+      ),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Camera took too long to start. Please try again.")), CAMERA_INIT_TIMEOUT)
+      ),
+    ]);
 
     return {
       stop: async () => {
-        try { await scanner.stop(); await scanner.clear(); } catch {}
+        try { await scanner.stop(); } catch {}
+        try { await scanner.clear(); } catch {}
       }
     };
   } catch (e) {

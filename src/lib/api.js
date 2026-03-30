@@ -15,6 +15,26 @@ const CONFIG = {
   },
 };
 
+/** Default request timeout in ms */
+const DEFAULT_TIMEOUT = 15000;
+
+/**
+ * Wraps fetch with an AbortController timeout.
+ * Automatically aborts the request if it takes longer than `ms`.
+ */
+function fetchWithTimeout(url, options = {}, ms = DEFAULT_TIMEOUT) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  return fetch(url, { ...options, signal: controller.signal })
+    .catch((err) => {
+      if (err.name === "AbortError") {
+        throw new Error(`Request timed out after ${ms / 1000}s — server not responding.`);
+      }
+      throw err;
+    })
+    .finally(() => clearTimeout(timer));
+}
+
 /* ---------------- AUTH ---------------- */
 /**
  * POST /auth/login
@@ -23,7 +43,7 @@ const CONFIG = {
  */
 async function loginRequest(email, password) {
   const url = `${AUTH_BASE_URL}/auth/login`;
-  const res = await fetch(url, {
+  const res = await fetchWithTimeout(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -67,7 +87,7 @@ async function fetchAssignedOrders({
     sortBy
   )}&sortDir=${encodeURIComponent(sortDir)}`;
 
-  const res = await fetch(url, {
+  const res = await fetchWithTimeout(url, {
     method: "GET",
     headers: {
       Accept: "application/json",
@@ -127,7 +147,7 @@ async function fetchAwaitingPickupOrders({
 
   const url = `${AUTH_BASE_URL}/orders/awaiting-pickup?${params.toString()}`;
 
-  const res = await fetch(url, {
+  const res = await fetchWithTimeout(url, {
     method: "GET",
     headers: {
       Accept: "application/json",
@@ -173,7 +193,7 @@ async function fetchMyInTransit({ page = 1, limit = 20 } = {}) {
 
   const url = `${AUTH_BASE_URL}/orders/my-in-transit?page=${page}&limit=${limit}`;
 
-  const res = await fetch(url, {
+  const res = await fetchWithTimeout(url, {
     method: "GET",
     headers: {
       Accept: "application/json",
@@ -215,7 +235,7 @@ async function fetchMyDelivered({ page = 1, limit = 20 } = {}) {
 
   const url = `${AUTH_BASE_URL}/orders/my-delivered?page=${page}&limit=${limit}`;
 
-  const res = await fetch(url, {
+  const res = await fetchWithTimeout(url, {
     method: "GET",
     headers: {
       Accept: "application/json",
@@ -265,7 +285,7 @@ async function sendOrderOtp(orderNo, packageId = null) {
   const body = {};
   if (packageId) body.packageId = packageId;
 
-  const res = await fetch(url, {
+  const res = await fetchWithTimeout(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -302,7 +322,7 @@ async function claimPickupByOrderNo(orderNo) {
 
   const url = `${AUTH_BASE_URL}/orders/${encodeURIComponent(orderNo)}/claim-pickup`;
 
-  const res = await fetch(url, {
+  const res = await fetchWithTimeout(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -350,7 +370,7 @@ async function verifyOrderOtp(orderNo, code, pkgKey) {
   const payload = { code };
   if (pkgKey) payload.pkgKey = pkgKey;
 
-  const res = await fetch(url, {
+  const res = await fetchWithTimeout(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -394,7 +414,7 @@ async function apiFetch(path, options = {}) {
   if (auth?.token) headers.Authorization = `Bearer ${auth.token}`;
 
   try {
-    const res = await fetch(url, { ...options, headers });
+    const res = await fetchWithTimeout(url, { ...options, headers });
     if (!res.ok) {
       const raw = await res.text().catch(() => "");
       throw new Error(
@@ -424,7 +444,7 @@ async function setDeliveryNote(orderNo, note) {
 
   const url = `${AUTH_BASE_URL}/orders/${encodeURIComponent(orderNo)}/delivery-note`;
 
-  const res = await fetch(url, {
+  const res = await fetchWithTimeout(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

@@ -47,6 +47,9 @@ function otpSearchKeyOf(order) {
 export default function OrdersList({ showDeliveredOnly = false }) {
   const { t } = useTranslation();
   const listRef = useRef(null);
+  const deliveredTimer = useRef(null);
+  const noteSuccessTimer = useRef(null);
+  const gsapCtx = useRef(null);
   const [orders, setOrders] = useState([]);
   const [page, setPage] = useState(1);
   const [limit] = useState(20);
@@ -152,11 +155,20 @@ export default function OrdersList({ showDeliveredOnly = false }) {
     if (!listRef.current) return;
     const cards = listRef.current.querySelectorAll("article");
     if (!cards.length) return;
-    gsap.fromTo(cards,
+    const tween = gsap.fromTo(cards,
       { opacity: 0, y: 20 },
       { opacity: 1, y: 0, duration: 0.4, stagger: 0.05, ease: "power3.out", clearProps: "transform" }
     );
+    gsapCtx.current = tween;
+    return () => { tween.kill(); };
   }, [shownOrders]);
+
+  /* Cleanup all timers on unmount */
+  useEffect(() => () => {
+    if (deliveredTimer.current) clearTimeout(deliveredTimer.current);
+    if (noteSuccessTimer.current) clearTimeout(noteSuccessTimer.current);
+    if (gsapCtx.current) gsapCtx.current.kill();
+  }, []);
 
   const onVerifyOtp = async (code) => {
     if (!otpOrder?.orderNo) return;
@@ -165,7 +177,8 @@ export default function OrdersList({ showDeliveredOnly = false }) {
       await verifyOrderOtp(otpOrder.orderNo, code, pkgKeyOf(otpOrder));
       setOtpOpen(false);
       setDeliveredMsg("OTP verified. Order delivered ✅");
-      setTimeout(() => setDeliveredMsg(""), 2000);
+      if (deliveredTimer.current) clearTimeout(deliveredTimer.current);
+      deliveredTimer.current = setTimeout(() => setDeliveredMsg(""), 2000);
       await load({ reset: true });
     } catch (e) { setOtpError(errorToString(e)); }
     finally { setOtpLoading(false); }
@@ -178,7 +191,8 @@ export default function OrdersList({ showDeliveredOnly = false }) {
       await setDeliveryNote(noteOrder.orderNo, note);
       setNoteOpen(false);
       setNoteSuccess(`Note set: ${DELIVERY_NOTES.find((n) => n.value === note)?.label || note}`);
-      setTimeout(() => setNoteSuccess(""), 2000);
+      if (noteSuccessTimer.current) clearTimeout(noteSuccessTimer.current);
+      noteSuccessTimer.current = setTimeout(() => setNoteSuccess(""), 2000);
       await load({ reset: true });
     } catch (e) { setNoteError(errorToString(e)); }
     finally { setNoteLoading(false); }

@@ -18,7 +18,7 @@ export default function Splash() {
     const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
 
     // Rings pulse outward like radar
-    ringRefs.forEach((r, i) => {
+    const ringTweens = ringRefs.map((r, i) =>
       gsap.fromTo(r.current,
         { scale: 0.2, opacity: 0 },
         {
@@ -32,8 +32,8 @@ export default function Splash() {
             gsap.set(r.current, { scale: 0.2, opacity: 0 });
           }
         }
-      );
-    });
+      )
+    );
 
     // Center dot pulses
     tl.fromTo(dotRef.current,
@@ -70,7 +70,10 @@ export default function Splash() {
       "-=0.2"
     );
 
-    return () => { tl.kill(); };
+    return () => {
+      ringTweens.forEach((tw) => tw.kill());
+      tl.kill();
+    };
   }, []);
 
   return (
