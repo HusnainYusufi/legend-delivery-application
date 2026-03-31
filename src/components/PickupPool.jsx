@@ -22,7 +22,7 @@ import { ensureCameraPermission, startWebQrScanner } from "../lib/scanner.js";
 import {
   parseOrderNumberFromScan,
   fetchAwaitingPickupOrders,
-  fetchMyInTransitOrders,
+  fetchMyInTransit,
   claimPickupByOrderNo,
   sendOrderOtp,
 } from "../lib/api.js";
@@ -187,7 +187,7 @@ export default function PickupPool() {
       setError("");
       if (reset) setMine((s) => ({ ...s, loading: true }));
       else setMine((s) => ({ ...s, moreLoading: true }));
-      const res = await fetchMyInTransitOrders({ page: reset ? 1 : mine.page, limit: mine.limit, q: q.trim() || undefined });
+      const res = await fetchMyInTransit({ page: reset ? 1 : mine.page, limit: mine.limit, q: q.trim() || undefined });
       const next = Array.isArray(res.orders) ? res.orders : [];
       if (reset) setMine({ items: next, page: 2, limit: mine.limit, count: res.count || next.length, loading: false, moreLoading: false });
       else setMine((s) => ({ ...s, items: [...s.items, ...next], page: s.page + 1, count: res.count || s.count, moreLoading: false, loading: false }));

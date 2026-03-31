@@ -32,7 +32,7 @@ export default function App() {
 
   const [showSplash, setShowSplash] = useState(true);
   useEffect(() => {
-    const tm = setTimeout(() => setShowSplash(false), 2500);
+    const tm = setTimeout(() => setShowSplash(false), 3000);
     return () => clearTimeout(tm);
   }, []);
 
@@ -67,8 +67,10 @@ export default function App() {
   useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
 
   useEffect(() => {
-    const saved = loadAuth();
-    if (saved?.token) { setAuthState(saved); setView("dashboard"); }
+    try {
+      const saved = loadAuth();
+      if (saved?.token) { setAuthState(saved); setView("dashboard"); }
+    } catch { /* corrupted storage — stay on home */ }
   }, []);
 
   const handleLogin = (authData) => {

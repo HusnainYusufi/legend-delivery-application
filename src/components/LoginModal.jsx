@@ -30,9 +30,11 @@ function ModalContent({ onClose, onLogin }) {
     try {
       const data = await loginRequest(email, password);
       const payload = decodeJwt(data.token) || {};
+      const role = data.role ?? payload.userType ?? null;
+      if (!role) throw new Error("Login succeeded but your account role could not be determined. Please contact support.");
       const auth = {
         token: data.token,
-        role: data.role ?? payload.userType ?? null,
+        role,
         warehouseId: data.warehouseId ?? null,
         userId: payload.user ?? null,
         email: payload.email ?? email,

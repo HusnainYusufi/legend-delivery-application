@@ -65,9 +65,7 @@ async function loginRequest(email, password) {
       (data && (data.message || data.error)) ||
       (rawText && rawText.slice(0, 300)) ||
       "";
-    const msg = `Login failed (HTTP ${res.status}${
-      res.statusText ? ` ${res.statusText}` : ""
-    }) ${serverMsg ? `- ${serverMsg}` : ""} [AUTH_BASE=${AUTH_BASE_URL}]`;
+    const msg = `Login failed${res.status ? ` (${res.status})` : ""}${serverMsg ? ` — ${serverMsg}` : ""}`;
     throw new Error(msg);
   }
   return data; // { status, token, role, warehouseId }
