@@ -473,30 +473,77 @@ async function setDeliveryNote(orderNo, note) {
 }
 
 /* ---------------- QR helper ---------------- */
+
+// Query-string keys that can carry the order number, matched case-insensitively.
+// "orderno" is first because it is what this system's own labels emit:
+// LabelService.makeScanUrl builds "/scan?orderNo=<no>&code=<uuid>".
+const ORDER_PARAM_KEYS = ["orderno", "ordernumber", "orderid", "order_id", "order", "o"];
+
+// Path segments that are route names, never order numbers. Without this guard
+// the last-segment fallback returns "scan" from our own label URLs.
+const NON_ORDER_SEGMENTS = new Set([
+  "scan", "track", "tracking", "order", "orders", "o", "status", "label", "labels",
+]);
+
+/**
+ * Extract an order number from a scanned QR payload.
+ *
+ * Handles every shape the backend can produce (LABEL_QR_MODE):
+ *   URL       -> https://app.../scan?orderNo=278198919&code=<uuid>   (default)
+ *   ORDER_NO  -> 278198919
+ *   JSON      -> {"orderNo":"278198919","code":"<uuid>"}
+ */
 function parseOrderNumberFromScan(payload) {
   if (!payload) return "";
+
+  // 1) URL form — query params first, matched case-insensitively.
   try {
     const url = new URL(payload);
-    const candidates = [
-      "order",
-      "orderId",
-      "order_id",
-      "ordernumber",
-      "orderNumber",
-      "o",
-    ];
-    for (const key of candidates) {
-      const v = url.searchParams.get(key);
-      if (v) return v.trim();
+
+    const params = new Map();
+    url.searchParams.forEach((value, key) => {
+      const k = key.toLowerCase();
+      if (!params.has(k)) params.set(k, value);
+    });
+    for (const key of ORDER_PARAM_KEYS) {
+      const v = (params.get(key) || "").trim();
+      if (v) return v;
     }
-    const pathParts = url.pathname.split("/").filter(Boolean);
-    const last = pathParts[pathParts.length - 1];
-    if (last && /[A-Za-z0-9_-]{4,}/.test(last)) return last;
-  } catch (_) {}
-  const tokens = String(payload)
-    .split(/[^A-Za-z0-9_-]+/).filter(Boolean)
-    .sort((a, b) => b.length - a.length);
-  return tokens[0] || "";
+
+    // Then the last meaningful path segment, skipping route names.
+    const parts = url.pathname.split("/").filter(Boolean);
+    for (let i = parts.length - 1; i >= 0; i--) {
+      let seg = parts[i];
+      try { seg = decodeURIComponent(seg); } catch { /* keep raw */ }
+      seg = seg.trim();
+      if (!seg || NON_ORDER_SEGMENTS.has(seg.toLowerCase())) continue;
+      if (/^[A-Za-z0-9_-]{4,}$/.test(seg)) return seg;
+    }
+  } catch {
+    // not a URL — fall through
+  }
+
+  // 2) JSON form.
+  try {
+    const obj = JSON.parse(payload);
+    if (obj && typeof obj === "object" && !Array.isArray(obj)) {
+      for (const key of Object.keys(obj)) {
+        if (ORDER_PARAM_KEYS.includes(key.toLowerCase())) {
+          const v = String(obj[key] ?? "").trim();
+          if (v) return v;
+        }
+      }
+    }
+  } catch {
+    // not JSON — fall through
+  }
+
+  // 3) Bare value, or last-resort scrape. Order numbers in this system are
+  // numeric, so prefer a numeric token over merely the longest one.
+  const tokens = String(payload).split(/[^A-Za-z0-9_-]+/).filter(Boolean);
+  const numeric = tokens.find((t) => /^\d{4,}$/.test(t));
+  if (numeric) return numeric;
+  return tokens.slice().sort((a, b) => b.length - a.length)[0] || "";
 }
 
 export {
