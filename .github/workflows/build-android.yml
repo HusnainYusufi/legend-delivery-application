@@ -75,6 +75,13 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
+      # The android/ folder is deleted and regenerated above, which discards any
+      # committed launcher icons — every previous build therefore shipped the
+      # stock Capacitor icon. Regenerate them here, from assets/, so the branded
+      # icon actually reaches the APK.
+      - name: Generate app icons
+        run: npx @capacitor/assets generate --android --assetPath assets
+
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:

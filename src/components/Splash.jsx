@@ -11,6 +11,7 @@ export default function Splash() {
   const logoRef = useRef(null);
   const brandRef = useRef(null);
   const taglineRef = useRef(null);
+  const poweredRef = useRef(null);
   const lineRef = useRef(null);
   const dotRef = useRef(null);
 
@@ -63,6 +64,13 @@ export default function Splash() {
       "-=0.15"
     );
 
+    // Attribution — trails the tagline so the brand mark lands first.
+    tl.fromTo(poweredRef.current,
+      { y: 8, opacity: 0 },
+      { y: 0, opacity: 1, duration: 0.35 },
+      "-=0.15"
+    );
+
     // Bottom progress bar
     tl.fromTo(lineRef.current,
       { scaleX: 0 },
@@ -112,6 +120,12 @@ export default function Splash() {
         {/* Tagline */}
         <p ref={taglineRef} className="splash-tagline" style={{ opacity: 0 }}>
           Delivery Intelligence Platform
+        </p>
+
+        {/* Attribution — has its own ref and tween so it trails the tagline
+            rather than competing with it. */}
+        <p ref={poweredRef} className="splash-powered-by" style={{ opacity: 0 }}>
+          Powered by <span className="splash-powered-by-brand">LEGEND SLEEP</span>
         </p>
 
         {/* Progress line */}
