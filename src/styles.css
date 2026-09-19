@@ -465,3 +465,46 @@ body.overflow-hidden { overflow: hidden; }
    Utility
    ============================================================ */
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* Attribution under the splash tagline. Deliberately dimmer and smaller than
+   the tagline so it reads as a footnote to the SHAHEENE mark, not a second
+   headline competing with it. */
+.splash-powered-by {
+  font-size: 0.625rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.28);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  margin: 0;
+  margin-top: -24px;
+  margin-bottom: 32px;
+}
+
+.splash-powered-by-brand {
+  color: rgba(255, 204, 2, 0.75);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+}
+
+/* Persistent attribution pinned to the bottom of the navigation drawer, so it
+   remains reachable after the splash has gone. */
+.drawer-powered-by {
+  margin-top: auto;
+  padding: 18px 20px 22px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #9a9a9a;
+  text-align: center;
+}
+
+.drawer-powered-by strong {
+  display: block;
+  margin-top: 3px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: #222222;
+}

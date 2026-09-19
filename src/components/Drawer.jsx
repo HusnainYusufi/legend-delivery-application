@@ -68,7 +68,7 @@ export default function Drawer({
         role="presentation"
       />
       <div
-        className={`fixed top-0 ${isRTL ? "left-0" : "right-0"} h-full w-64 bg-white dark:bg-slate-800 shadow-xl z-[101] ${
+        className={`fixed top-0 ${isRTL ? "left-0" : "right-0"} h-full w-64 bg-white dark:bg-slate-800 shadow-xl z-[101] flex flex-col ${
           isOpen ? "animate-slide-in" : isRTL ? "animate-slide-out-left" : "animate-slide-out-right"
         }`}
       >
@@ -83,7 +83,9 @@ export default function Drawer({
           </button>
         </div>
 
-        <div className="p-2">
+        {/* Scrolls independently so a long menu never pushes the attribution
+            off the bottom of the panel. */}
+        <div className="p-2 flex-1 overflow-y-auto">
           {isAuthenticated ? (
             <>
               <button
@@ -171,6 +173,14 @@ export default function Drawer({
               <span className="text-base">{t("login")}</span>
             </button>
           )}
+        </div>
+
+        {/* Persistent attribution. The splash carries this too, but only for a
+            few seconds at launch — this keeps it reachable for the life of the
+            session. */}
+        <div className="drawer-powered-by">
+          {t("powered_by")}
+          <strong>LEGEND SLEEP</strong>
         </div>
       </div>
     </div>
