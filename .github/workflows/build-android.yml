@@ -82,11 +82,22 @@ jobs:
       - name: Generate app icons
         run: npx @capacitor/assets generate --android --assetPath assets
 
+      # setup-android@v3 takes `packages`, not `api-level`/`build-tools` — those
+      # were silently ignored, so it fell back to its default of `tools`, a
+      # package Google has since removed from the SDK repository. That is what
+      # started failing with "Failed to find package 'tools'".
+      #
+      # `packages: ''` installs cmdline-tools only; the Gradle Android plugin
+      # then resolves the exact platform and build-tools it needs, which are
+      # already declared in android/variables.gradle.
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
-          api-level: 35
-          build-tools: "35.0.0"
+          packages: ''
+
+      - name: Install required SDK packages
+        run: |
+          sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
       - name: Make Gradle executable
         run: chmod +x android/gradlew
