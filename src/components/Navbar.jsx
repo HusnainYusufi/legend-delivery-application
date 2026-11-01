@@ -2,13 +2,38 @@
 import React, { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { gsap } from "gsap";
-import { Home, ClipboardList, QrCode, CheckCircle, User, X, LogOut, Globe } from "lucide-react";
+import { Home, ClipboardList, QrCode, CheckCircle, User, X, LogOut, Globe, Trash2, Mail, FileText } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { backdrop, sheet } from "../lib/motion.js";
+import { getAuth } from "../lib/auth.js";
+
+// Account deletion is handled by support within 24 hours (see the policy page).
+const SUPPORT_EMAIL = "support@legendsleepsa.com";
+const DELETE_PAGE = (lang) => `https://tracking.shaheene.com/legal/delete-account-${lang === "ar" ? "ar" : "en"}.html`;
+
+// The Capacitor WebView hands mailto: and external https: links to the system
+// (mail app / browser) when the page navigates to them.
+const openExternal = (url) => { window.location.href = url; };
+
 
 export default function BottomTabBar({ view, setView, isDriver = false, onLogout, language, onChangeLanguage }) {
   const { t } = useTranslation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+
+  const requestDeletion = () => {
+    const a = getAuth() || {};
+    const subject = "Delete my Shaheen Driver account";
+    const body = [
+      "Please delete my Shaheen Driver account.",
+      "",
+      `Account email: ${a.email || ""}`,
+      `Name: ${a.name || ""}`,
+      `User ID: ${a.userId || ""}`,
+    ].join("\n");
+    openExternal(`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
+  };
+
   const navRef = useRef(null);
 
   useEffect(() => {
@@ -125,8 +150,80 @@ export default function BottomTabBar({ view, setView, isDriver = false, onLogout
                   </div>
                   <span className="font-semibold text-[#ffcc02] text-[15px]">{t("logout") || "Logout"}</span>
                 </motion.button>
+
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => { setMenuOpen(false); setDeleteOpen(true); }}
+                  className="flex items-center gap-3 w-full py-4 border-t border-[#EBEBEB]"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center">
+                    <Trash2 size={18} className="text-[#d50412]" />
+                  </div>
+                  <span className="font-semibold text-[#d50412] text-[15px]">{t("delete_account")}</span>
+                </motion.button>
               </div>
 
+              <div className="h-[env(safe-area-inset-bottom,16px)]" />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {deleteOpen && (
+          <motion.div
+            key="delete-backdrop"
+            variants={backdrop}
+            initial="hidden"
+            animate="show"
+            exit="exit"
+            className="fixed inset-0 z-[110] bg-black/50 flex items-end justify-center"
+            onClick={() => setDeleteOpen(false)}
+          >
+            <motion.div
+              key="delete-sheet"
+              variants={sheet}
+              initial="hidden"
+              animate="show"
+              exit="exit"
+              className="w-full max-w-[480px] bg-white rounded-t-2xl overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="w-10 h-1 bg-[#EBEBEB] rounded-full mx-auto mt-3 mb-0" />
+              <div className="px-5 pt-4 pb-2 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
+                  <Trash2 size={20} className="text-[#d50412]" />
+                </div>
+                <h3 className="font-bold text-[17px] text-[var(--text)]">{t("delete_account")}</h3>
+              </div>
+              <div className="px-5 pb-2 text-[14px] leading-relaxed text-[var(--muted)]">
+                <p>{t("delete_account_body")}</p>
+                <p className="mt-2">
+                  {t("delete_account_email")}{" "}
+                  <span dir="ltr" className="font-semibold text-[var(--text)] select-all">{SUPPORT_EMAIL}</span>
+                </p>
+              </div>
+              <div className="px-5 py-3 flex flex-col gap-2">
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  onClick={requestDeletion}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl py-3 font-semibold text-white bg-[#d50412]"
+                >
+                  <Mail size={18} /> {t("delete_account_send")}
+                </motion.button>
+                <button
+                  onClick={() => openExternal(DELETE_PAGE(language))}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl py-3 font-semibold text-[var(--text)] bg-[#F5F5F5]"
+                >
+                  <FileText size={18} /> {t("delete_account_policy")}
+                </button>
+                <button
+                  onClick={() => setDeleteOpen(false)}
+                  className="w-full py-3 font-semibold text-[var(--muted)]"
+                >
+                  {t("cancel")}
+                </button>
+              </div>
               <div className="h-[env(safe-area-inset-bottom,16px)]" />
             </motion.div>
           </motion.div>
