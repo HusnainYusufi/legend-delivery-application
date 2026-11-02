@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 import { loginRequest } from "../lib/api.js";
 import { decodeJwt } from "../lib/auth.js";
 import { backdrop, sheet } from "../lib/motion.js";
-import logoUrl from "/sh-logo.png";
+import wordmarkUrl from "/shaheen-wordmark.png";
 
 function ModalContent({ onClose, onLogin }) {
   const { t } = useTranslation();
@@ -78,8 +78,7 @@ function ModalContent({ onClose, onLogin }) {
         <div className="px-6 pt-4 pb-8">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              <img src={logoUrl} alt="SHAHEENE" className="h-9 w-9 object-contain" />
-              <span className="text-lg font-bold text-[#222222]">{t("brand")}</span>
+              <img src={wordmarkUrl} alt="SHAHEEN" className="h-7 w-auto" />
             </div>
             <button
               type="button"
