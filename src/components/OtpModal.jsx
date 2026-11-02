@@ -86,8 +86,8 @@ export default function OtpModal({ open, orderNo, onClose, onSubmit, loading = f
                 </motion.div>
               )}
 
-              {/* Numpad */}
-              <div className="mt-5 grid grid-cols-3 gap-2.5">
+              {/* Numpad. Phone keypad order (1 2 3 top-left) in both languages. */}
+              <div dir="ltr" className="mt-5 grid grid-cols-3 gap-2.5">
                 {[1,2,3,4,5,6,7,8,9].map((n) => (
                   <motion.button
                     key={n}
