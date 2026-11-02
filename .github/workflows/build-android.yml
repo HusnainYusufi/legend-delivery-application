@@ -8,6 +8,9 @@ on:
 jobs:
   build-android:
     runs-on: ubuntu-latest
+    env:
+      KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+      KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -18,50 +21,30 @@ jobs:
           distribution: temurin
           java-version: 21
 
-      # ── Release keystore ─────────────────────────────────────────────────────
-      # First run (no secret): generates a keystore, prints its base64 in logs.
-      # Copy that base64 value → GitHub repo Settings → Secrets → Actions →
-      # New secret named RELEASE_KEYSTORE_BASE64.
-      # The passwords default to "legend123" — change via KEYSTORE_PASSWORD /
-      # KEY_PASSWORD secrets if you want something different.
+      # ── Upload key ───────────────────────────────────────────────────────────
+      # Play App Signing: Google holds the app signing key; we sign with the
+      # upload key stored in RELEASE_KEYSTORE_BASE64 (PKCS12, alias "upload").
+      # This repo is public, so build logs are public: never generate, print or
+      # default a key here. No secret means no release build.
       # ─────────────────────────────────────────────────────────────────────────
-      - name: Restore or create release keystore
+      - name: Restore upload keystore
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
         run: |
-          mkdir -p /tmp/keystore
-          KS=/tmp/keystore/release.keystore
-          if [ -n "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" ]; then
-            echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 -d > "$KS"
-            echo "Using stored release keystore from secret."
-          else
-            keytool -genkeypair -v \
-              -keystore "$KS" \
-              -storepass legend123 \
-              -alias legend-release \
-              -keypass legend123 \
-              -keyalg RSA \
-              -keysize 2048 \
-              -validity 10000 \
-              -dname "CN=Legend Delivery,O=Legend,C=SA" \
-              -noprompt
-            echo ""
-            echo "========================================================="
-            echo "  IMPORTANT: No RELEASE_KEYSTORE_BASE64 secret found."
-            echo "  Copy the base64 string below and save it as a GitHub"
-            echo "  secret named RELEASE_KEYSTORE_BASE64. Every future"
-            echo "  release MUST be signed with the same key — if you lose"
-            echo "  it, you cannot update the app on the Play Store."
-            echo "========================================================="
-            base64 -w 0 "$KS"
-            echo ""
+          if [ -z "$RELEASE_KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORD" ] || [ -z "$KEY_PASSWORD" ]; then
+            echo "::error::RELEASE_KEYSTORE_BASE64, KEYSTORE_PASSWORD and KEY_PASSWORD secrets are required."
+            exit 1
           fi
+          printf '%s' "$RELEASE_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/upload.p12"
 
+      # Capacitor 8 needs Node 22+.
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 22
 
       - name: Install deps
-        run: npm ci || npm install
+        run: npm ci
 
       - name: Build web (Vite)
         run: npm run build
@@ -97,43 +80,50 @@ jobs:
 
       - name: Install required SDK packages
         run: |
-          sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+          sdkmanager --install "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 
       - name: Make Gradle executable
         run: chmod +x android/gradlew
 
-      - name: Force compile/target SDK 35
+      # Google Play requires new apps and updates to target API 36 (Android 16)
+      # from 31 Aug 2026. The Capacitor 8 template already does; fail loudly if
+      # that ever changes rather than ship something Play will reject.
+      - name: Check target SDK
         run: |
-          if [ -f android/variables.gradle ]; then
-            sed -i 's/compileSdkVersion = [0-9]\+/compileSdkVersion = 35/' android/variables.gradle
-            sed -i 's/targetSdkVersion = [0-9]\+/targetSdkVersion = 35/' android/variables.gradle
-          fi
+          grep -E 'targetSdkVersion = 36' android/variables.gradle
+          grep -E 'compileSdkVersion = 36' android/variables.gradle
 
-      - name: Suppress unsupported compileSdk warning
-        run: echo "android.suppressUnsupportedCompileSdk=35" >> android/gradle.properties
+      # Play rejects an upload whose versionCode is not higher than the last one.
+      - name: Set version
+        run: |
+          VERSION_NAME=$(node -p "require('./package.json').version")
+          VERSION_CODE=${{ github.run_number }}
+          sed -i -E "s/versionCode [0-9]+/versionCode $VERSION_CODE/" android/app/build.gradle
+          sed -i -E "s/versionName \"[^\"]*\"/versionName \"$VERSION_NAME\"/" android/app/build.gradle
+          grep -E 'versionCode|versionName' android/app/build.gradle
 
       - name: Ensure CAMERA permission
         run: |
           MANIFEST=android/app/src/main/AndroidManifest.xml
-          sed -i '/<manifest[^>]*>/a\    <uses-permission android:name="android.permission.CAMERA" />' "$MANIFEST"
+          grep -q 'android.permission.CAMERA' "$MANIFEST" || \
+            sed -i '/<manifest[^>]*>/a\    <uses-permission android:name="android.permission.CAMERA" />' "$MANIFEST"
+
+      # The driver's login token lives in WebView storage; keep it out of
+      # Android cloud/device backups.
+      - name: Disable app backup
+        run: sed -i 's/android:allowBackup="true"/android:allowBackup="false"/' android/app/src/main/AndroidManifest.xml
 
       - name: Configure release signing
         run: |
-          KS=/tmp/keystore/release.keystore
-          STOREPASS="${{ secrets.KEYSTORE_PASSWORD }}"
-          KEYPASS="${{ secrets.KEY_PASSWORD }}"
-          # Fall back to default password if secrets not set
-          [ -z "$STOREPASS" ] && STOREPASS="legend123"
-          [ -z "$KEYPASS" ]   && KEYPASS="legend123"
-
           cat >> android/app/build.gradle << EOF
 
           android.signingConfigs {
             release {
-              storeFile file("$KS")
-              storePassword "$STOREPASS"
-              keyAlias "legend-release"
-              keyPassword "$KEYPASS"
+              storeFile file("$RUNNER_TEMP/upload.p12")
+              storeType "pkcs12"
+              storePassword System.getenv("KEYSTORE_PASSWORD")
+              keyAlias "upload"
+              keyPassword System.getenv("KEY_PASSWORD")
             }
           }
           android.buildTypes.release.signingConfig android.signingConfigs.release
@@ -142,6 +132,13 @@ jobs:
       - name: Build release AAB + APK
         working-directory: android
         run: ./gradlew bundleRelease assembleRelease
+
+      # Prints only public facts: the upload certificate fingerprint (compare
+      # with the one registered in Play Console) and the permissions requested.
+      - name: Verify signature and permissions
+        run: |
+          keytool -printcert -jarfile android/app/build/outputs/bundle/release/app-release.aab | grep -E 'Owner|SHA256'
+          "$ANDROID_HOME/build-tools/36.0.0/aapt2" dump badging android/app/build/outputs/apk/release/app-release.apk | grep -E "^package|targetSdkVersion|uses-permission|application-label"
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4

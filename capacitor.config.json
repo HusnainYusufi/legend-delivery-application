@@ -1,6 +1,8 @@
 {
   "appId": "com.legend.delivery",
-  "appName": "SHAHEEN",
+  "appName": "Shaheen Driver",
   "webDir": "dist",
-  "server": { "androidScheme": "https" }
+  "server": {
+    "androidScheme": "https"
+  }
 }

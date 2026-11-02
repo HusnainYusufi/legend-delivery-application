@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { gsap } from "gsap";
 import { BadgeCheck, QrCode, PackageCheck, ScanLine, ArrowRight, Box, Truck, Clock } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import logoUrl from "/sh-logo.png";
+import iconUrl from "/shaheen-icon.png";
 
 const STATS = [
   { labelKey: "dashboard_stat_active",    value: 128, icon: Truck,  accent: "#ffcc02" },
@@ -69,9 +69,7 @@ export default function Dashboard({ isDriver = false, onTrackOrder, onOrders, on
       <div ref={heroRef} className="dash-hero">
         <div className="dash-hero-inner">
           <div className="flex items-center gap-3 mb-6">
-            <div className="dash-logo-ring">
-              <img src={logoUrl} alt="SHAHEENE" className="h-8 w-8 object-contain" />
-            </div>
+            <img src={iconUrl} alt="SHAHEEN" className="h-11 w-11 rounded-[14px] flex-shrink-0" />
             <div>
               <p className="text-[12px] font-medium text-white/50 uppercase tracking-widest">
                 {t("dashboard_live_value")}

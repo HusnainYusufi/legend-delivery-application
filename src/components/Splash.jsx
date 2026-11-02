@@ -2,7 +2,7 @@
 import React, { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { gsap } from "gsap";
-import logoUrl from "/sh-logo.png";
+import logoUrl from "/shaheen-icon.png";
 
 const LETTERS = "SHAHEENE".split("");
 

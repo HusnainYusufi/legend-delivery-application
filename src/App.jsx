@@ -17,7 +17,7 @@ import { CONFIG, apiFetch, parseOrderNumberFromScan } from "./lib/api.js";
 import { ensureCameraPermission, startWebQrScanner, openAppSettings, scanImageFile } from "./lib/scanner.js";
 import { getAuth as loadAuth, setAuth as persistAuth, clearAuth as purgeAuth } from "./lib/auth.js";
 import { page as pageVariants } from "./lib/motion.js";
-import logoUrl from "/sh-logo.png";
+import wordmarkUrl from "/shaheen-wordmark.png";
 
 export default function App() {
   const { t, i18n } = useTranslation();
@@ -168,8 +168,7 @@ export default function App() {
       {!isAuthenticated && (
         <div className="top-mini-bar">
           <div className="flex items-center gap-2">
-            <img src={logoUrl} alt="SHAHEENE" className="h-7 w-7 object-contain" />
-            <span className="font-bold text-[15px] text-[#222222]">SHAHEENE</span>
+            <img src={wordmarkUrl} alt="SHAHEEN" className="h-5 w-auto" />
           </div>
           <div className="flex items-center gap-3">
             <select
