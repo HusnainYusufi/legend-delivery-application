@@ -58,8 +58,8 @@ export default function OtpModal({ open, orderNo, onClose, onSubmit, loading = f
               <p className="text-sm text-[#717171] text-center">{t("enter_otp_for")}</p>
               <p className="text-base font-semibold text-[#222222] text-center mt-0.5 break-all">{orderNo}</p>
 
-              {/* OTP boxes */}
-              <div className="flex items-center justify-center gap-3 mt-5">
+              {/* OTP boxes. Digits always fill left to right, also in Arabic. */}
+              <div dir="ltr" className="flex items-center justify-center gap-3 mt-5">
                 {digits.map((d, i) => (
                   <motion.div
                     key={i}

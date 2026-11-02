@@ -2,7 +2,7 @@
 import React, { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { gsap } from "gsap";
-import logoUrl from "/shaheen-icon.png";
+import logoUrl from "/app-icon.png";
 
 const LETTERS = "SHAHEENE".split("");
 
@@ -110,8 +110,9 @@ export default function Splash() {
           <img src={logoUrl} alt="SHAHEENE" className="splash-logo-img" />
         </div>
 
-        {/* Brand letters */}
-        <div ref={brandRef} className="splash-brand-row" aria-label="SHAHEENE">
+        {/* Brand letters. dir="ltr" keeps the Latin wordmark in order when the
+            app runs in Arabic (RTL would lay the letter spans out reversed). */}
+        <div ref={brandRef} className="splash-brand-row" dir="ltr" aria-label="SHAHEENE">
           {LETTERS.map((l, i) => (
             <span key={i} className="sp-letter splash-letter">{l}</span>
           ))}
