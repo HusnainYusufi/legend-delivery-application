@@ -2,13 +2,14 @@
 import React, { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { gsap } from "gsap";
-import { Home, ClipboardList, QrCode, CheckCircle, User, X, LogOut, Globe, Trash2, Mail, FileText } from "lucide-react";
+import { Home, ClipboardList, QrCode, CheckCircle, User, X, LogOut, Globe, Trash2, Mail, FileText, ShieldCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { backdrop, sheet } from "../lib/motion.js";
 import { getAuth } from "../lib/auth.js";
 
 // Account deletion is handled by support within 24 hours (see the policy page).
 const SUPPORT_EMAIL = "support@legendsleepsa.com";
+const PRIVACY_PAGE = "https://shaheene.com/privacy";
 const DELETE_PAGE = (lang) => `https://tracking.shaheene.com/legal/delete-account-${lang === "ar" ? "ar" : "en"}.html`;
 
 // The Capacitor WebView hands mailto: and external https: links to the system
@@ -139,6 +140,17 @@ export default function BottomTabBar({ view, setView, isDriver = false, onLogout
                     <option value="ar">العربية</option>
                   </select>
                 </div>
+
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => { setMenuOpen(false); openExternal(PRIVACY_PAGE); }}
+                  className="flex items-center gap-3 w-full py-4 border-b border-[#EBEBEB]"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-[#F5F5F5] flex items-center justify-center">
+                    <ShieldCheck size={18} className="text-[var(--muted)]" />
+                  </div>
+                  <span className="font-medium text-[var(--text)]">{t("privacy_policy")}</span>
+                </motion.button>
 
                 <motion.button
                   whileTap={{ scale: 0.97 }}
