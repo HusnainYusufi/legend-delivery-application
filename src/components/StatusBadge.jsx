@@ -14,10 +14,12 @@ const STATUS_MAP = {
 
 const DEFAULT = { bg: "#F9FAFB", text: "#374151", dot: "#9CA3AF" };
 
-export default function StatusBadge({ value }) {
+// `manual`: delivered by hand, not through the delivery pipeline -> "Delivered - M".
+export default function StatusBadge({ value, manual = false }) {
   const key = String(value || "").toUpperCase().replace(/\s+/g, "_");
   const s = STATUS_MAP[key] || DEFAULT;
-  const label = s.label || key.replace(/_/g, " ");
+  const base = s.label || key.replace(/_/g, " ");
+  const label = manual && key === "DELIVERED" ? `${base} - M` : base;
 
   return (
     <span
