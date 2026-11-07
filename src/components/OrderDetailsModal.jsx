@@ -49,7 +49,7 @@ export default function OrderDetailsModal({ open, onClose, order }) {
                   <div className="text-xs text-[#717171] mb-0.5">Order</div>
                   <div className="text-lg font-bold text-[#222222] break-all">{safe(order.orderNo)}</div>
                 </div>
-                <StatusBadge value={order.currentStatus || order.orderStatus} />
+                <StatusBadge value={order.currentStatus || order.orderStatus} manual={!!order.deliveredManually} />
               </div>
 
               {/* Info rows */}

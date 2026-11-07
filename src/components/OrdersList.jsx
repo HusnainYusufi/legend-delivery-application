@@ -284,7 +284,7 @@ export default function OrdersList({ showDeliveredOnly = false }) {
                 <div className="p-4">
                   {/* Top row: status + date */}
                   <div className="flex items-center justify-between mb-2">
-                    <StatusBadge value={pStatus || o.currentStatus} />
+                    <StatusBadge value={pStatus || o.currentStatus} manual={!pStatus && !!o.deliveredManually} />
                     {dateStr && <span className="text-xs text-[var(--muted)]">{dateStr}</span>}
                   </div>
 

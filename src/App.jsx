@@ -260,7 +260,7 @@ export default function App() {
                         {t("tracking_number")}: <span className="font-semibold text-[#222222]">{current.trackingNumber}</span>
                       </p>
                     </div>
-                    <StatusBadge value={current.currentStatus} />
+                    <StatusBadge value={current.currentStatus} manual={!!current.deliveredManually} />
                   </div>
                 </motion.div>
               )}
