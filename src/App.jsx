@@ -1,23 +1,22 @@
 // src/App.jsx
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Camera as CameraIcon, Loader2, QrCode, RefreshCcw, XCircle, LogIn, CheckCircle } from "lucide-react";
+import { Camera as CameraIcon, Loader2, QrCode, RefreshCcw, XCircle, CheckCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import BottomTabBar from "./components/Navbar.jsx";
 import Splash from "./components/Splash.jsx";
 import ScannerOverlay from "./components/ScannerOverlay.jsx";
 import StatusBadge from "./components/StatusBadge.jsx";
-import LoginModal from "./components/LoginModal";
+import { LoginScreen } from "./components/LoginModal";
 import OrdersList from "./components/OrdersList.jsx";
 import ScanClaim from "./components/ScanClaim.jsx";
 import Dashboard from "./components/Dashboard.jsx";
 
-import { CONFIG, apiFetch, parseOrderNumberFromScan } from "./lib/api.js";
+import { CONFIG, apiFetch, parseOrderNumberFromScan, AUTH_EXPIRED_EVENT } from "./lib/api.js";
 import { ensureCameraPermission, startWebQrScanner, openAppSettings, scanImageFile } from "./lib/scanner.js";
 import { getAuth as loadAuth, setAuth as persistAuth, clearAuth as purgeAuth } from "./lib/auth.js";
 import { page as pageVariants } from "./lib/motion.js";
-import wordmarkUrl from "/shaheen-wordmark.png";
 
 export default function App() {
   const { t, i18n } = useTranslation();
@@ -36,7 +35,8 @@ export default function App() {
     return () => clearTimeout(tm);
   }, []);
 
-  const [view, setView] = useState("home");
+  // Signed-in users start on their dashboard; nobody else gets past the login screen.
+  const [view, setView] = useState("dashboard");
 
   const [isScanning, setIsScanning] = useState(false);
   const [scanError, setScanError] = useState("");
@@ -51,12 +51,13 @@ export default function App() {
   const [current, setCurrent] = useState(null);
   const [toast, setToast] = useState(null);
 
-  const [auth, setAuthState] = useState(null);
+  // Read the saved session before the first render, so the login screen never
+  // flashes for someone who is already signed in (expired sessions read as null).
+  const [auth, setAuthState] = useState(() => loadAuth());
   const isAuthenticated = !!auth?.token;
   const role = auth?.role || auth?.userType || null;
   const isDriver = role && String(role).toLowerCase() === "driver";
 
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const toastTimer = useRef(null);
 
   const showToast = (type, msg, duration = 2000) => {
@@ -66,17 +67,21 @@ export default function App() {
   };
   useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
 
+  // The server rejected our token (expired / revoked): back to the login screen.
   useEffect(() => {
-    try {
-      const saved = loadAuth();
-      if (saved?.token) { setAuthState(saved); setView("dashboard"); }
-    } catch { /* corrupted storage — stay on home */ }
+    const onExpired = () => {
+      setAuthState(null);
+      setView("dashboard");
+      showToast("error", t("session_expired"), 3000);
+    };
+    window.addEventListener(AUTH_EXPIRED_EVENT, onExpired);
+    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, onExpired);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleLogin = (authData) => {
     persistAuth(authData);
     setAuthState(authData);
-    setIsLoginModalOpen(false);
     setView("dashboard");
     showToast("success", "Logged in");
   };
@@ -84,7 +89,7 @@ export default function App() {
   const handleLogout = () => {
     purgeAuth();
     setAuthState(null);
-    setView("home");
+    setView("dashboard");
     showToast("success", "Logged out");
   };
 
@@ -164,33 +169,13 @@ export default function App() {
     <div className="app-shell">
       <AnimatePresence>{showSplash && <Splash key="splash" />}</AnimatePresence>
 
-      {/* Unauthenticated top bar */}
+      {/* Nothing but the login screen until someone signs in */}
       {!isAuthenticated && (
-        <div className="top-mini-bar">
-          <div className="flex items-center gap-2">
-            <img src={wordmarkUrl} alt="SHAHEEN" className="h-5 w-auto" />
-          </div>
-          <div className="flex items-center gap-3">
-            <select
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-              className="border border-[#DDDDDD] rounded-lg px-2.5 py-1.5 text-sm font-medium text-[#222222] bg-white outline-none"
-            >
-              <option value="en">EN</option>
-              <option value="ar">AR</option>
-            </select>
-            <button
-              onClick={() => setIsLoginModalOpen(true)}
-              className="btn-primary btn px-4 py-2 text-sm"
-            >
-              <LogIn size={16} />
-              {t("login")}
-            </button>
-          </div>
-        </div>
+        <LoginScreen onLogin={handleLogin} language={language} onChangeLanguage={setLanguage} />
       )}
 
       {/* View container with AnimatePresence page transitions */}
+      {isAuthenticated && (
       <main className="content">
         <AnimatePresence mode="wait">
           {view === "home" && (
@@ -313,6 +298,7 @@ export default function App() {
           )}
         </AnimatePresence>
       </main>
+      )}
 
       {/* Bottom tab bar */}
       {isAuthenticated && (
@@ -326,16 +312,9 @@ export default function App() {
         />
       )}
 
-      {/* Login modal */}
-      <AnimatePresence>
-        {isLoginModalOpen && (
-          <LoginModal key="login" onClose={() => setIsLoginModalOpen(false)} onLogin={handleLogin} />
-        )}
-      </AnimatePresence>
-
       <ScannerOverlay
         key={scannerKey}
-        visible={isScanning}
+        visible={isAuthenticated && isScanning}
         onClose={async () => { await stopScanner(); setIsScanning(false); }}
         scannerDivId={scannerDivId}
         title={t("scan")}

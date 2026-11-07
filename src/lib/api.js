@@ -1,5 +1,8 @@
 // src/lib/api.js
-import { getAuth } from "./auth.js";
+import { getAuth, clearAuth } from "./auth.js";
+
+/** Fired when the server rejects our token; App returns to the login screen. */
+export const AUTH_EXPIRED_EVENT = "ld-auth-expired";
 
 // Use your main API for ALL standard endpoints
 const API_BASE = "https://api.shaheene.com";
@@ -26,6 +29,15 @@ function fetchWithTimeout(url, options = {}, ms = DEFAULT_TIMEOUT) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), ms);
   return fetch(url, { ...options, signal: controller.signal })
+    .then((res) => {
+      // Token expired or revoked: sign out everywhere instead of failing call by call.
+      const authed = !!(options.headers && (options.headers.Authorization || options.headers.authorization));
+      if (res.status === 401 && authed) {
+        clearAuth();
+        window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT));
+      }
+      return res;
+    })
     .catch((err) => {
       if (err.name === "AbortError") {
         throw new Error(`Request timed out after ${ms / 1000}s — server not responding.`);

@@ -7,6 +7,11 @@ export function getAuth() {
     if (!raw) return null;
     const obj = JSON.parse(raw);
     if (!obj?.token) return null;
+    // Expired session: forget it so the app opens on the login screen.
+    if (obj.exp && obj.exp * 1000 <= Date.now()) {
+      localStorage.removeItem(STORAGE_KEY);
+      return null;
+    }
     return obj;
   } catch {
     return null;
