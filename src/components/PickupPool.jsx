@@ -25,6 +25,7 @@ import {
   fetchMyInTransit,
   claimPickupByOrderNo,
   sendOrderOtp,
+  errorText,
 } from "../lib/api.js";
 
 const safe = (v, fb = "-") => (v === null || v === undefined ? fb : String(v));
@@ -230,17 +231,17 @@ export default function PickupPool() {
             const orderNo = parseOrderNumberFromScan(decoded);
             if (!orderNo) return;
             try {
-              await claimPickupByOrderNo(orderNo);
-              setToast({ type: "success", msg: t("claimed_success") || "Claimed!" });
+              const claim = await claimPickupByOrderNo(orderNo);
+              setToast({ type: "success", msg: claim?.alreadyClaimed ? t("already_claimed") : (t("claimed_success") || "Claimed!") });
               if (toastTimer.current) clearTimeout(toastTimer.current);
               toastTimer.current = setTimeout(() => setToast(null), 2000);
               await loadPool({ reset: true });
               await loadMine({ reset: true });
             } catch (err) {
-              setError(err?.message || "Claim failed");
+              setError(errorText(err, "Claim failed"));
             }
           },
-          (err) => { setError(err || t("camera_init_failed")); setScanOpen(false); }
+          (err) => { setError(errorText(err, t("camera_init_failed"))); setScanOpen(false); }
         );
         scannerRef.current = s;
       } catch { setError(t("camera_init_failed")); setScanOpen(false); }

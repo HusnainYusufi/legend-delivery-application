@@ -13,7 +13,7 @@ import OrdersList from "./components/OrdersList.jsx";
 import ScanClaim from "./components/ScanClaim.jsx";
 import Dashboard from "./components/Dashboard.jsx";
 
-import { CONFIG, apiFetch, parseOrderNumberFromScan, AUTH_EXPIRED_EVENT } from "./lib/api.js";
+import { CONFIG, apiFetch, parseOrderNumberFromScan, AUTH_EXPIRED_EVENT, errorText } from "./lib/api.js";
 import { ensureCameraPermission, startWebQrScanner, openAppSettings, scanImageFile } from "./lib/scanner.js";
 import { getAuth as loadAuth, setAuth as persistAuth, clearAuth as purgeAuth } from "./lib/auth.js";
 import { page as pageVariants } from "./lib/motion.js";
@@ -117,7 +117,7 @@ export default function App() {
             await stopScanner();
             setIsScanning(false);
           },
-          (err) => { setScanError(err || t("camera_init_failed")); setIsScanning(false); }
+          (err) => { setScanError(errorText(err, t("camera_init_failed"))); setIsScanning(false); }
         );
         scannerRef.current = s;
       } catch { setScanError(t("camera_init_failed")); setIsScanning(false); }
