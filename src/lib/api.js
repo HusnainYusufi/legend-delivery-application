@@ -18,6 +18,23 @@ const CONFIG = {
   },
 };
 
+/**
+ * The server's error text. The API sends errors as { error: { message } }
+ * (older routes as { message }); reading `data.error` as text printed
+ * "[object Object]" to drivers.
+ */
+function serverMessage(data) {
+  const pick = (v) => (typeof v === "string" ? v : v && typeof v.message === "string" ? v.message : "");
+  return pick(data?.message) || pick(data?.error) || "";
+}
+
+/** Any thrown / callback error as readable text (never "[object Object]"). */
+export function errorText(err, fallback = "") {
+  if (!err) return fallback;
+  if (typeof err === "string") return err;
+  return err.message || serverMessage(err) || fallback;
+}
+
 /** Default request timeout in ms */
 const DEFAULT_TIMEOUT = 15000;
 
@@ -74,7 +91,7 @@ async function loginRequest(email, password) {
 
   if (!res.ok || !okByBody || !data?.token) {
     const serverMsg =
-      (data && (data.message || data.error)) ||
+      serverMessage(data) ||
       (rawText && rawText.slice(0, 300)) ||
       "";
     const msg = `Login failed${res.status ? ` (${res.status})` : ""}${serverMsg ? ` — ${serverMsg}` : ""}`;
@@ -114,7 +131,7 @@ async function fetchAssignedOrders({
     typeof data?.status === "number" ? data.status === 200 : res.ok;
   if (!res.ok || !okByBody) {
     const serverMsg =
-      (data && (data.message || data.error)) ||
+      serverMessage(data) ||
       (rawText && rawText.slice(0, 300)) ||
       "";
     throw new Error(
@@ -174,7 +191,7 @@ async function fetchAwaitingPickupOrders({
     typeof data?.status === "number" ? data.status === 200 : res.ok;
   if (!res.ok || !okBody) {
     const serverMsg =
-      (data && (data.message || data.error)) || (raw && raw.slice(0, 300)) || "";
+      serverMessage(data) || (raw && raw.slice(0, 300)) || "";
     throw new Error(
       `Pickup fetch failed (HTTP ${res.status}${
         res.statusText ? " " + res.statusText : ""
@@ -220,7 +237,7 @@ async function fetchMyInTransit({ page = 1, limit = 20 } = {}) {
     typeof data?.status === "number" ? data.status === 200 : res.ok;
   if (!res.ok || !okBody) {
     const serverMsg =
-      (data && (data.message || data.error)) || (raw && raw.slice(0, 300)) || "";
+      serverMessage(data) || (raw && raw.slice(0, 300)) || "";
     throw new Error(
       `My in-transit fetch failed (HTTP ${res.status}${
         res.statusText ? " " + res.statusText : ""
@@ -262,7 +279,7 @@ async function fetchMyDelivered({ page = 1, limit = 20 } = {}) {
     typeof data?.status === "number" ? data.status === 200 : res.ok;
   if (!res.ok || !okBody) {
     const serverMsg =
-      (data && (data.message || data.error)) || (raw && raw.slice(0, 300)) || "";
+      serverMessage(data) || (raw && raw.slice(0, 300)) || "";
     throw new Error(
       `My delivered fetch failed (HTTP ${res.status}${
         res.statusText ? " " + res.statusText : ""
@@ -314,7 +331,7 @@ async function sendOrderOtp(orderNo, packageId = null) {
     typeof data?.status === "number" ? data.status === 200 : res.ok;
   if (!res.ok || !okByBody) {
     const serverMsg =
-      (data && (data.message || data.error)) || (raw && raw.slice(0, 300)) || "";
+      serverMessage(data) || (raw && raw.slice(0, 300)) || "";
     throw new Error(
       `Send OTP failed (HTTP ${res.status}${
         res.statusText ? " " + res.statusText : ""
@@ -352,7 +369,7 @@ async function claimPickupByOrderNo(orderNo) {
 
   if (!res.ok || !okByBody) {
     const serverMsg =
-      (data && (data.message || data.error)) || (raw && raw.slice(0, 300)) || "";
+      serverMessage(data) || (raw && raw.slice(0, 300)) || "";
     throw new Error(
       `Claim failed (HTTP ${res.status}${
         res.statusText ? " " + res.statusText : ""
@@ -400,7 +417,7 @@ async function verifyOrderOtp(orderNo, code, pkgKey) {
 
   if (!res.ok || !okByBody) {
     const serverMsg =
-      (data && (data.message || data.error)) || (raw && raw.slice(0, 300)) || "";
+      serverMessage(data) || (raw && raw.slice(0, 300)) || "";
     throw new Error(
       `OTP verify failed (HTTP ${res.status}${
         res.statusText ? " " + res.statusText : ""
@@ -474,7 +491,7 @@ async function setDeliveryNote(orderNo, note) {
 
   if (!res.ok || !okByBody) {
     const serverMsg =
-      (data && (data.message || data.error)) || (raw && raw.slice(0, 300)) || "";
+      serverMessage(data) || (raw && raw.slice(0, 300)) || "";
     throw new Error(
       `Set delivery note failed (HTTP ${res.status}${
         res.statusText ? " " + res.statusText : ""

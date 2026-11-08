@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Camera, QrCode, Loader2, ArrowLeft, CheckCircle } from "lucide-react";
 import ScannerOverlay from "./ScannerOverlay.jsx";
 import { ensureCameraPermission, startWebQrScanner } from "../lib/scanner.js";
-import { parseOrderNumberFromScan, claimPickupByOrderNo } from "../lib/api.js";
+import { parseOrderNumberFromScan, claimPickupByOrderNo, errorText } from "../lib/api.js";
 
 export default function ScanClaim({ onBack }) {
   const { t } = useTranslation();
@@ -38,15 +38,15 @@ export default function ScanClaim({ onBack }) {
             if (!orderNo) { setError("QR didn't contain an order number."); return; }
             try {
               setBusy(true);
-              await claimPickupByOrderNo(orderNo);
-              setToast({ type: "success", msg: t("claimed_success") || "Order claimed." });
+              const claim = await claimPickupByOrderNo(orderNo);
+              setToast({ type: "success", msg: claim?.alreadyClaimed ? t("already_claimed") : (t("claimed_success") || "Order claimed.") });
               if (toastTimer.current) clearTimeout(toastTimer.current);
               toastTimer.current = setTimeout(() => setToast(null), 2000);
             } catch (e) {
-              setError(e?.message || "Claim failed");
+              setError(errorText(e, "Claim failed"));
             } finally { setBusy(false); }
           },
-          (err) => { setError(err || t("camera_init_failed")); setScanOpen(false); }
+          (err) => { setError(errorText(err, t("camera_init_failed"))); setScanOpen(false); }
         );
         scannerRef.current = s;
       } catch { setError(t("camera_init_failed")); setScanOpen(false); }
