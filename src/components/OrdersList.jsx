@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { gsap } from "gsap";
 import {
   RefreshCcw, Loader2, Info, CheckCircle2, X, Search, AlertTriangle, ChevronDown,
+  FileText, Star, MapPin, User, Clock3, XCircle,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
@@ -14,6 +15,7 @@ import { getAuth } from "../lib/auth.js";
 import StatusBadge from "./StatusBadge.jsx";
 import OtpModal from "./OtpModal.jsx";
 import OrderDetailsModal from "./OrderDetailsModal.jsx";
+import ScreenHeader from "./ScreenHeader.jsx";
 
 const safeText = (v, { fallback = "-" } = {}) => {
   if (v == null) return fallback;
@@ -44,7 +46,22 @@ function otpSearchKeyOf(order) {
   return pkgKeyOf(order) || driverRefSearchOf(order) || "";
 }
 
-export default function OrdersList({ showDeliveredOnly = false }) {
+// All Delivered card footer: Details + Upload a Review, or the review's state.
+function ReviewAction({ review, onUpload, t }) {
+  if (review?.status === "PENDING") {
+    return <span className="ad-review ad-review--wait"><Clock3 size={17} />{t("review_pending_short")}</span>;
+  }
+  if (review?.status === "APPROVED") {
+    return <span className="ad-review ad-review--ok"><CheckCircle2 size={17} />{t("review_approved_short")} · +SAR {review.rewardSar}</span>;
+  }
+  return (
+    <button type="button" className="btn btn-primary ad-btn" onClick={onUpload}>
+      <Star size={19} />{review?.status === "REJECTED" ? t("review_upload_again") : t("review_upload_cta")}
+    </button>
+  );
+}
+
+export default function OrdersList({ showDeliveredOnly = false, onBack, onOpenDetails, onUploadReview }) {
   const { t } = useTranslation();
   const listRef = useRef(null);
   const deliveredTimer = useRef(null);
@@ -202,9 +219,31 @@ export default function OrdersList({ showDeliveredOnly = false }) {
     ? showDeliveredOnly ? (t("delivered_title") || t("delivered_nav")) : (t("orders_title") || "My Orders")
     : (t("orders_title") || "Assigned Orders");
 
+  const deliveredView = isDriver && showDeliveredOnly;
+  const searchBox = (
+    <div className={`search-bar${deliveredView ? " search-bar--hero" : ""}`}>
+      <Search size={16} className="text-[var(--muted)] flex-shrink-0" />
+      <input
+        type="text"
+        inputMode="search"
+        placeholder={t("search_otp_or_order")}
+        value={qLive}
+        onChange={(e) => setQLive(e.target.value)}
+      />
+      {qLive && (
+        <button onClick={() => { setQLive(""); setQ(""); }} className="text-[var(--muted)]">
+          <X size={16} />
+        </button>
+      )}
+    </div>
+  );
+
   return (
     <section className="view-animate">
+      {deliveredView && <ScreenHeader title={t("delivered_nav")} onBack={onBack}>{searchBox}</ScreenHeader>}
+
       {/* Header */}
+      {!deliveredView && (
       <div className="flex items-center justify-between px-4 py-4 border-b border-[#DDDDDD] bg-white">
         <h2 className="text-[17px] font-bold text-[var(--text)]">{pageTitle}</h2>
         <button
@@ -215,6 +254,7 @@ export default function OrdersList({ showDeliveredOnly = false }) {
           {loading ? <Loader2 size={18} className="animate-spin" /> : <RefreshCcw size={18} />}
         </button>
       </div>
+      )}
 
       {/* Driver sub-tabs */}
       {isDriver && !showDeliveredOnly && (
@@ -237,23 +277,7 @@ export default function OrdersList({ showDeliveredOnly = false }) {
       )}
 
       {/* Search bar */}
-      {isDriver && (
-        <div className="search-bar">
-          <Search size={16} className="text-[var(--muted)] flex-shrink-0" />
-          <input
-            type="text"
-            inputMode="search"
-            placeholder="Search by OTP key or order no."
-            value={qLive}
-            onChange={(e) => setQLive(e.target.value)}
-          />
-          {qLive && (
-            <button onClick={() => { setQLive(""); setQ(""); }} className="text-[var(--muted)]">
-              <X size={16} />
-            </button>
-          )}
-        </div>
-      )}
+      {isDriver && !deliveredView && searchBox}
 
       {error && (
         <div className="mx-4 mb-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 break-words">
@@ -278,6 +302,34 @@ export default function OrdersList({ showDeliveredOnly = false }) {
             const canVerify = pStatus === "IN_TRANSIT" || pStatus === "OUT_FOR_DELIVERY";
             const key = pkgKeyOf(o);
             const dateStr = o.orderDate ? new Date(o.orderDate).toLocaleDateString() : "";
+
+            // All Delivered: Details (full Order Details, with the delivery photo)
+            // and Upload a Review for this order, side by side.
+            if (deliveredView && pStatus === "DELIVERED") {
+              const at = o.__pkg?.deliveredAt || o.updatedAt;
+              const day = at ? new Date(at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "";
+              return (
+                <motion.article key={(o._id || o.orderNo) + ":" + (o.__pkg?.id || "")} className="card ad-card" whileTap={{ scale: 0.99 }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="rr-pill rr-pill--ok rr-pill--check ad-pill"><CheckCircle2 size={17} />{t("status_delivered")}</span>
+                    {day && <span className="text-[14px] text-[var(--text-2)]">{day}</span>}
+                  </div>
+                  <div className="text-[19px] font-bold text-[var(--text)] break-all">{t("order_hash")}{safeText(o.orderNo)}</div>
+                  {o.city && <div className="ad-meta"><MapPin size={16} />{safeText(o.city)}</div>}
+                  {o.customerName && <div className="ad-meta"><User size={16} />{safeText(o.customerName)}</div>}
+                  {key && <span className="ad-otp">OTP: {key}</span>}
+                  {o.review?.status === "REJECTED" && o.review.rejectReason && (
+                    <div className="ad-rejected"><XCircle size={14} />{o.review.rejectReason}</div>
+                  )}
+                  <div className="grid grid-cols-2 gap-3 mt-3">
+                    <button type="button" className="btn btn-outline ad-btn" onClick={() => onOpenDetails?.(o)}>
+                      <FileText size={19} />{t("details")}
+                    </button>
+                    <ReviewAction review={o.review} t={t} onUpload={() => onUploadReview?.(o)} />
+                  </div>
+                </motion.article>
+              );
+            }
 
             return (
               <motion.article key={(o._id || o.orderNo) + ":" + (o.__pkg?.id || "")} className="card overflow-hidden" whileTap={{ scale: 0.985 }}>

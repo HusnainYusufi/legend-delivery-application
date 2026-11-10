@@ -575,7 +575,65 @@ function parseOrderNumberFromScan(payload) {
   return tokens.slice().sort((a, b) => b.length - a.length)[0] || "";
 }
 
+/* --------------- DRIVER: reviews & rewards, proof of delivery --------------- */
+
+/** Authenticated call that returns JSON or throws the server's own message. */
+async function authed(path, { method = "GET", json, form, ms = 30000 } = {}) {
+  const auth = getAuth();
+  if (!auth?.token) throw new Error("No auth token. Please log in.");
+  const headers = { Accept: "application/json", Authorization: `Bearer ${auth.token}` };
+  if (json) headers["Content-Type"] = "application/json";
+  const res = await fetchWithTimeout(`${AUTH_BASE_URL}${path}`, {
+    method, headers, body: form || (json ? JSON.stringify(json) : undefined),
+  }, ms);
+  let data = null;
+  try { data = await res.json(); } catch {}
+  if (!res.ok) throw new Error(serverMessage(data) || `Request failed (HTTP ${res.status})`);
+  return data;
+}
+
+/** GET /reviews/mine -> { summary, reviews } (the driver's own share only) */
+async function fetchMyReviews(status) {
+  const q = status && status !== "ALL" ? `?status=${encodeURIComponent(status)}` : "";
+  return authed(`/reviews/mine${q}`);
+}
+
+/** POST /reviews: one customer-review screenshot for a delivered order. */
+async function submitReview({ orderNo, file, link, note }) {
+  const form = new FormData();
+  form.append("orderNo", orderNo);
+  if (link) form.append("link", link);
+  if (note) form.append("note", note);
+  form.append("screenshot", file, file.name || "review.jpg");
+  return authed("/reviews", { method: "POST", form, ms: 60000 });
+}
+
+/** POST /pod/:orderNo: proof-of-delivery photo for a delivered parcel (also retake). */
+async function uploadPodPhoto(orderNo, packageId, file) {
+  const form = new FormData();
+  if (packageId) form.append("packageId", packageId);
+  form.append("photo", file, file.name || "delivery.jpg");
+  return authed(`/pod/${encodeURIComponent(orderNo)}`, { method: "POST", form, ms: 60000 });
+}
+
+/**
+ * Private images (review screenshots, delivery photos) need the token, so an
+ * <img src> can't load them directly: fetch the bytes, hand back an object URL.
+ */
+async function fetchPrivateImage(path) {
+  const auth = getAuth();
+  const res = await fetchWithTimeout(`${AUTH_BASE_URL}${path}`, {
+    headers: auth?.token ? { Authorization: `Bearer ${auth.token}` } : {},
+  }, 30000);
+  if (!res.ok) throw new Error(`Image failed (HTTP ${res.status})`);
+  return URL.createObjectURL(await res.blob());
+}
+
 export {
+  fetchMyReviews,
+  submitReview,
+  uploadPodPhoto,
+  fetchPrivateImage,
   CONFIG,
   apiFetch,
   parseOrderNumberFromScan,
