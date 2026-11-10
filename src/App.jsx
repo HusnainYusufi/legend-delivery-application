@@ -12,6 +12,9 @@ import { LoginScreen } from "./components/LoginModal";
 import OrdersList from "./components/OrdersList.jsx";
 import ScanClaim from "./components/ScanClaim.jsx";
 import Dashboard from "./components/Dashboard.jsx";
+import ReviewsRewards from "./components/rr/ReviewsRewards.jsx";
+import UploadReview from "./components/rr/UploadReview.jsx";
+import DeliveredDetails from "./components/rr/DeliveredDetails.jsx";
 
 import { CONFIG, apiFetch, parseOrderNumberFromScan, AUTH_EXPIRED_EVENT, errorText } from "./lib/api.js";
 import { ensureCameraPermission, startWebQrScanner, openAppSettings, scanImageFile } from "./lib/scanner.js";
@@ -37,6 +40,10 @@ export default function App() {
 
   // Signed-in users start on their dashboard; nobody else gets past the login screen.
   const [view, setView] = useState("dashboard");
+  // The delivered parcel an inner screen (Order Details / Upload a Review) is about.
+  const [subject, setSubject] = useState(null);
+  // Inner screens light up their parent tab; the 5 tabs themselves don't change.
+  const NAV_PARENT = { rewards: "dashboard", "review-upload": "delivered", "delivered-details": "delivered" };
 
   const [isScanning, setIsScanning] = useState(false);
   const [scanError, setScanError] = useState("");
@@ -274,6 +281,7 @@ export default function App() {
                 onTrackOrder={() => setView("home")}
                 onOrders={() => setView("orders")}
                 onDelivered={() => setView("delivered")}
+                onRewards={() => setView("rewards")}
                 onScanClaim={() => setView("scan-claim")}
               />
             </motion.div>
@@ -287,7 +295,30 @@ export default function App() {
 
           {view === "delivered" && (
             <motion.div key="delivered" variants={pageVariants} initial="hidden" animate="show" exit="exit">
-              <OrdersList showDeliveredOnly />
+              <OrdersList
+                showDeliveredOnly
+                onBack={() => setView("dashboard")}
+                onOpenDetails={(o) => { setSubject(o); setView("delivered-details"); }}
+                onUploadReview={(o) => { setSubject(o); setView("review-upload"); }}
+              />
+            </motion.div>
+          )}
+
+          {view === "rewards" && (
+            <motion.div key="rewards" variants={pageVariants} initial="hidden" animate="show" exit="exit">
+              <ReviewsRewards onBack={() => setView("dashboard")} />
+            </motion.div>
+          )}
+
+          {view === "review-upload" && subject && (
+            <motion.div key="review-upload" variants={pageVariants} initial="hidden" animate="show" exit="exit">
+              <UploadReview order={subject} toast={showToast} onBack={() => setView("delivered")} onSubmitted={() => setView("delivered")} />
+            </motion.div>
+          )}
+
+          {view === "delivered-details" && subject && (
+            <motion.div key="delivered-details" variants={pageVariants} initial="hidden" animate="show" exit="exit">
+              <DeliveredDetails order={subject} toast={showToast} onBack={() => setView("delivered")} />
             </motion.div>
           )}
 
@@ -303,7 +334,7 @@ export default function App() {
       {/* Bottom tab bar */}
       {isAuthenticated && (
         <BottomTabBar
-          view={view}
+          view={NAV_PARENT[view] || view}
           setView={setView}
           isDriver={isDriver}
           onLogout={handleLogout}

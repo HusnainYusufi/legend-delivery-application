@@ -111,7 +111,7 @@ export default function Splash() {
         </div>
 
         {/* Brand letters */}
-        <div ref={brandRef} className="splash-brand-row" aria-label="SHAHEENE">
+        <div ref={brandRef} className="splash-brand-row" aria-label="SHAHEENE" dir="ltr">
           {LETTERS.map((l, i) => (
             <span key={i} className="sp-letter splash-letter">{l}</span>
           ))}

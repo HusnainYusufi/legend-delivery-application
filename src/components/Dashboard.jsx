@@ -2,7 +2,7 @@
 import React, { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { gsap } from "gsap";
-import { BadgeCheck, QrCode, PackageCheck, ScanLine, ArrowRight, Box, Truck, Clock } from "lucide-react";
+import { BadgeCheck, QrCode, PackageCheck, ScanLine, ArrowRight, Box, Truck, Clock, Star } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import iconUrl from "/shaheen-icon.png";
 
@@ -12,7 +12,7 @@ const STATS = [
   { labelKey: "dashboard_stat_pending",   value: 32,  icon: Clock,  accent: "#F59E0B" },
 ];
 
-export default function Dashboard({ isDriver = false, onTrackOrder, onOrders, onDelivered, onScanClaim }) {
+export default function Dashboard({ isDriver = false, onTrackOrder, onOrders, onDelivered, onRewards, onScanClaim }) {
   const { t } = useTranslation();
   const statsRef = useRef(null);
   const actionsRef = useRef(null);
@@ -60,6 +60,8 @@ export default function Dashboard({ isDriver = false, onTrackOrder, onOrders, on
     { label: t("dashboard_action_track"),  sub: t("dashboard_action_track_sub"),  icon: QrCode,       onClick: onTrackOrder, show: true,     accent: "#ffcc02" },
     { label: t("orders_nav"),              sub: t("dashboard_action_orders"),      icon: PackageCheck, onClick: onOrders,     show: true,     accent: "#6366F1" },
     { label: t("delivered_nav"),           sub: t("dashboard_action_delivered"),   icon: BadgeCheck,   onClick: onDelivered,  show: isDriver, accent: "#00B87C" },
+    // Reviews & Rewards: right after All Delivered, before Scan Product.
+    { label: t("rewards_title"),           sub: t("dashboard_action_rewards"),     icon: Star,         onClick: onRewards,    show: isDriver, accent: "#F5A524", badge: t("badge_new") },
     { label: t("scan_product"),            sub: t("dashboard_action_scan"),        icon: ScanLine,     onClick: onScanClaim,  show: isDriver, accent: "#F59E0B" },
   ].filter((a) => a.show);
 
@@ -104,7 +106,7 @@ export default function Dashboard({ isDriver = false, onTrackOrder, onOrders, on
           {t("dashboard_title")}
         </p>
         <div ref={actionsRef} className="space-y-2.5">
-          {actions.map(({ label, sub, icon: Icon, onClick, accent }, i) => (
+          {actions.map(({ label, sub, icon: Icon, onClick, accent, badge }, i) => (
             <motion.button
               key={i}
               type="button"
@@ -123,7 +125,10 @@ export default function Dashboard({ isDriver = false, onTrackOrder, onOrders, on
               </div>
 
               <div className="flex-1 min-w-0 text-start">
-                <div className="text-[14px] font-semibold text-[var(--text)] tracking-tight">{label}</div>
+                <div className="text-[14px] font-semibold text-[var(--text)] tracking-tight flex items-center gap-2">
+                  {label}
+                  {badge && <span className="dash-badge-new">{badge}</span>}
+                </div>
                 <div className="text-[12px] text-[var(--muted)] mt-0.5">{sub}</div>
               </div>
 
