@@ -105,7 +105,7 @@ export default function ReviewsRewards({ onBack }) {
             <motion.article key={r.id} variants={item} className="rr-row">
               <Thumb path={r.screenshotUrl} />
               <div className="min-w-0 flex-1">
-                <div className="text-[15px] font-bold text-[var(--text)] break-all">{t("order_hash")}{r.orderNo}</div>
+                <div className="text-[15px] font-bold text-[var(--text)] [overflow-wrap:anywhere]">{t("order_hash")}{r.orderNo}</div>
                 {r.city && <div className="rr-meta"><MapPin size={13} />{r.city}</div>}
                 <div className="rr-meta"><CalendarDays size={13} />{when(r.submittedAt)}</div>
                 {r.status === "REJECTED" && r.rejectReason && <div className="rr-reason">{r.rejectReason}</div>}
