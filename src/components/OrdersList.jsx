@@ -90,6 +90,7 @@ export default function OrdersList({ showDeliveredOnly = false, onBack, onOpenDe
   const [noteLoading, setNoteLoading] = useState(false);
   const [noteError, setNoteError] = useState("");
   const [noteSuccess, setNoteSuccess] = useState("");
+  const [noteComment, setNoteComment] = useState("");
 
   const DELIVERY_NOTES = [
     { value: "POSTPONED",    label: "Postponed",     description: "Customer requested later delivery" },
@@ -205,7 +206,7 @@ export default function OrdersList({ showDeliveredOnly = false, onBack, onOpenDe
     if (!noteOrder?.orderNo) return;
     setNoteLoading(true); setNoteError("");
     try {
-      await setDeliveryNote(noteOrder.orderNo, note);
+      await setDeliveryNote(noteOrder.orderNo, note, noteComment);
       setNoteOpen(false);
       setNoteSuccess(`Note set: ${DELIVERY_NOTES.find((n) => n.value === note)?.label || note}`);
       if (noteSuccessTimer.current) clearTimeout(noteSuccessTimer.current);
@@ -382,7 +383,7 @@ export default function OrdersList({ showDeliveredOnly = false, onBack, onOpenDe
                         Verify OTP
                       </button>
                       <button
-                        onClick={() => { setNoteOrder(o); setNoteOpen(true); setNoteError(""); }}
+                        onClick={() => { setNoteOrder(o); setNoteOpen(true); setNoteError(""); setNoteComment(""); }}
                         className="btn-outline-red btn text-sm px-3 py-2"
                       >
                         <AlertTriangle size={15} />
@@ -486,6 +487,21 @@ export default function OrdersList({ showDeliveredOnly = false, onBack, onOpenDe
               {noteError && (
                 <div className="mb-3 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">{noteError}</div>
               )}
+
+              <label className="block text-sm text-[var(--muted)] mb-1" htmlFor="attempt-note">
+                {t("attempt_note_label")}
+              </label>
+              <textarea
+                id="attempt-note"
+                value={noteComment}
+                onChange={(e) => setNoteComment(e.target.value.slice(0, 300))}
+                maxLength={300}
+                rows={2}
+                dir="auto"
+                placeholder={t("attempt_note_placeholder")}
+                disabled={noteLoading}
+                className="w-full mb-4 rounded-xl border border-[#DDDDDD] bg-white px-3 py-2.5 text-sm text-[var(--text)] resize-none focus:outline-none focus:border-[var(--text)]"
+              />
 
               <div className="space-y-2.5">
                 {DELIVERY_NOTES.map((note) => (
