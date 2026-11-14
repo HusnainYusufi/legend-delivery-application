@@ -460,10 +460,12 @@ async function apiFetch(path, options = {}) {
 /* --------------- DRIVER: Set delivery note (failed delivery) --------------- */
 /**
  * POST /orders/:orderNo/delivery-note
- * Body: { note: "POSTPONED" | "NEEDS_ACTION" | "NOT_AVAILABLE" }
- * Called when driver marks delivery as failed and adds a note
+ * Body: { note: "POSTPONED" | "NEEDS_ACTION" | "NOT_AVAILABLE", comment?: string }
+ * Called when driver marks delivery as failed and adds a note.
+ * `comment` is the driver's own words (max 300 chars), shown in the portal's
+ * driver activity history.
  */
-async function setDeliveryNote(orderNo, note) {
+async function setDeliveryNote(orderNo, note, comment = "") {
   const auth = getAuth();
   if (!auth?.token) throw new Error("No auth token. Please log in.");
   if (!orderNo) throw new Error("Missing order number.");
@@ -478,7 +480,7 @@ async function setDeliveryNote(orderNo, note) {
       Accept: "application/json",
       Authorization: `Bearer ${auth.token}`,
     },
-    body: JSON.stringify({ note }),
+    body: JSON.stringify({ note, ...(comment && comment.trim() ? { comment: comment.trim().slice(0, 300) } : {}) }),
   });
 
   let data = null;
