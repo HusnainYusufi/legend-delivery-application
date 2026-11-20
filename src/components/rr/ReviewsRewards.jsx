@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import ScreenHeader from "../ScreenHeader.jsx";
 import usePrivateImage from "./usePrivateImage.js";
 import { fetchMyReviews } from "../../lib/api.js";
+import { rejectText } from "./rejectText.js";
 import { stagger, fadeUp as item } from "../../lib/motion.js";
 
 const FILTERS = ["ALL", "APPROVED", "PENDING", "REJECTED"];
@@ -108,7 +109,7 @@ export default function ReviewsRewards({ onBack }) {
                 <div className="text-[15px] font-bold text-[var(--text)] [overflow-wrap:anywhere]">{t("order_hash")}{r.orderNo}</div>
                 {r.city && <div className="rr-meta"><MapPin size={13} />{r.city}</div>}
                 <div className="rr-meta"><CalendarDays size={13} />{when(r.submittedAt)}</div>
-                {r.status === "REJECTED" && r.rejectReason && <div className="rr-reason">{r.rejectReason}</div>}
+                {r.status === "REJECTED" && rejectText(t, r) && <div className="rr-reason">{rejectText(t, r)}</div>}
               </div>
               <div className="rr-row-end">
                 <StatusPill status={r.status} />

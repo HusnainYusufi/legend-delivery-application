@@ -15,6 +15,7 @@ import Dashboard from "./components/Dashboard.jsx";
 import ReviewsRewards from "./components/rr/ReviewsRewards.jsx";
 import UploadReview from "./components/rr/UploadReview.jsx";
 import DeliveredDetails from "./components/rr/DeliveredDetails.jsx";
+import ReviewNotice from "./components/rr/ReviewNotice.jsx";
 
 import { CONFIG, apiFetch, parseOrderNumberFromScan, AUTH_EXPIRED_EVENT, errorText } from "./lib/api.js";
 import { ensureCameraPermission, startWebQrScanner, openAppSettings, scanImageFile } from "./lib/scanner.js";
@@ -352,6 +353,13 @@ export default function App() {
       />
 
       {/* Toast — AnimatePresence for smooth enter/exit */}
+      {isAuthenticated && (
+        <ReviewNotice
+          onOpenRewards={() => setView("rewards")}
+          onReupload={() => setView("delivered")}
+        />
+      )}
+
       <AnimatePresence>
         {toast && (
           <motion.div
