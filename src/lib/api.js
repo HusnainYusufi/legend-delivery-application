@@ -610,6 +610,16 @@ async function submitReview({ orderNo, file, link, note }) {
   return authed("/reviews", { method: "POST", form, ms: 60000 });
 }
 
+/** GET /reviews/notifications -> reviews approved / rejected since the driver last looked */
+async function fetchReviewNotifications() {
+  return authed("/reviews/notifications", { ms: 15000 });
+}
+
+/** POST /reviews/notifications/seen: the driver closed these pop-ups */
+async function markReviewNotificationsSeen(ids) {
+  return authed("/reviews/notifications/seen", { method: "POST", json: { ids }, ms: 15000 });
+}
+
 /** POST /pod/:orderNo: proof-of-delivery photo for a delivered parcel (also retake). */
 async function uploadPodPhoto(orderNo, packageId, file) {
   const form = new FormData();
@@ -633,6 +643,8 @@ async function fetchPrivateImage(path) {
 
 export {
   fetchMyReviews,
+  fetchReviewNotifications,
+  markReviewNotificationsSeen,
   submitReview,
   uploadPodPhoto,
   fetchPrivateImage,

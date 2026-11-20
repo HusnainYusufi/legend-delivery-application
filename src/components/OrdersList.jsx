@@ -12,6 +12,7 @@ import {
   fetchMyInTransit, fetchMyDelivered, setDeliveryNote,
 } from "../lib/api.js";
 import { getAuth } from "../lib/auth.js";
+import { rejectText } from "./rr/rejectText.js";
 import StatusBadge from "./StatusBadge.jsx";
 import OtpModal from "./OtpModal.jsx";
 import OrderDetailsModal from "./OrderDetailsModal.jsx";
@@ -319,8 +320,8 @@ export default function OrdersList({ showDeliveredOnly = false, onBack, onOpenDe
                   {o.city && <div className="ad-meta"><MapPin size={16} />{safeText(o.city)}</div>}
                   {o.customerName && <div className="ad-meta"><User size={16} />{safeText(o.customerName)}</div>}
                   {key && <span className="ad-otp">OTP: {key}</span>}
-                  {o.review?.status === "REJECTED" && o.review.rejectReason && (
-                    <div className="ad-rejected"><XCircle size={14} />{o.review.rejectReason}</div>
+                  {o.review?.status === "REJECTED" && rejectText(t, o.review) && (
+                    <div className="ad-rejected"><XCircle size={14} />{rejectText(t, o.review)}</div>
                   )}
                   <div className="grid grid-cols-2 gap-3 mt-3">
                     <button type="button" className="btn btn-outline ad-btn" onClick={() => onOpenDetails?.(o)}>
