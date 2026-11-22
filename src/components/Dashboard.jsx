@@ -1,15 +1,17 @@
 // src/components/Dashboard.jsx
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { gsap } from "gsap";
-import { BadgeCheck, QrCode, PackageCheck, ScanLine, ArrowRight, Box, Truck, Clock, Star } from "lucide-react";
+import { BadgeCheck, QrCode, PackageCheck, ScanLine, ArrowRight, Box, Truck, CalendarCheck, Star } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import iconUrl from "/shaheen-icon.png";
+import { fetchMyStats } from "../lib/api.js";
 
+// The signed-in driver's own numbers, from GET /orders/my-stats.
 const STATS = [
-  { labelKey: "dashboard_stat_active",    value: 128, icon: Truck,  accent: "#ffcc02" },
-  { labelKey: "dashboard_stat_delivered", value: 86,  icon: Box,    accent: "#00B87C" },
-  { labelKey: "dashboard_stat_pending",   value: 32,  icon: Clock,  accent: "#F59E0B" },
+  { labelKey: "dashboard_stat_in_transit",      key: "inTransit",      icon: Truck,         accent: "#ffcc02" },
+  { labelKey: "dashboard_stat_delivered_today", key: "deliveredToday", icon: CalendarCheck, accent: "#00B87C" },
+  { labelKey: "dashboard_stat_delivered_total", key: "deliveredTotal", icon: Box,           accent: "#60A5FA" },
 ];
 
 export default function Dashboard({ isDriver = false, onTrackOrder, onOrders, onDelivered, onRewards, onScanClaim }) {
@@ -17,6 +19,14 @@ export default function Dashboard({ isDriver = false, onTrackOrder, onOrders, on
   const statsRef = useRef(null);
   const actionsRef = useRef(null);
   const heroRef = useRef(null);
+  const [stats, setStats] = useState(null);
+
+  useEffect(() => {
+    if (!isDriver) return undefined;
+    let alive = true;
+    fetchMyStats().then((d) => { if (alive) setStats(d); }).catch(() => {});
+    return () => { alive = false; };
+  }, [isDriver]);
 
   useEffect(() => {
     const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
@@ -27,23 +37,11 @@ export default function Dashboard({ isDriver = false, onTrackOrder, onOrders, on
 
     if (statsRef.current) {
       const cards = statsRef.current.querySelectorAll(".stat-card");
-      const nums = statsRef.current.querySelectorAll(".stat-num");
 
       tl.from(cards,
         { opacity: 0, y: 24, scale: 0.9, duration: 0.5, stagger: 0.09 },
         "-=0.2"
       );
-
-      nums.forEach((el) => {
-        const target = parseInt(el.dataset.val, 10);
-        const obj = { val: 0 };
-        tl.to(obj, {
-          val: target,
-          duration: 1.1,
-          ease: "power2.out",
-          onUpdate: () => { el.textContent = Math.round(obj.val); },
-        }, "<0.15");
-      });
     }
 
     if (actionsRef.current) {
@@ -56,12 +54,36 @@ export default function Dashboard({ isDriver = false, onTrackOrder, onOrders, on
     return () => { tl.kill(); };
   }, []);
 
+  // Count up once the driver's numbers arrive.
+  useEffect(() => {
+    if (!stats || !statsRef.current) return undefined;
+    const tweens = [...statsRef.current.querySelectorAll(".stat-num")].map((el) => {
+      const obj = { val: 0 };
+      return gsap.to(obj, {
+        val: Number(el.dataset.val) || 0,
+        duration: 1.1,
+        ease: "power2.out",
+        onUpdate: () => { el.textContent = Math.round(obj.val); },
+      });
+    });
+    return () => tweens.forEach((tw) => tw.kill());
+  }, [stats]);
+
+  const rv = stats?.reviews;
+  const rewardsChips = rv
+    ? [
+        { text: t("dashboard_rewards_earned", { amount: Number(rv.earnedSar || 0).toLocaleString("en-US") }), cls: "dash-chip dash-chip--ok" },
+        { text: t("dashboard_rewards_in_review", { count: rv.pending || 0 }), cls: "dash-chip dash-chip--wait" },
+        { text: t("dashboard_rewards_rejected", { count: rv.rejected || 0 }), cls: "dash-chip dash-chip--bad" },
+      ]
+    : null;
+
   const actions = [
     { label: t("dashboard_action_track"),  sub: t("dashboard_action_track_sub"),  icon: QrCode,       onClick: onTrackOrder, show: true,     accent: "#ffcc02" },
     { label: t("orders_nav"),              sub: t("dashboard_action_orders"),      icon: PackageCheck, onClick: onOrders,     show: true,     accent: "#6366F1" },
     { label: t("delivered_nav"),           sub: t("dashboard_action_delivered"),   icon: BadgeCheck,   onClick: onDelivered,  show: isDriver, accent: "#00B87C" },
     // Reviews & Rewards: right after All Delivered, before Scan Product.
-    { label: t("rewards_title"),           sub: t("dashboard_action_rewards"),     icon: Star,         onClick: onRewards,    show: isDriver, accent: "#F5A524", badge: t("badge_new") },
+    { label: t("rewards_title"),           sub: t("dashboard_action_rewards"),     icon: Star,         onClick: onRewards,    show: isDriver, accent: "#F5A524", badge: t("badge_new"), chips: rewardsChips },
     { label: t("scan_product"),            sub: t("dashboard_action_scan"),        icon: ScanLine,     onClick: onScanClaim,  show: isDriver, accent: "#F59E0B" },
   ].filter((a) => a.show);
 
@@ -82,14 +104,16 @@ export default function Dashboard({ isDriver = false, onTrackOrder, onOrders, on
             </div>
           </div>
 
-          {/* Stats inside hero */}
+          {/* Stats inside hero: the driver's own, never everyone's */}
+          {isDriver && (
           <div ref={statsRef} className="grid grid-cols-3 gap-3">
             {STATS.map((s) => {
               const Icon = s.icon;
+              const value = stats?.orders?.[s.key];
               return (
                 <div key={s.labelKey} className="stat-card dash-stat-card">
                   <Icon size={14} style={{ color: s.accent }} className="mb-1.5" />
-                  <div className="stat-num text-[26px] font-bold text-white tracking-tight" data-val={s.value}>0</div>
+                  <div className="stat-num text-[26px] font-bold text-white tracking-tight" data-val={value ?? 0}>{stats ? 0 : "—"}</div>
                   <div className="text-[10px] font-medium text-white/40 uppercase tracking-wider mt-0.5">
                     {t(s.labelKey)}
                   </div>
@@ -97,6 +121,7 @@ export default function Dashboard({ isDriver = false, onTrackOrder, onOrders, on
               );
             })}
           </div>
+          )}
         </div>
       </div>
 
@@ -106,7 +131,7 @@ export default function Dashboard({ isDriver = false, onTrackOrder, onOrders, on
           {t("dashboard_title")}
         </p>
         <div ref={actionsRef} className="space-y-2.5">
-          {actions.map(({ label, sub, icon: Icon, onClick, accent, badge }, i) => (
+          {actions.map(({ label, sub, icon: Icon, onClick, accent, badge, chips }, i) => (
             <motion.button
               key={i}
               type="button"
@@ -130,6 +155,11 @@ export default function Dashboard({ isDriver = false, onTrackOrder, onOrders, on
                   {badge && <span className="dash-badge-new">{badge}</span>}
                 </div>
                 <div className="text-[12px] text-[var(--muted)] mt-0.5">{sub}</div>
+                {chips && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {chips.map((c) => <span key={c.cls} className={c.cls}>{c.text}</span>)}
+                  </div>
+                )}
               </div>
 
               <div className="w-7 h-7 rounded-full bg-[var(--bg)] flex items-center justify-center flex-shrink-0">

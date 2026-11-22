@@ -541,6 +541,11 @@ body.overflow-hidden { overflow: hidden; }
 [dir="rtl"] .rtl-flip { transform: scaleX(-1); }
 
 .dash-badge-new { font-size: 10px; font-weight: 800; color: #fff; background: #E11D48; border-radius: 999px; padding: 2px 8px; letter-spacing: .02em; }
+/* Reviews & Rewards card on the dashboard: earned / in review / rejected */
+.dash-chip { font-size: 11px; font-weight: 700; border-radius: 999px; padding: 2px 8px; white-space: nowrap; }
+.dash-chip--ok { background: #E7F7EC; color: #15803D; }
+.dash-chip--wait { background: #FEF3D7; color: #B45309; }
+.dash-chip--bad { background: #FDE8E8; color: #B91C1C; }
 
 /* pills & shared bits */
 .rr-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 4px 10px; white-space: nowrap; }
