@@ -594,6 +594,14 @@ async function authed(path, { method = "GET", json, form, ms = 30000 } = {}) {
   return data;
 }
 
+/**
+ * GET /orders/my-stats -> { orders: { inTransit, deliveredToday, deliveredTotal }, reviews: summary }
+ * The signed-in driver's own dashboard numbers.
+ */
+async function fetchMyStats() {
+  return authed("/orders/my-stats", { ms: 15000 });
+}
+
 /** GET /reviews/mine -> { summary, reviews } (the driver's own share only) */
 async function fetchMyReviews(status) {
   const q = status && status !== "ALL" ? `?status=${encodeURIComponent(status)}` : "";
@@ -642,6 +650,7 @@ async function fetchPrivateImage(path) {
 }
 
 export {
+  fetchMyStats,
   fetchMyReviews,
   fetchReviewNotifications,
   markReviewNotificationsSeen,
