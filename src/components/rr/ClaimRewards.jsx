@@ -2,10 +2,12 @@
 // Claim Rewards: the driver picks one or more approved rewards that are not
 // claimed yet and sends them as one claim. The office receives the claim PDF
 // by email; the driver can download it here. Claimed rewards can't be picked
-// again, so the balance shown is always what is left to claim.
+// again, so the balance shown is always what is left to claim. One claim a
+// month: after it, the rewards stay listed but can't be picked until the
+// next month.
 import React, { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Wallet, CheckCircle2, Circle, MapPin, CalendarDays, Loader2, RefreshCcw, Download, Mail, MailWarning, FileText, Send } from "lucide-react";
+import { Wallet, CheckCircle2, Circle, MapPin, CalendarDays, CalendarClock, Loader2, RefreshCcw, Download, Mail, MailWarning, FileText, Send } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import ScreenHeader from "../ScreenHeader.jsx";
 import { fetchRewardClaims, createRewardClaim, resendRewardClaimEmail, downloadRewardClaimPdf } from "../../lib/api.js";
@@ -15,6 +17,8 @@ const sar = (n) => `SAR ${Number(n || 0).toLocaleString("en-US")}`;
 const day = (d) => (d ? new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "");
 // Dates, amounts and claim numbers read left to right inside Arabic text.
 const Ltr = ({ children }) => <bdi dir="ltr" className="whitespace-nowrap">{children}</bdi>;
+// Claim months are Saudi months: show their first day in Saudi time on any phone.
+const saudiDay = (d) => (d ? new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric", timeZone: "Asia/Riyadh" }) : "");
 const when = (d) => (d ? new Date(d).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true }).replace(",", " ·") : "");
 
 function ClaimStatus({ claim }) {
@@ -48,6 +52,8 @@ export default function ClaimRewards({ onBack, toast }) {
 
   const claimable = data?.claimable || [];
   const b = data?.balance;
+  // Older servers send no canClaim: treat as allowed.
+  const canClaim = data?.canClaim !== false;
   const allPicked = claimable.length > 0 && picked.size === claimable.length;
   const pickedSar = useMemo(() => claimable.filter((r) => picked.has(r.id)).reduce((s, r) => s + (r.rewardSar || 0), 0), [claimable, picked]);
 
@@ -130,7 +136,7 @@ export default function ClaimRewards({ onBack, toast }) {
             <button type="button" onClick={load} className="p-2 text-[var(--muted)]" aria-label={t("refresh")}>
               {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCcw size={16} />}
             </button>
-            {claimable.length > 0 && (
+            {canClaim && claimable.length > 0 && (
               <button type="button" className="cl-all" onClick={toggleAll}>
                 {allPicked ? t("claim_clear_all") : t("claim_select_all")}
               </button>
@@ -139,6 +145,17 @@ export default function ClaimRewards({ onBack, toast }) {
         </div>
 
         {error && <div className="rr-error mb-3">{error}</div>}
+        {data && !canClaim && (
+          <div className="cl-wait">
+            <CalendarClock size={20} className="flex-shrink-0" />
+            <div>
+              <div className="font-bold">{t("claim_month_used")}</div>
+              {data.nextClaimFrom && (
+                <div className="text-[13px] mt-0.5">{t("claim_next_from")} <Ltr>{saudiDay(data.nextClaimFrom)}</Ltr></div>
+              )}
+            </div>
+          </div>
+        )}
         {!data && loading && (
           <div className="flex justify-center py-12"><Loader2 size={26} className="animate-spin text-[var(--red)]" /></div>
         )}
@@ -150,9 +167,9 @@ export default function ClaimRewards({ onBack, toast }) {
           {claimable.map((r) => {
             const on = picked.has(r.id);
             return (
-              <motion.button key={r.id} type="button" variants={item} onClick={() => toggle(r.id)}
-                className={`cl-row${on ? " cl-row--on" : ""}`} aria-pressed={on}>
-                {on ? <CheckCircle2 size={24} className="cl-check cl-check--on" /> : <Circle size={24} className="cl-check" />}
+              <motion.button key={r.id} type="button" variants={item} onClick={() => toggle(r.id)} disabled={!canClaim}
+                className={`cl-row${on ? " cl-row--on" : ""}`} aria-pressed={canClaim ? on : undefined}>
+                {canClaim && (on ? <CheckCircle2 size={24} className="cl-check cl-check--on" /> : <Circle size={24} className="cl-check" />)}
                 <div className="min-w-0 flex-1 text-start">
                   <div className="text-[15px] font-bold text-[var(--text)] [overflow-wrap:anywhere]">{t("order_hash")}{r.orderNo}</div>
                   <div className="cl-meta">
@@ -167,7 +184,7 @@ export default function ClaimRewards({ onBack, toast }) {
         </motion.div>
 
         {/* Claim bar: stays above the tab bar while choosing */}
-        {claimable.length > 0 && (
+        {canClaim && claimable.length > 0 && (
           <div className="cl-bar">
             <div className="min-w-0">
               <div className="text-[12px] text-[var(--muted)]">{t("claim_selected", { count: picked.size })}</div>
