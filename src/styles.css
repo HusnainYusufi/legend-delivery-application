@@ -609,6 +609,8 @@ body.overflow-hidden { overflow: hidden; }
 .rr-claim-sub { font-size: 12px; color: rgba(255,255,255,.65); }
 .dash-chip--claim { background: #111111; color: #ffcc02; }
 .cl-all { font-size: 13px; font-weight: 700; color: #A16207; background: rgba(255,204,2,0.16); border-radius: 999px; padding: 6px 12px; }
+.cl-wait { display: flex; align-items: flex-start; gap: 12px; padding: 14px; border-radius: 18px; background: #FEF3D7; color: #92400E; margin-bottom: 10px; font-size: 14px; }
+.cl-row:disabled { opacity: .75; }
 .cl-empty { text-align: center; font-size: 14px; color: var(--muted); padding: 28px 12px; background: var(--surface); border-radius: 18px; box-shadow: var(--shadow-sm); }
 .cl-row { display: flex; align-items: center; gap: 12px; width: 100%; background: var(--surface); border-radius: 18px; padding: 14px; box-shadow: var(--shadow-sm); border: 1.5px solid transparent; transition: border-color .15s, background .15s; }
 .cl-row--on { border-color: var(--red); background: #FFFCEB; }
