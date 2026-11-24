@@ -4,7 +4,7 @@
 // there is no general Upload button here.
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { CheckCircle2, Clock3, XCircle, Gift, MapPin, CalendarDays, ImageIcon, Loader2, RefreshCcw } from "lucide-react";
+import { CheckCircle2, Clock3, XCircle, Gift, MapPin, CalendarDays, ImageIcon, Loader2, RefreshCcw, Wallet, ArrowRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import ScreenHeader from "../ScreenHeader.jsx";
 import usePrivateImage from "./usePrivateImage.js";
@@ -31,7 +31,7 @@ function StatusPill({ status }) {
   return <span className={cls}>{t(`review_status_${status.toLowerCase()}`)}</span>;
 }
 
-export default function ReviewsRewards({ onBack }) {
+export default function ReviewsRewards({ onBack, onClaim }) {
   const { t } = useTranslation();
   const [filter, setFilter] = useState("ALL");
   const [data, setData] = useState(null);
@@ -67,7 +67,18 @@ export default function ReviewsRewards({ onBack }) {
       </ScreenHeader>
 
       <div className="px-4 pt-4">
-        <div className="grid grid-cols-3 gap-3">
+        {onClaim && (
+          <button type="button" className="rr-claim" onClick={onClaim}>
+            <span className="rr-claim-icon"><Wallet size={18} /></span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[15px] font-bold">{t("claim_title")}</span>
+              <span className="rr-claim-sub">{t("claim_open_sub", { amount: Number(s?.claimableSar || 0).toLocaleString("en-US") })}</span>
+            </span>
+            <ArrowRight size={18} className="rtl-flip flex-shrink-0" />
+          </button>
+        )}
+
+        <div className="grid grid-cols-3 gap-3 mt-4">
           {[
             { k: "approved", v: s?.approved, Icon: CheckCircle2, c: "#16A34A" },
             { k: "pending", v: s?.pending, Icon: Clock3, c: "#F59E0B" },

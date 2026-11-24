@@ -600,6 +600,39 @@ body.overflow-hidden { overflow: hidden; }
 .rr-plus { font-size: 15px; font-weight: 800; color: #15803D; white-space: nowrap; }
 .rr-reason { margin-top: 4px; font-size: 12px; color: #B91C1C; }
 
+/* Claim Rewards */
+.rr-claim { display: flex; align-items: center; gap: 12px; width: 100%; margin-top: 12px; padding: 12px 14px; border-radius: 16px; background: #111111; color: #fff; text-align: start; }
+.rr-claim:active { opacity: .9; }
+.rr-claim-icon { width: 36px; height: 36px; border-radius: 10px; background: var(--red); color: #1A1A1A; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.rr-claim-sub { font-size: 12px; color: rgba(255,255,255,.65); }
+.dash-chip--claim { background: #111111; color: #ffcc02; }
+.cl-all { font-size: 13px; font-weight: 700; color: #A16207; background: rgba(255,204,2,0.16); border-radius: 999px; padding: 6px 12px; }
+.cl-empty { text-align: center; font-size: 14px; color: var(--muted); padding: 28px 12px; background: var(--surface); border-radius: 18px; box-shadow: var(--shadow-sm); }
+.cl-row { display: flex; align-items: center; gap: 12px; width: 100%; background: var(--surface); border-radius: 18px; padding: 14px; box-shadow: var(--shadow-sm); border: 1.5px solid transparent; transition: border-color .15s, background .15s; }
+.cl-row--on { border-color: var(--red); background: #FFFCEB; }
+.cl-check { color: #C4C4C4; flex-shrink: 0; }
+.cl-check--on { color: #CA8A04; }
+.cl-meta { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 13px; color: var(--text-2); margin-top: 3px; }
+.cl-meta span { display: inline-flex; align-items: center; gap: 5px; }
+.cl-meta svg { color: var(--muted); flex-shrink: 0; }
+.cl-bar {
+  position: sticky; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); z-index: 5; margin-top: 14px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  background: var(--surface); border-radius: 18px; padding: 12px 12px 12px 16px; box-shadow: var(--shadow-lg);
+}
+[dir="rtl"] .cl-bar { padding: 12px 16px 12px 12px; }
+.cl-claim { padding: 13px 22px; font-size: 15px; font-weight: 800; flex-shrink: 0; }
+.cl-done { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 18px; background: #E7F7EC; margin-bottom: 8px; }
+.cl-icon-btn { width: 40px; height: 40px; border-radius: 12px; background: var(--bg); color: var(--text); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.cl-done .cl-icon-btn { background: #fff; }
+.cl-claim-row { display: flex; align-items: center; gap: 12px; background: var(--surface); border-radius: 18px; padding: 14px; box-shadow: var(--shadow-sm); }
+.cl-doc { width: 44px; height: 44px; border-radius: 12px; background: rgba(255,204,2,0.16); color: #CA8A04; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.cl-retry { display: inline-flex; align-items: center; gap: 5px; margin-top: 6px; font-size: 12px; font-weight: 700; color: #B91C1C; text-decoration: underline; text-underline-offset: 2px; }
+.cl-sent { display: inline-flex; align-items: center; gap: 5px; margin-top: 6px; font-size: 12px; color: #15803D; }
+.cl-sheet-wrap { position: fixed; inset: 0; z-index: 120; background: rgba(0,0,0,.45); display: flex; align-items: flex-end; justify-content: center; }
+.cl-sheet { width: 100%; max-width: 480px; background: var(--surface); border-radius: 24px 24px 0 0; padding: 22px 18px calc(18px + env(safe-area-inset-bottom, 0px)); }
+.cl-sheet-total { margin-top: 14px; font-size: 30px; font-weight: 800; letter-spacing: -0.02em; color: var(--text); }
+
 /* Upload a Review */
 .ur-order { display: flex; gap: 14px; background: var(--surface); border-radius: 18px; padding: 14px; box-shadow: var(--shadow-md); }
 .ur-order-icon { width: 58px; height: 58px; border-radius: 14px; background: rgba(255,204,2,0.16); color: #CA8A04; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }

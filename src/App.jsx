@@ -1,24 +1,23 @@
 // src/App.jsx
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Camera as CameraIcon, Loader2, QrCode, RefreshCcw, XCircle, CheckCircle } from "lucide-react";
+import { Loader2, Search, RefreshCcw, CheckCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import BottomTabBar from "./components/Navbar.jsx";
 import Splash from "./components/Splash.jsx";
-import ScannerOverlay from "./components/ScannerOverlay.jsx";
 import StatusBadge from "./components/StatusBadge.jsx";
 import { LoginScreen } from "./components/LoginModal";
 import OrdersList from "./components/OrdersList.jsx";
 import ScanClaim from "./components/ScanClaim.jsx";
 import Dashboard from "./components/Dashboard.jsx";
 import ReviewsRewards from "./components/rr/ReviewsRewards.jsx";
+import ClaimRewards from "./components/rr/ClaimRewards.jsx";
 import UploadReview from "./components/rr/UploadReview.jsx";
 import DeliveredDetails from "./components/rr/DeliveredDetails.jsx";
 import ReviewNotice from "./components/rr/ReviewNotice.jsx";
 
-import { CONFIG, apiFetch, parseOrderNumberFromScan, AUTH_EXPIRED_EVENT, errorText } from "./lib/api.js";
-import { ensureCameraPermission, startWebQrScanner, openAppSettings, scanImageFile } from "./lib/scanner.js";
+import { CONFIG, apiFetch, AUTH_EXPIRED_EVENT } from "./lib/api.js";
 import { getAuth as loadAuth, setAuth as persistAuth, clearAuth as purgeAuth } from "./lib/auth.js";
 import { page as pageVariants } from "./lib/motion.js";
 
@@ -44,15 +43,7 @@ export default function App() {
   // The delivered parcel an inner screen (Order Details / Upload a Review) is about.
   const [subject, setSubject] = useState(null);
   // Inner screens light up their parent tab; the 5 tabs themselves don't change.
-  const NAV_PARENT = { rewards: "dashboard", "review-upload": "delivered", "delivered-details": "delivered" };
-
-  const [isScanning, setIsScanning] = useState(false);
-  const [scanError, setScanError] = useState("");
-  const [permDenied, setPermDenied] = useState(false);
-  const [rawScan, setRawScan] = useState("");
-  const scannerRef = useRef(null);
-  const scannerDivId = "qr-scanner-region";
-  const [scannerKey, setScannerKey] = useState(0);
+  const NAV_PARENT = { rewards: "dashboard", claim: "dashboard", "review-upload": "delivered", "delivered-details": "delivered" };
 
   const [orderNumber, setOrderNumber] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -101,47 +92,12 @@ export default function App() {
     showToast("success", "Logged out");
   };
 
-  const stopScanner = useCallback(async () => {
-    try { await scannerRef.current?.stop?.(); } catch {}
-    scannerRef.current = null;
-  }, []);
-
-  const scanTimerRef = useRef(null);
-  const beginScan = useCallback(async () => {
-    setScanError(""); setPermDenied(false);
-    await stopScanner();
-    if (scanTimerRef.current) clearTimeout(scanTimerRef.current);
-    const perm = await ensureCameraPermission();
-    if (!perm.granted) { setPermDenied(true); setScanError(t("camera_permission_denied")); return; }
-    setIsScanning(true);
-    scanTimerRef.current = setTimeout(async () => {
-      try {
-        const s = await startWebQrScanner(
-          scannerDivId,
-          async (decoded) => {
-            const ord = parseOrderNumberFromScan(decoded);
-            if (ord) setOrderNumber(ord);
-            setRawScan(decoded);
-            await stopScanner();
-            setIsScanning(false);
-          },
-          (err) => { setScanError(errorText(err, t("camera_init_failed"))); setIsScanning(false); }
-        );
-        scannerRef.current = s;
-      } catch { setScanError(t("camera_init_failed")); setIsScanning(false); }
-    }, 120);
-  }, [stopScanner, t]);
-
-  useEffect(() => () => {
-    stopScanner();
-    if (scanTimerRef.current) clearTimeout(scanTimerRef.current);
-  }, [stopScanner]);
-
   const getStatus = useCallback(async () => {
-    if (!orderNumber) { setToast({ type: "error", msg: t("toast_need_order") }); return; }
+    const no = orderNumber.trim();
+    if (!no) { setToast({ type: "error", msg: t("toast_need_order") }); return; }
     setIsLoading(true); setToast(null);
     try {
-      const data = await apiFetch(CONFIG.paths.getStatus(orderNumber));
+      const data = await apiFetch(CONFIG.paths.getStatus(no));
       setCurrent(data);
     } catch (err) {
       setToast({ type: "error", msg: err.message || t("error_fetch_status") });
@@ -149,29 +105,8 @@ export default function App() {
     } finally { setIsLoading(false); }
   }, [orderNumber, t]);
 
-  const reset = useCallback(async () => {
-    await stopScanner();
-    setIsScanning(false); setScanError(""); setPermDenied(false);
-    setRawScan(""); setCurrent(null); setOrderNumber("");
-    setScannerKey((k) => k + 1);
-  }, [stopScanner]);
+  const reset = () => { setCurrent(null); setOrderNumber(""); };
 
-  const onPickImage = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      await scanImageFile(
-        file,
-        (decoded) => {
-          const ord = parseOrderNumberFromScan(decoded);
-          if (ord) setOrderNumber(ord);
-          setRawScan(decoded);
-          setToast({ type: "success", msg: t("scanned_payload") + " ✓" });
-        },
-        (err) => setToast({ type: "error", msg: err || t("error_scan_image") })
-      );
-    } finally { e.target.value = ""; }
-  };
 
   return (
     <div className="app-shell">
@@ -195,16 +130,19 @@ export default function App() {
               exit="exit"
               className="px-4 pt-6"
             >
-              {/* Track order card */}
-              <div className="card p-5 mb-4">
+              {/* Track order card: search by order number */}
+              <form
+                className="card p-5 mb-4"
+                onSubmit={(e) => { e.preventDefault(); getStatus(); }}
+              >
                 <div className="flex items-center gap-3 mb-4">
                   <div className="h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0"
                     style={{ background: "rgba(255,204,2,0.08)" }}>
-                    <QrCode size={20} className="text-[#ffcc02]" />
+                    <Search size={20} className="text-[#ffcc02]" />
                   </div>
                   <div>
                     <h2 className="text-[17px] font-bold text-[#222222]">{t("track_order")}</h2>
-                    <p className="text-xs text-[#717171]">{t("scan_or_enter")}</p>
+                    <p className="text-xs text-[#717171]">{t("track_enter_order")}</p>
                   </div>
                 </div>
 
@@ -214,42 +152,20 @@ export default function App() {
                   value={orderNumber}
                   onChange={(e) => setOrderNumber(e.target.value)}
                   inputMode="text"
+                  enterKeyHint="search"
                   autoComplete="off"
                 />
 
-                <div className="grid grid-cols-2 gap-3 mb-3">
-                  <button onClick={beginScan} className="btn-primary btn">
-                    <CameraIcon size={18} /> {t("scan")}
+                <div className="flex gap-3">
+                  <button type="submit" disabled={isLoading} className="btn-primary btn flex-1">
+                    {isLoading ? <Loader2 size={18} className="animate-spin" /> : <Search size={18} />}
+                    {t("track_search")}
                   </button>
-                  <button onClick={reset} className="btn-outline btn">
+                  <button type="button" onClick={reset} className="btn-outline btn" aria-label={t("clear")}>
                     <RefreshCcw size={18} />
                   </button>
                 </div>
-
-                <button onClick={getStatus} disabled={isLoading} className="btn-primary btn w-full">
-                  {isLoading ? <Loader2 size={18} className="animate-spin" /> : <QrCode size={18} />}
-                  {t("load_status")}
-                </button>
-
-                {scanError && (
-                  <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 flex items-start gap-2">
-                    <XCircle size={16} className="flex-shrink-0 mt-0.5" />
-                    <div>
-                      {scanError}
-                      {permDenied && (
-                        <button onClick={openAppSettings} className="ms-1 underline font-medium">{t("open_settings")}</button>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {rawScan && (
-                  <div className="mt-3 p-3 bg-[#F7F7F7] rounded-xl">
-                    <p className="text-xs text-[#717171]">{t("scanned_payload")}:</p>
-                    <p className="text-sm font-mono break-words mt-1 text-[#222222]">{rawScan}</p>
-                  </div>
-                )}
-              </div>
+              </form>
 
               {current && (
                 <motion.div
@@ -307,7 +223,13 @@ export default function App() {
 
           {view === "rewards" && (
             <motion.div key="rewards" variants={pageVariants} initial="hidden" animate="show" exit="exit">
-              <ReviewsRewards onBack={() => setView("dashboard")} />
+              <ReviewsRewards onBack={() => setView("dashboard")} onClaim={() => setView("claim")} />
+            </motion.div>
+          )}
+
+          {view === "claim" && (
+            <motion.div key="claim" variants={pageVariants} initial="hidden" animate="show" exit="exit">
+              <ClaimRewards onBack={() => setView("rewards")} toast={showToast} />
             </motion.div>
           )}
 
@@ -343,14 +265,6 @@ export default function App() {
           onChangeLanguage={setLanguage}
         />
       )}
-
-      <ScannerOverlay
-        key={scannerKey}
-        visible={isAuthenticated && isScanning}
-        onClose={async () => { await stopScanner(); setIsScanning(false); }}
-        scannerDivId={scannerDivId}
-        title={t("scan")}
-      />
 
       {/* Toast — AnimatePresence for smooth enter/exit */}
       {isAuthenticated && (

@@ -1,4 +1,5 @@
 // src/lib/api.js
+import { Capacitor } from "@capacitor/core";
 import { getAuth, clearAuth } from "./auth.js";
 
 /** Fired when the server rejects our token; App returns to the login screen. */
@@ -649,7 +650,54 @@ async function fetchPrivateImage(path) {
   return URL.createObjectURL(await res.blob());
 }
 
+/* --------------- DRIVER: reward claims --------------- */
+
+/** GET /claims/mine -> { balance, claimable, claims } */
+async function fetchRewardClaims() {
+  return authed("/claims/mine", { ms: 20000 });
+}
+
+/** POST /claims { reviewIds } -> { claim, skipped }. The office gets the claim PDF by email. */
+async function createRewardClaim(reviewIds) {
+  return authed("/claims", { method: "POST", json: { reviewIds }, ms: 90000 });
+}
+
+/** POST /claims/:id/email: send the claim email again (only if it failed). */
+async function resendRewardClaimEmail(claimId) {
+  return authed(`/claims/${encodeURIComponent(claimId)}/email`, { method: "POST", ms: 60000 });
+}
+
+/**
+ * Save the claim PDF. In the app, the phone's browser downloads it from a
+ * 10-minute link (the web view cannot save files); in a desktop browser the
+ * file is fetched with the token and saved directly.
+ */
+async function downloadRewardClaimPdf(claim) {
+  if (Capacitor.isNativePlatform()) {
+    const { url } = await authed(`/claims/${encodeURIComponent(claim.id)}/pdf-link`, { method: "POST", ms: 60000 });
+    window.location.href = `${AUTH_BASE_URL}${url}`;
+    return;
+  }
+  const auth = getAuth();
+  const res = await fetchWithTimeout(`${AUTH_BASE_URL}/claims/${encodeURIComponent(claim.id)}/pdf`, {
+    headers: auth?.token ? { Authorization: `Bearer ${auth.token}` } : {},
+  }, 60000);
+  if (!res.ok) throw new Error(`Download failed (HTTP ${res.status})`);
+  const href = URL.createObjectURL(await res.blob());
+  const a = document.createElement("a");
+  a.href = href;
+  a.download = `${claim.claimNo || "claim"}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(href), 10000);
+}
+
 export {
+  fetchRewardClaims,
+  createRewardClaim,
+  resendRewardClaimEmail,
+  downloadRewardClaimPdf,
   fetchMyStats,
   fetchMyReviews,
   fetchReviewNotifications,
