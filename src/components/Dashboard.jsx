@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { gsap } from "gsap";
-import { BadgeCheck, QrCode, PackageCheck, ScanLine, ArrowRight, Box, Truck, CalendarCheck, Star } from "lucide-react";
+import { BadgeCheck, Search, PackageCheck, ScanLine, ArrowRight, Box, Truck, CalendarCheck, Star } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import iconUrl from "/shaheen-icon.png";
 import { fetchMyStats } from "../lib/api.js";
@@ -75,11 +75,14 @@ export default function Dashboard({ isDriver = false, onTrackOrder, onOrders, on
         { text: t("dashboard_rewards_earned", { amount: Number(rv.earnedSar || 0).toLocaleString("en-US") }), cls: "dash-chip dash-chip--ok" },
         { text: t("dashboard_rewards_in_review", { count: rv.pending || 0 }), cls: "dash-chip dash-chip--wait" },
         { text: t("dashboard_rewards_rejected", { count: rv.rejected || 0 }), cls: "dash-chip dash-chip--bad" },
+        ...(rv.claimableSar > 0
+          ? [{ text: t("dashboard_rewards_claimable", { amount: Number(rv.claimableSar).toLocaleString("en-US") }), cls: "dash-chip dash-chip--claim" }]
+          : []),
       ]
     : null;
 
   const actions = [
-    { label: t("dashboard_action_track"),  sub: t("dashboard_action_track_sub"),  icon: QrCode,       onClick: onTrackOrder, show: true,     accent: "#ffcc02" },
+    { label: t("dashboard_action_track"),  sub: t("dashboard_action_track_sub"),  icon: Search,       onClick: onTrackOrder, show: true,     accent: "#ffcc02" },
     { label: t("orders_nav"),              sub: t("dashboard_action_orders"),      icon: PackageCheck, onClick: onOrders,     show: true,     accent: "#6366F1" },
     { label: t("delivered_nav"),           sub: t("dashboard_action_delivered"),   icon: BadgeCheck,   onClick: onDelivered,  show: isDriver, accent: "#00B87C" },
     // Reviews & Rewards: right after All Delivered, before Scan Product.
