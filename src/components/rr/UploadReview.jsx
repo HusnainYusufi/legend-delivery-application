@@ -137,7 +137,7 @@ export default function UploadReview({ order, onBack, onSubmitted, toast }) {
 
         <div className="ur-info">
           <Info size={20} />
-          <span>{t("review_verify_note")}</span>
+          <span>{t("review_verify_note")} {t("review_window_note")}</span>
         </div>
 
         {error && <div className="rr-error mt-3">{error}</div>}
