@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { gsap } from "gsap";
 import {
   RefreshCcw, Loader2, Info, CheckCircle2, X, Search, AlertTriangle, ChevronDown,
-  FileText, Star, MapPin, User, Clock3, XCircle,
+  FileText, Star, MapPin, User, Clock3, XCircle, Ban,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
@@ -48,12 +48,16 @@ function otpSearchKeyOf(order) {
 }
 
 // All Delivered card footer: Details + Upload a Review, or the review's state.
-function ReviewAction({ review, onUpload, t }) {
+// Upload is offered only inside the review window (48 hours after delivery).
+function ReviewAction({ review, windowOpen = true, onUpload, t }) {
   if (review?.status === "PENDING") {
     return <span className="ad-review ad-review--wait"><Clock3 size={17} />{t("review_pending_short")}</span>;
   }
   if (review?.status === "APPROVED") {
     return <span className="ad-review ad-review--ok"><CheckCircle2 size={17} />{t("review_approved_short")} · +SAR {review.rewardSar}</span>;
+  }
+  if (!windowOpen) {
+    return <span className="ad-review ad-review--closed"><Ban size={17} />{t("review_window_closed")}</span>;
   }
   return (
     <button type="button" className="btn btn-primary ad-btn" onClick={onUpload}>
@@ -310,6 +314,14 @@ export default function OrdersList({ showDeliveredOnly = false, onBack, onOpenDe
             if (deliveredView && pStatus === "DELIVERED") {
               const at = o.__pkg?.deliveredAt || o.updatedAt;
               const day = at ? new Date(at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "";
+              // Review window from the server; older servers send none: treat as open.
+              const rw = o.reviewWindow;
+              const windowOpen = rw ? rw.open !== false && (!rw.endsAt || new Date(rw.endsAt).getTime() > Date.now()) : true;
+              const canReview = !o.review || o.review.status === "REJECTED";
+              const reviewDue = canReview && windowOpen && rw?.endsAt;
+              const windowEnd = rw?.endsAt
+                ? new Date(rw.endsAt).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: true })
+                : "";
               return (
                 <motion.article key={(o._id || o.orderNo) + ":" + (o.__pkg?.id || "")} className="card ad-card" whileTap={{ scale: 0.99 }}>
                   <div className="flex items-center justify-between mb-2">
@@ -323,11 +335,14 @@ export default function OrdersList({ showDeliveredOnly = false, onBack, onOpenDe
                   {o.review?.status === "REJECTED" && rejectText(t, o.review) && (
                     <div className="ad-rejected"><XCircle size={14} />{rejectText(t, o.review)}</div>
                   )}
+                  {reviewDue && (
+                    <div className="ad-deadline"><Clock3 size={14} />{t("review_window_by")} <bdi dir="ltr">{windowEnd}</bdi></div>
+                  )}
                   <div className="grid grid-cols-2 gap-3 mt-3">
                     <button type="button" className="btn btn-outline ad-btn" onClick={() => onOpenDetails?.(o)}>
                       <FileText size={19} />{t("details")}
                     </button>
-                    <ReviewAction review={o.review} t={t} onUpload={() => onUploadReview?.(o)} />
+                    <ReviewAction review={o.review} windowOpen={windowOpen} t={t} onUpload={() => onUploadReview?.(o)} />
                   </div>
                 </motion.article>
               );
