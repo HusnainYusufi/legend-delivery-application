@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { gsap } from "gsap";
-import { Home, ClipboardList, QrCode, CheckCircle, User, X, LogOut, Globe, Trash2, Mail, FileText, ShieldCheck } from "lucide-react";
+import { House, PackageCheck, ScanLine, BadgeCheck, Menu as MenuIcon, User, X, LogOut, Globe, Trash2, Mail, FileText, ShieldCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { backdrop, sheet } from "../lib/motion.js";
 import { getAuth } from "../lib/auth.js";
@@ -47,13 +47,14 @@ export default function BottomTabBar({ view, setView, isDriver = false, onLogout
   }, []);
 
   const tabs = [
-    { id: "dashboard",  icon: Home,          label: t("dashboard_title") || "Home" },
-    { id: "orders",     icon: ClipboardList, label: t("orders_nav") || "Orders" },
+    // Same icons as the dashboard cards for the same places.
+    { id: "dashboard",  icon: House,        label: t("dashboard_title") || "Home" },
+    { id: "orders",     icon: PackageCheck, label: t("orders_nav") || "Orders" },
     ...(isDriver ? [
-      { id: "scan-claim", icon: QrCode,      label: t("scan_product") || "Scan" },
-      { id: "delivered",  icon: CheckCircle, label: t("delivered_nav") || "Done" },
+      { id: "scan-claim", icon: ScanLine,   label: t("scan_product") || "Scan" },
+      { id: "delivered",  icon: BadgeCheck, label: t("delivered_nav") || "Done" },
     ] : []),
-    { id: "__menu",     icon: Globe,         label: t("menu") || "Menu" },
+    { id: "__menu",     icon: MenuIcon,     label: t("menu") || "Menu" },
   ];
 
   const handleTab = (id) => {
