@@ -6,6 +6,8 @@ import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { CheckCircle2, Clock3, XCircle, Gift, MapPin, CalendarDays, ImageIcon, Loader2, RefreshCcw, Wallet, ArrowRight } from "lucide-react";
 import { Trans, useTranslation } from "react-i18next";
+import { fmtDateTime } from "../../lib/format.js";
+import OrderNo from "../OrderNo.jsx";
 import Money from "../Money.jsx";
 import ScreenHeader from "../ScreenHeader.jsx";
 import usePrivateImage from "./usePrivateImage.js";
@@ -14,7 +16,7 @@ import { rejectText } from "./rejectText.js";
 import { stagger, fadeUp as item } from "../../lib/motion.js";
 
 const FILTERS = ["ALL", "APPROVED", "PENDING", "REJECTED"];
-const when = (d) => (d ? new Date(d).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true }).replace(",", " ·") : "");
+const when = (d) => fmtDateTime(d);
 
 function Thumb({ path }) {
   const { url } = usePrivateImage(path);
@@ -117,9 +119,9 @@ export default function ReviewsRewards({ onBack, onClaim }) {
             <motion.article key={r.id} variants={item} className="rr-row">
               <Thumb path={r.screenshotUrl} />
               <div className="min-w-0 flex-1">
-                <div className="text-[15px] font-bold text-[var(--text)] [overflow-wrap:anywhere]">{t("order_hash")}{r.orderNo}</div>
+                <div className="text-[15px] font-bold text-[var(--text)] [overflow-wrap:anywhere]"><OrderNo no={r.orderNo} /></div>
                 {r.city && <div className="rr-meta"><MapPin size={13} />{r.city}</div>}
-                <div className="rr-meta"><CalendarDays size={13} />{when(r.submittedAt)}</div>
+                <div className="rr-meta"><CalendarDays size={13} /><bdi>{when(r.submittedAt)}</bdi></div>
                 {r.status === "REJECTED" && rejectText(t, r) && <div className="rr-reason">{rejectText(t, r)}</div>}
               </div>
               <div className="rr-row-end">

@@ -50,7 +50,7 @@ export default function Dashboard({ isDriver = false, onTrackOrder, onOrders, on
 
     if (actionsRef.current) {
       tl.from(actionsRef.current.querySelectorAll(".action-row"),
-        { opacity: 0, x: -18, duration: 0.4, stagger: 0.07 },
+        { opacity: 0, x: document.documentElement.dir === "rtl" ? 18 : -18, duration: 0.4, stagger: 0.07 }, // slide in from the reading start
         "-=0.6"
       );
     }
@@ -169,7 +169,7 @@ export default function Dashboard({ isDriver = false, onTrackOrder, onOrders, on
               </div>
 
               <div className="w-7 h-7 rounded-full bg-[var(--bg)] flex items-center justify-center flex-shrink-0">
-                <ArrowRight size={13} className="text-[var(--muted)]" />
+                <ArrowRight size={13} className="text-[var(--muted)] rtl-flip" />
               </div>
             </motion.button>
           ))}

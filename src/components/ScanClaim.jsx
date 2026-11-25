@@ -69,7 +69,7 @@ export default function ScanClaim({ onBack }) {
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-4 border-b border-[#DDDDDD] bg-white">
         <button onClick={onBack} className="p-2 text-[var(--muted)] rounded-full hover:bg-[#F7F7F7]">
-          <ArrowLeft size={22} />
+          <ArrowLeft size={22} className="rtl-flip" />
         </button>
         <h2 className="text-[17px] font-semibold text-[var(--text)]">
           {t("scan_product") || "Scan to Claim"}

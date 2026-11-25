@@ -3,11 +3,15 @@ import React from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X, MapPin, Calendar, Hash, User } from "lucide-react";
 import StatusBadge from "./StatusBadge.jsx";
+import { useTranslation } from "react-i18next";
 import { backdrop, sheet } from "../lib/motion.js";
+import { fmtDay } from "../lib/format.js";
 
 const safe = (v, fb = "-") => (v === null || v === undefined ? fb : String(v));
 
 export default function OrderDetailsModal({ open, onClose, order }) {
+  const { t } = useTranslation();
+  const statusText = (s) => t(`statuses.${s}`, { defaultValue: safe(s).replace(/_/g, " ") });
   return (
     <AnimatePresence>
       {open && order && (
@@ -36,8 +40,8 @@ export default function OrderDetailsModal({ open, onClose, order }) {
 
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-3 border-b border-[#DDDDDD]">
-              <div className="font-semibold text-[#222222]">Order Details</div>
-              <button onClick={onClose} className="p-1.5 text-[#717171] rounded-full" aria-label="Close">
+              <div className="font-semibold text-[#222222]">{t("order_details")}</div>
+              <button onClick={onClose} className="p-1.5 text-[#717171] rounded-full" aria-label={t("close")}>
                 <X size={20} />
               </button>
             </div>
@@ -46,8 +50,8 @@ export default function OrderDetailsModal({ open, onClose, order }) {
               {/* Order # + status */}
               <div className="flex items-start justify-between px-5 pt-5 pb-3 border-b border-[#DDDDDD]">
                 <div>
-                  <div className="text-xs text-[#717171] mb-0.5">Order</div>
-                  <div className="text-lg font-bold text-[#222222] break-all">{safe(order.orderNo)}</div>
+                  <div className="text-xs text-[#717171] mb-0.5">{t("order_label")}</div>
+                  <div className="text-lg font-bold text-[#222222] break-all"><bdi dir="ltr">#{safe(order.orderNo)}</bdi></div>
                 </div>
                 <StatusBadge value={order.currentStatus || order.orderStatus} manual={!!order.deliveredManually} />
               </div>
@@ -55,10 +59,10 @@ export default function OrderDetailsModal({ open, onClose, order }) {
               {/* Info rows */}
               <div className="px-5 py-4 space-y-3">
                 {[
-                  { icon: User,     label: "Customer",   value: safe(order.customerName) },
-                  { icon: MapPin,   label: "City",       value: safe(order.city) + (order.country ? `, ${order.country}` : "") },
-                  { icon: Calendar, label: "Order Date", value: order.orderDate ? new Date(order.orderDate).toLocaleDateString() : "-" },
-                  { icon: Hash,     label: "Tracking #", value: safe(order.trackingNumber) },
+                  { icon: User,     label: t("customer"),        value: safe(order.customerName) },
+                  { icon: MapPin,   label: t("city"),            value: safe(order.city) + (order.country ? `, ${order.country}` : "") },
+                  { icon: Calendar, label: t("order_date"),      value: fmtDay(order.orderDate) || "-" },
+                  { icon: Hash,     label: t("tracking_number"), value: safe(order.trackingNumber) },
                 ].map(({ icon: Icon, label, value }) => (
                   <div key={label} className="flex items-start gap-3">
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg flex-shrink-0 bg-[#F7F7F7]">
@@ -66,7 +70,7 @@ export default function OrderDetailsModal({ open, onClose, order }) {
                     </div>
                     <div>
                       <div className="text-xs text-[#717171]">{label}</div>
-                      <div className="text-sm font-medium text-[#222222] break-words">{value}</div>
+                      <div className="text-sm font-medium text-[#222222] break-words"><bdi>{value}</bdi></div>
                     </div>
                   </div>
                 ))}
@@ -77,7 +81,7 @@ export default function OrderDetailsModal({ open, onClose, order }) {
                       <MapPin size={15} className="text-[#717171]" />
                     </div>
                     <div>
-                      <div className="text-xs text-[#717171]">Address</div>
+                      <div className="text-xs text-[#717171]">{t("address")}</div>
                       <div className="text-sm font-medium text-[#222222] break-words">{safe(order.customerAddress)}</div>
                     </div>
                   </div>
@@ -87,7 +91,7 @@ export default function OrderDetailsModal({ open, onClose, order }) {
               {/* Items */}
               {Array.isArray(order.items) && order.items.length > 0 && (
                 <div className="mx-5 mb-4 rounded-xl bg-[#F7F7F7] p-4">
-                  <div className="text-xs font-semibold text-[#717171] uppercase tracking-wide mb-2">Items</div>
+                  <div className="text-xs font-semibold text-[#717171] uppercase tracking-wide mb-2">{t("items")}</div>
                   <ul className="space-y-1.5">
                     {order.items.map((it, idx) => (
                       <li key={idx} className="flex items-center justify-between text-sm text-[#222222]">
@@ -102,13 +106,13 @@ export default function OrderDetailsModal({ open, onClose, order }) {
               {/* Status history */}
               {Array.isArray(order.statusHistory) && order.statusHistory.length > 0 && (
                 <div className="mx-5 mb-6 rounded-xl bg-[#F7F7F7] p-4">
-                  <div className="text-xs font-semibold text-[#717171] uppercase tracking-wide mb-3">Status History</div>
+                  <div className="text-xs font-semibold text-[#717171] uppercase tracking-wide mb-3">{t("status_history")}</div>
                   <div className="space-y-2.5">
                     {order.statusHistory.slice().reverse().map((h, i) => (
                       <div key={i} className="flex items-center gap-3">
                         <div className="w-2 h-2 rounded-full bg-[#ffcc02] flex-shrink-0" />
-                        <span className="text-sm font-medium text-[#222222]">{safe(h.status).replace(/_/g, " ")}</span>
-                        <span className="text-xs text-[#717171] ms-auto">{h.at ? new Date(h.at).toLocaleDateString() : "-"}</span>
+                        <span className="text-sm font-medium text-[#222222]">{statusText(h.status)}</span>
+                        <span className="text-xs text-[#717171] ms-auto"><bdi>{fmtDay(h.at) || "-"}</bdi></span>
                       </div>
                     ))}
                   </div>

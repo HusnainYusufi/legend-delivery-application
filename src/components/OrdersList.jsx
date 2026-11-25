@@ -8,6 +8,8 @@ import {
 } from "lucide-react";
 import Money from "./Money.jsx";
 import { useTranslation } from "react-i18next";
+import { fmtDay, fmtDateTime } from "../lib/format.js";
+import OrderNo from "./OrderNo.jsx";
 import {
   fetchAssignedOrders, AUTH_BASE_URL, verifyOrderOtp,
   fetchMyInTransit, fetchMyDelivered, setDeliveryNote,
@@ -99,9 +101,9 @@ export default function OrdersList({ showDeliveredOnly = false, onBack, onOpenDe
   const [noteComment, setNoteComment] = useState("");
 
   const DELIVERY_NOTES = [
-    { value: "POSTPONED",    label: "Postponed",     description: "Customer requested later delivery" },
-    { value: "NEEDS_ACTION", label: "Needs Action",  description: "Requires admin attention" },
-    { value: "NOT_AVAILABLE",label: "Not Available", description: "Customer not reachable" },
+    { value: "POSTPONED",     label: t("note_postponed"),     description: t("note_postponed_desc") },
+    { value: "NEEDS_ACTION",  label: t("note_needs_action"),  description: t("note_needs_action_desc") },
+    { value: "NOT_AVAILABLE", label: t("note_not_available"), description: t("note_not_available_desc") },
   ];
 
   const [deliveredMsg, setDeliveredMsg] = useState("");
@@ -270,14 +272,14 @@ export default function OrdersList({ showDeliveredOnly = false, onBack, onOpenDe
             className={`pill-tab${subTab === "undelivered" ? " active" : ""}`}
             onClick={() => setSubTab("undelivered")}
           >
-            Active
+            {t("orders_tab_active")}
             <span className="ms-1.5 text-[11px] opacity-70">({driverUndelivered.length})</span>
           </button>
           <button
             className={`pill-tab${subTab === "delivered" ? " active" : ""}`}
             onClick={() => setSubTab("delivered")}
           >
-            Delivered
+            {t("orders_tab_delivered")}
             <span className="ms-1.5 text-[11px] opacity-70">({driverDelivered.length})</span>
           </button>
         </div>
@@ -300,7 +302,7 @@ export default function OrdersList({ showDeliveredOnly = false, onBack, onOpenDe
         </div>
       ) : shownOrders.length === 0 ? (
         <div className="py-20 text-center text-[var(--muted)] text-sm">
-          {q ? "No orders match your search." : t("no_orders") || "No orders"}
+          {q ? t("no_orders_match") : t("no_orders")}
         </div>
       ) : isDriver ? (
         <div ref={listRef} className="px-4 pt-2 space-y-3">
@@ -308,28 +310,28 @@ export default function OrdersList({ showDeliveredOnly = false, onBack, onOpenDe
             const pStatus = pkgStatusOf(o);
             const canVerify = pStatus === "IN_TRANSIT" || pStatus === "OUT_FOR_DELIVERY";
             const key = pkgKeyOf(o);
-            const dateStr = o.orderDate ? new Date(o.orderDate).toLocaleDateString() : "";
+            const dateStr = fmtDay(o.orderDate);
 
             // All Delivered: Details (full Order Details, with the delivery photo)
             // and Upload a Review for this order, side by side.
             if (deliveredView && pStatus === "DELIVERED") {
               const at = o.__pkg?.deliveredAt || o.updatedAt;
-              const day = at ? new Date(at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "";
+              const day = fmtDay(at);
               // Review window from the server; older servers send none: treat as open.
               const rw = o.reviewWindow;
               const windowOpen = rw ? rw.open !== false && (!rw.endsAt || new Date(rw.endsAt).getTime() > Date.now()) : true;
               const canReview = !o.review || o.review.status === "REJECTED";
               const reviewDue = canReview && windowOpen && rw?.endsAt;
               const windowEnd = rw?.endsAt
-                ? new Date(rw.endsAt).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: true })
+                ? fmtDateTime(rw.endsAt, { year: undefined })
                 : "";
               return (
                 <motion.article key={(o._id || o.orderNo) + ":" + (o.__pkg?.id || "")} className="card ad-card" whileTap={{ scale: 0.99 }}>
                   <div className="flex items-center justify-between mb-2">
                     <span className="rr-pill rr-pill--ok rr-pill--check ad-pill"><CheckCircle2 size={17} />{t("status_delivered")}</span>
-                    {day && <span className="text-[14px] text-[var(--text-2)]">{day}</span>}
+                    {day && <span className="text-[14px] text-[var(--text-2)]"><bdi>{day}</bdi></span>}
                   </div>
-                  <div className="text-[19px] font-bold text-[var(--text)] break-all">{t("order_hash")}{safeText(o.orderNo)}</div>
+                  <div className="text-[19px] font-bold text-[var(--text)] break-all"><OrderNo no={safeText(o.orderNo)} /></div>
                   {o.city && <div className="ad-meta"><MapPin size={16} />{safeText(o.city)}</div>}
                   {o.customerName && <div className="ad-meta"><User size={16} />{safeText(o.customerName)}</div>}
                   {key && <span className="ad-otp">OTP: {key}</span>}
@@ -337,7 +339,7 @@ export default function OrdersList({ showDeliveredOnly = false, onBack, onOpenDe
                     <div className={`ad-rejected${rejectText(t, o.review).includes("\n") ? " ad-rejected--list" : ""}`}><XCircle size={14} />{rejectText(t, o.review)}</div>
                   )}
                   {reviewDue && (
-                    <div className="ad-deadline"><Clock3 size={14} />{t("review_window_by")} <bdi dir="ltr">{windowEnd}</bdi></div>
+                    <div className="ad-deadline"><Clock3 size={14} />{t("review_window_by")} <bdi>{windowEnd}</bdi></div>
                   )}
                   <div className="grid grid-cols-2 gap-3 mt-3">
                     <button type="button" className="btn btn-outline ad-btn" onClick={() => onOpenDetails?.(o)}>
@@ -355,7 +357,7 @@ export default function OrdersList({ showDeliveredOnly = false, onBack, onOpenDe
                   {/* Top row: status + date */}
                   <div className="flex items-center justify-between mb-2">
                     <StatusBadge value={pStatus || o.currentStatus} manual={!pStatus && !!o.deliveredManually} />
-                    {dateStr && <span className="text-xs text-[var(--muted)]">{dateStr}</span>}
+                    {dateStr && <span className="text-xs text-[var(--muted)]"><bdi>{dateStr}</bdi></span>}
                   </div>
 
                   {/* Order # */}
@@ -387,7 +389,7 @@ export default function OrdersList({ showDeliveredOnly = false, onBack, onOpenDe
                     onClick={() => { setDetailsOrder(o); setDetailsOpen(true); }}
                     className="text-sm font-semibold text-[var(--text)] underline underline-offset-2"
                   >
-                    Details
+                    {t("details")}
                   </button>
 
                   {canVerify && (
@@ -397,11 +399,12 @@ export default function OrdersList({ showDeliveredOnly = false, onBack, onOpenDe
                         className="btn-primary btn text-sm px-4 py-2 ms-auto"
                       >
                         <CheckCircle2 size={15} />
-                        Verify OTP
+                        {t("verify_otp")}
                       </button>
                       <button
                         onClick={() => { setNoteOrder(o); setNoteOpen(true); setNoteError(""); setNoteComment(""); }}
                         className="btn-outline-red btn text-sm px-3 py-2"
+                        aria-label={t("cant_deliver")}
                       >
                         <AlertTriangle size={15} />
                       </button>
@@ -432,7 +435,7 @@ export default function OrdersList({ showDeliveredOnly = false, onBack, onOpenDe
                     onClick={() => { setDetailsOrder(o); setDetailsOpen(true); }}
                     className="flex-shrink-0 text-sm font-semibold text-[var(--text)] underline underline-offset-2 mt-1"
                   >
-                    Details
+                    {t("details")}
                   </button>
                 </div>
               </motion.article>
@@ -491,15 +494,15 @@ export default function OrdersList({ showDeliveredOnly = false, onBack, onOpenDe
             <div className="flex items-center justify-between px-5 py-3 border-b border-[#DDDDDD]">
               <div className="font-semibold text-[var(--text)] flex items-center gap-2">
                 <AlertTriangle size={18} className="text-amber-500" />
-                Can't Deliver
+                {t("cant_deliver")}
               </div>
-              <button onClick={() => setNoteOpen(false)} className="p-1.5 text-[var(--muted)] rounded-full">
+              <button onClick={() => setNoteOpen(false)} className="p-1.5 text-[var(--muted)] rounded-full" aria-label={t("close")}>
                 <X size={20} />
               </button>
             </div>
             <div className="px-5 pt-4 pb-8">
-              <p className="text-sm text-[var(--muted)] mb-1">Order</p>
-              <p className="font-semibold text-[var(--text)] mb-4">{noteOrder?.orderNo}</p>
+              <p className="text-sm text-[var(--muted)] mb-1">{t("order_label")}</p>
+              <p className="font-semibold text-[var(--text)] mb-4"><bdi dir="ltr">#{noteOrder?.orderNo}</bdi></p>
 
               {noteError && (
                 <div className="mb-3 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">{noteError}</div>
@@ -526,7 +529,7 @@ export default function OrdersList({ showDeliveredOnly = false, onBack, onOpenDe
                     key={note.value}
                     onClick={() => onSubmitDeliveryNote(note.value)}
                     disabled={noteLoading}
-                    className="w-full p-4 rounded-xl border border-[#DDDDDD] bg-[#F7F7F7] hover:bg-[#EEEEEE] text-left transition-colors disabled:opacity-50"
+                    className="w-full p-4 rounded-xl border border-[#DDDDDD] bg-[#F7F7F7] hover:bg-[#EEEEEE] text-start transition-colors disabled:opacity-50"
                   >
                     <div className="font-semibold text-[var(--text)] text-sm">{note.label}</div>
                     <div className="text-xs text-[var(--muted)] mt-0.5">{note.description}</div>
@@ -537,7 +540,7 @@ export default function OrdersList({ showDeliveredOnly = false, onBack, onOpenDe
               {noteLoading && (
                 <div className="mt-4 flex items-center justify-center text-[var(--muted)] gap-2">
                   <Loader2 size={18} className="animate-spin" />
-                  <span className="text-sm">Submitting…</span>
+                  <span className="text-sm">{t("submitting")}</span>
                 </div>
               )}
 
@@ -545,7 +548,7 @@ export default function OrdersList({ showDeliveredOnly = false, onBack, onOpenDe
                 onClick={() => setNoteOpen(false)}
                 className="btn-outline btn w-full mt-4"
               >
-                Cancel
+                {t("cancel")}
               </button>
             </div>
           </motion.div>

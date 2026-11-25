@@ -9,17 +9,19 @@ import React, { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Wallet, CheckCircle2, Circle, MapPin, CalendarDays, CalendarClock, Loader2, RefreshCcw, Download, Mail, MailWarning, FileText, Send } from "lucide-react";
 import { Trans, useTranslation } from "react-i18next";
+import OrderNo from "../OrderNo.jsx";
 import Money from "../Money.jsx";
+import { fmtDay, fmtDateTime } from "../../lib/format.js";
 import ScreenHeader from "../ScreenHeader.jsx";
 import { fetchRewardClaims, createRewardClaim, resendRewardClaimEmail, downloadRewardClaimPdf } from "../../lib/api.js";
 import { stagger, fadeUp as item } from "../../lib/motion.js";
 
-const day = (d) => (d ? new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "");
+const day = (d) => fmtDay(d);
 // Dates, amounts and claim numbers read left to right inside Arabic text.
 const Ltr = ({ children }) => <bdi dir="ltr" className="whitespace-nowrap">{children}</bdi>;
 // Claim months are Saudi months: show their first day in Saudi time on any phone.
-const saudiDay = (d) => (d ? new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric", timeZone: "Asia/Riyadh" }) : "");
-const when = (d) => (d ? new Date(d).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true }).replace(",", " ·") : "");
+const saudiDay = (d) => fmtDay(d, { timeZone: "Asia/Riyadh" });
+const when = (d) => fmtDateTime(d);
 
 function ClaimStatus({ claim }) {
   const { t } = useTranslation();
@@ -151,7 +153,7 @@ export default function ClaimRewards({ onBack, toast }) {
             <div>
               <div className="font-bold">{t("claim_month_used")}</div>
               {data.nextClaimFrom && (
-                <div className="text-[13px] mt-0.5">{t("claim_next_from")} <Ltr>{saudiDay(data.nextClaimFrom)}</Ltr></div>
+                <div className="text-[13px] mt-0.5">{t("claim_next_from")} <bdi>{saudiDay(data.nextClaimFrom)}</bdi></div>
               )}
             </div>
           </div>
@@ -171,10 +173,10 @@ export default function ClaimRewards({ onBack, toast }) {
                 className={`cl-row${on ? " cl-row--on" : ""}`} aria-pressed={canClaim ? on : undefined}>
                 {canClaim && (on ? <CheckCircle2 size={24} className="cl-check cl-check--on" /> : <Circle size={24} className="cl-check" />)}
                 <div className="min-w-0 flex-1 text-start">
-                  <div className="text-[15px] font-bold text-[var(--text)] [overflow-wrap:anywhere]">{t("order_hash")}{r.orderNo}</div>
+                  <div className="text-[15px] font-bold text-[var(--text)] [overflow-wrap:anywhere]"><OrderNo no={r.orderNo} /></div>
                   <div className="cl-meta">
                     {r.city && <span><MapPin size={13} />{r.city}</span>}
-                    {r.approvedAt && <span><CalendarDays size={13} /><Ltr>{day(r.approvedAt)}</Ltr></span>}
+                    {r.approvedAt && <span><CalendarDays size={13} /><bdi>{day(r.approvedAt)}</bdi></span>}
                   </div>
                 </div>
                 <div className="rr-plus"><Money amount={r.rewardSar} sign="+ " /></div>
@@ -207,7 +209,7 @@ export default function ClaimRewards({ onBack, toast }) {
                   <span className="text-[14px] font-bold text-[var(--text)]" dir="ltr">{c.claimNo}</span>
                   <ClaimStatus claim={c} />
                 </div>
-                <div className="cl-meta"><span><CalendarDays size={13} /><Ltr>{when(c.createdAt)}</Ltr></span></div>
+                <div className="cl-meta"><span><CalendarDays size={13} /><bdi>{when(c.createdAt)}</bdi></span></div>
                 <div className="text-[13px] text-[var(--text-2)] mt-1">
                   {t("claim_rewards_count")}: <b>{c.count}</b> · <b><Money amount={c.totalSar} /></b>
                 </div>

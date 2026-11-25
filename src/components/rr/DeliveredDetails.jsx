@@ -5,11 +5,13 @@
 import React, { useRef, useState } from "react";
 import { Package, MapPin, User, CheckCircle2, CircleDashed, ImageUp, CalendarDays, Loader2, ImageIcon, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { fmtDateTime } from "../../lib/format.js";
+import OrderNo from "../OrderNo.jsx";
 import ScreenHeader from "../ScreenHeader.jsx";
 import usePrivateImage from "./usePrivateImage.js";
 import { uploadPodPhoto, removePodPhoto } from "../../lib/api.js";
 
-const when = (d) => (d ? new Date(d).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true }) : "—");
+const when = (d) => fmtDateTime(d) || "—";
 
 export default function DeliveredDetails({ order, onBack, toast }) {
   const { t } = useTranslation();
@@ -62,7 +64,7 @@ export default function DeliveredDetails({ order, onBack, toast }) {
           <div className="ur-order-icon ur-order-icon--grey"><Package size={28} /></div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
-              <div className="text-[18px] font-bold text-[var(--text)] [overflow-wrap:anywhere]">{t("order_hash")}{order?.orderNo}</div>
+              <div className="text-[18px] font-bold text-[var(--text)] [overflow-wrap:anywhere]"><OrderNo no={order?.orderNo} /></div>
               <span className="rr-pill rr-pill--ok rr-pill--check"><CheckCircle2 size={14} />{t("status_delivered")}</span>
             </div>
             {order?.city && <div className="rr-meta"><MapPin size={14} />{order.city}</div>}
@@ -108,14 +110,14 @@ export default function DeliveredDetails({ order, onBack, toast }) {
             <ImageUp size={17} />{t("pod_upload")}
           </button>
           <input ref={pickRef} type="file" accept="image/*" hidden onChange={upload} />
-          {pod?.takenAt && <div className="text-[12px] text-[var(--muted)] mt-2 text-center">{t("pod_taken")} {when(pod.takenAt)}</div>}
+          {pod?.takenAt && <div className="text-[12px] text-[var(--muted)] mt-2 text-center">{t("pod_taken")} <bdi>{when(pod.takenAt)}</bdi></div>}
           {error && <div className="rr-error mt-3">{error}</div>}
         </div>
 
         <div className="dd-row">
           <CalendarDays size={22} className="text-[var(--muted)]" />
           <div className="flex-1 font-bold text-[var(--text)]">{t("delivered_on")}</div>
-          <div className="text-[14px] text-[var(--text-2)]">{when(pkg.deliveredAt || order?.updatedAt)}</div>
+          <div className="text-[14px] text-[var(--text-2)]"><bdi>{when(pkg.deliveredAt || order?.updatedAt)}</bdi></div>
         </div>
       </div>
     </section>
