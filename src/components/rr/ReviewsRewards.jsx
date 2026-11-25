@@ -5,7 +5,8 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { CheckCircle2, Clock3, XCircle, Gift, MapPin, CalendarDays, ImageIcon, Loader2, RefreshCcw, Wallet, ArrowRight } from "lucide-react";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
+import Money from "../Money.jsx";
 import ScreenHeader from "../ScreenHeader.jsx";
 import usePrivateImage from "./usePrivateImage.js";
 import { fetchMyReviews } from "../../lib/api.js";
@@ -13,7 +14,6 @@ import { rejectText } from "./rejectText.js";
 import { stagger, fadeUp as item } from "../../lib/motion.js";
 
 const FILTERS = ["ALL", "APPROVED", "PENDING", "REJECTED"];
-const sar = (n) => `SAR ${Number(n || 0).toLocaleString("en-US")}`;
 const when = (d) => (d ? new Date(d).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true }).replace(",", " ·") : "");
 
 function Thumb({ path }) {
@@ -54,13 +54,13 @@ export default function ReviewsRewards({ onBack, onClaim }) {
           <div className="rr-gift"><Gift size={24} /></div>
           <div className="min-w-0">
             <div className="text-[13px] font-semibold text-[var(--text-2)]">{t("rewards_my")}</div>
-            <div className="rr-reward-amount">{s ? sar(s.earnedSar) : "—"}</div>
+            <div className="rr-reward-amount">{s ? <Money amount={s.earnedSar} /> : "—"}</div>
           </div>
           <div className="rr-reward-meta">
             <div>{t("rewards_approved_reviews")}: <b>{s?.approved ?? "—"}</b></div>
-            <div>{t("rewards_per_review")}: <b>{s ? sar(s.rewardPerReviewSar) : "—"}</b></div>
+            <div>{t("rewards_per_review")}: <b>{s ? <Money amount={s.rewardPerReviewSar} /> : "—"}</b></div>
             {s && s.earnedSar > 0 && (
-              <div className="rr-paid">{t("rewards_paid")} {sar(s.paidSar)} · {t("rewards_unpaid")} {sar(s.unpaidSar)}</div>
+              <div className="rr-paid">{t("rewards_paid")} <Money amount={s.paidSar} /> · {t("rewards_unpaid")} <Money amount={s.unpaidSar} /></div>
             )}
           </div>
         </div>
@@ -72,7 +72,7 @@ export default function ReviewsRewards({ onBack, onClaim }) {
             <span className="rr-claim-icon"><Wallet size={18} /></span>
             <span className="min-w-0 flex-1">
               <span className="block text-[15px] font-bold">{t("claim_title")}</span>
-              <span className="rr-claim-sub">{t("claim_open_sub", { amount: Number(s?.claimableSar || 0).toLocaleString("en-US") })}</span>
+              <span className="rr-claim-sub"><Trans i18nKey="claim_open_sub" components={{ money: <Money amount={s?.claimableSar} /> }} /></span>
             </span>
             <ArrowRight size={18} className="rtl-flip flex-shrink-0" />
           </button>
@@ -124,7 +124,7 @@ export default function ReviewsRewards({ onBack, onClaim }) {
               </div>
               <div className="rr-row-end">
                 <StatusPill status={r.status} />
-                {r.status === "APPROVED" && <div className="rr-plus">+ {sar(r.rewardSar)}</div>}
+                {r.status === "APPROVED" && <div className="rr-plus"><Money amount={r.rewardSar} sign="+ " /></div>}
               </div>
             </motion.article>
           ))}
