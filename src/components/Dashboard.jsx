@@ -7,6 +7,7 @@ import { Trans, useTranslation } from "react-i18next";
 import Money from "./Money.jsx";
 import iconUrl from "/shaheen-icon.png";
 import { fetchMyStats } from "../lib/api.js";
+import { getAuth } from "../lib/auth.js";
 
 // The signed-in driver's own numbers, from GET /orders/my-stats.
 const STATS = [
@@ -17,6 +18,8 @@ const STATS = [
 
 export default function Dashboard({ isDriver = false, onTrackOrder, onOrders, onDelivered, onRewards, onScanClaim }) {
   const { t } = useTranslation();
+  // Name from the login token; the header greets the driver by it.
+  const driverName = (getAuth()?.name || "").trim();
   const statsRef = useRef(null);
   const actionsRef = useRef(null);
   const heroRef = useRef(null);
@@ -98,12 +101,11 @@ export default function Dashboard({ isDriver = false, onTrackOrder, onOrders, on
         <div className="dash-hero-inner">
           <div className="flex items-center gap-3 mb-6">
             <img src={iconUrl} alt="SHAHEEN" className="h-11 w-11 rounded-[14px] flex-shrink-0" />
-            <div>
-              <p className="text-[12px] font-medium text-white/50 uppercase tracking-widest">
-                {t("dashboard_live_value")}
-              </p>
-              <h1 className="text-[20px] font-bold text-white leading-tight tracking-tight">
-                {t("dashboard_subtitle")}
+            <div className="min-w-0">
+              <h1 className="text-[20px] font-bold text-white leading-tight tracking-tight [overflow-wrap:anywhere]">
+                {driverName
+                  ? <Trans i18nKey="dashboard_welcome_name" values={{ name: driverName }} components={{ name: <bdi /> }} />
+                  : t("dashboard_welcome")}
               </h1>
             </div>
           </div>
