@@ -629,12 +629,17 @@ async function markReviewNotificationsSeen(ids) {
   return authed("/reviews/notifications/seen", { method: "POST", json: { ids }, ms: 15000 });
 }
 
-/** POST /pod/:orderNo: proof-of-delivery photo for a delivered parcel (also retake). */
+/** POST /pod/:orderNo: proof-of-delivery photo for a delivered parcel (a new one replaces what is shown). */
 async function uploadPodPhoto(orderNo, packageId, file) {
   const form = new FormData();
   if (packageId) form.append("packageId", packageId);
   form.append("photo", file, file.name || "delivery.jpg");
   return authed(`/pod/${encodeURIComponent(orderNo)}`, { method: "POST", form, ms: 60000 });
+}
+
+/** DELETE /pod/photo/:id: the driver removes their delivery photo -> { removed, pod (now shown, or null) } */
+async function removePodPhoto(id) {
+  return authed(`/pod/photo/${encodeURIComponent(id)}`, { method: "DELETE", ms: 20000 });
 }
 
 /**
@@ -704,6 +709,7 @@ export {
   markReviewNotificationsSeen,
   submitReview,
   uploadPodPhoto,
+  removePodPhoto,
   fetchPrivateImage,
   CONFIG,
   apiFetch,
