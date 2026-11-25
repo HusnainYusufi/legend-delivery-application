@@ -6,6 +6,7 @@ import {
   RefreshCcw, Loader2, Info, CheckCircle2, X, Search, AlertTriangle, ChevronDown,
   FileText, Star, MapPin, User, Clock3, XCircle, Ban,
 } from "lucide-react";
+import Money from "./Money.jsx";
 import { useTranslation } from "react-i18next";
 import {
   fetchAssignedOrders, AUTH_BASE_URL, verifyOrderOtp,
@@ -54,7 +55,7 @@ function ReviewAction({ review, windowOpen = true, onUpload, t }) {
     return <span className="ad-review ad-review--wait"><Clock3 size={17} />{t("review_pending_short")}</span>;
   }
   if (review?.status === "APPROVED") {
-    return <span className="ad-review ad-review--ok"><CheckCircle2 size={17} />{t("review_approved_short")} · +SAR {review.rewardSar}</span>;
+    return <span className="ad-review ad-review--ok"><CheckCircle2 size={17} />{t("review_approved_short")} · <Money amount={review.rewardSar} sign="+" /></span>;
   }
   if (!windowOpen) {
     return <span className="ad-review ad-review--closed"><Ban size={17} />{t("review_window_closed")}</span>;

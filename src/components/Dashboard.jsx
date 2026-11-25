@@ -3,7 +3,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { gsap } from "gsap";
 import { BadgeCheck, Search, PackageCheck, ScanLine, ArrowRight, Box, Truck, CalendarCheck, Star } from "lucide-react";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
+import Money from "./Money.jsx";
 import iconUrl from "/shaheen-icon.png";
 import { fetchMyStats } from "../lib/api.js";
 
@@ -72,11 +73,11 @@ export default function Dashboard({ isDriver = false, onTrackOrder, onOrders, on
   const rv = stats?.reviews;
   const rewardsChips = rv
     ? [
-        { text: t("dashboard_rewards_earned", { amount: Number(rv.earnedSar || 0).toLocaleString("en-US") }), cls: "dash-chip dash-chip--ok" },
+        { text: <Trans i18nKey="dashboard_rewards_earned" components={{ money: <Money amount={rv.earnedSar} /> }} />, cls: "dash-chip dash-chip--ok" },
         { text: t("dashboard_rewards_in_review", { count: rv.pending || 0 }), cls: "dash-chip dash-chip--wait" },
         { text: t("dashboard_rewards_rejected", { count: rv.rejected || 0 }), cls: "dash-chip dash-chip--bad" },
         ...(rv.claimableSar > 0
-          ? [{ text: t("dashboard_rewards_claimable", { amount: Number(rv.claimableSar).toLocaleString("en-US") }), cls: "dash-chip dash-chip--claim" }]
+          ? [{ text: <Trans i18nKey="dashboard_rewards_claimable" components={{ money: <Money amount={rv.claimableSar} /> }} />, cls: "dash-chip dash-chip--claim" }]
           : []),
       ]
     : null;

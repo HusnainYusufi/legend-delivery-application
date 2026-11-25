@@ -1,17 +1,31 @@
 // src/components/rr/ReviewNotice.jsx
 // Pop-up when Shaheen AI (or the office) decides one of the driver's reviews:
-// approved -> "You earned 5 SAR", rejected -> the reason. Checks on start, when
+// approved -> "You earned 5 <Riyal sign>" with the reward sound, rejected -> the reason. Checks on start, when
 // the app comes back to the foreground, and every minute while it is open.
 // A notice is marked seen on the server once the driver closes it.
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Gift, XCircle } from "lucide-react";
+import { Banknote, XCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { App as CapApp } from "@capacitor/app";
-import { fetchReviewNotifications, markReviewNotificationsSeen } from "../../lib/api.js";
+import { AUTH_BASE_URL, fetchReviewNotifications, markReviewNotificationsSeen } from "../../lib/api.js";
+import Money from "../Money.jsx";
 import { rejectText } from "./rejectText.js";
 
 const POLL_MS = 60000;
+
+// "Money in" sound for an approved review, served by the API (sounds/).
+const REWARD_SOUND_URL = `${AUTH_BASE_URL}/sounds/review-approved.opus`;
+let rewardSound = null;
+function playRewardSound() {
+  try {
+    if (!rewardSound) { rewardSound = new Audio(REWARD_SOUND_URL); rewardSound.preload = "auto"; }
+    rewardSound.currentTime = 0;
+    rewardSound.play()?.catch(() => {}); // muted, offline or blocked: the pop-up still shows
+  } catch {
+    // no audio support
+  }
+}
 
 export default function ReviewNotice({ onOpenRewards, onReupload }) {
   const { t } = useTranslation();
@@ -55,6 +69,11 @@ export default function ReviewNotice({ onOpenRewards, onReupload }) {
 
   const approved = current?.status === "APPROVED";
 
+  // Once per approved pop-up.
+  useEffect(() => {
+    if (approved) playRewardSound();
+  }, [current?.id, approved]);
+
   return (
     <AnimatePresence>
       {current && (
@@ -71,16 +90,16 @@ export default function ReviewNotice({ onOpenRewards, onReupload }) {
           >
             <div
               className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full"
-              style={{ background: approved ? "rgba(255,204,2,0.18)" : "rgba(220,38,38,0.1)" }}
+              style={{ background: approved ? "#E3F4EA" : "rgba(220,38,38,0.1)" }}
             >
-              {approved ? <Gift size={32} color="#B38F00" /> : <XCircle size={32} color="#DC2626" />}
+              {approved ? <Banknote size={34} color="#1E6B45" strokeWidth={2.2} /> : <XCircle size={32} color="#DC2626" />}
             </div>
 
             {approved ? (
               <>
                 <div className="text-[13px] font-semibold uppercase tracking-wide text-[#717171]">{t("review_notice_earned")}</div>
-                <div className="mt-1 text-4xl font-extrabold text-[#1A1A1A]">
-                  {t("review_notice_amount", { amount: current.rewardSar })}
+                <div className="mt-2 inline-flex items-center rounded-2xl px-6 py-1 text-5xl font-extrabold text-[#1E6B45]" style={{ background: "#E3F4EA" }}>
+                  <Money amount={current.rewardSar} />
                 </div>
                 <p className="mt-3 text-sm text-[#484848]">{t("review_notice_approved_body", { orderNo: current.orderNo })}</p>
               </>

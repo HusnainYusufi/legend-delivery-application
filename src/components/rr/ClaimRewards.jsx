@@ -8,12 +8,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Wallet, CheckCircle2, Circle, MapPin, CalendarDays, CalendarClock, Loader2, RefreshCcw, Download, Mail, MailWarning, FileText, Send } from "lucide-react";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
+import Money from "../Money.jsx";
 import ScreenHeader from "../ScreenHeader.jsx";
 import { fetchRewardClaims, createRewardClaim, resendRewardClaimEmail, downloadRewardClaimPdf } from "../../lib/api.js";
 import { stagger, fadeUp as item } from "../../lib/motion.js";
 
-const sar = (n) => `SAR ${Number(n || 0).toLocaleString("en-US")}`;
 const day = (d) => (d ? new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "");
 // Dates, amounts and claim numbers read left to right inside Arabic text.
 const Ltr = ({ children }) => <bdi dir="ltr" className="whitespace-nowrap">{children}</bdi>;
@@ -104,12 +104,12 @@ export default function ClaimRewards({ onBack, toast }) {
           <div className="rr-gift"><Wallet size={24} /></div>
           <div className="min-w-0">
             <div className="text-[13px] font-semibold text-[var(--text-2)]">{t("claim_available")}</div>
-            <div className="rr-reward-amount">{b ? sar(b.claimableSar) : "—"}</div>
+            <div className="rr-reward-amount">{b ? <Money amount={b.claimableSar} /> : "—"}</div>
           </div>
           <div className="rr-reward-meta">
             <div>{t("claim_rewards_count")}: <b>{b?.claimableCount ?? "—"}</b></div>
-            <div>{t("claim_awaiting_payment")}: <b>{b ? sar(b.claimedSar) : "—"}</b></div>
-            <div>{t("rewards_paid")}: <b>{b ? sar(b.paidSar) : "—"}</b></div>
+            <div>{t("claim_awaiting_payment")}: <b>{b ? <Money amount={b.claimedSar} /> : "—"}</b></div>
+            <div>{t("rewards_paid")}: <b>{b ? <Money amount={b.paidSar} /> : "—"}</b></div>
           </div>
         </div>
       </ScreenHeader>
@@ -177,7 +177,7 @@ export default function ClaimRewards({ onBack, toast }) {
                     {r.approvedAt && <span><CalendarDays size={13} /><Ltr>{day(r.approvedAt)}</Ltr></span>}
                   </div>
                 </div>
-                <div className="rr-plus"><Ltr>+ {sar(r.rewardSar)}</Ltr></div>
+                <div className="rr-plus"><Money amount={r.rewardSar} sign="+ " /></div>
               </motion.button>
             );
           })}
@@ -188,7 +188,7 @@ export default function ClaimRewards({ onBack, toast }) {
           <div className="cl-bar">
             <div className="min-w-0">
               <div className="text-[12px] text-[var(--muted)]">{t("claim_selected", { count: picked.size })}</div>
-              <div className="text-[18px] font-extrabold text-[var(--text)] leading-tight">{sar(pickedSar)}</div>
+              <div className="text-[18px] font-extrabold text-[var(--text)] leading-tight"><Money amount={pickedSar} /></div>
             </div>
             <button type="button" className="btn btn-primary cl-claim" disabled={!picked.size || busy} onClick={() => setConfirming(true)}>
               <Send size={17} className="rtl-flip" />{t("claim_cta")}
@@ -209,7 +209,7 @@ export default function ClaimRewards({ onBack, toast }) {
                 </div>
                 <div className="cl-meta"><span><CalendarDays size={13} /><Ltr>{when(c.createdAt)}</Ltr></span></div>
                 <div className="text-[13px] text-[var(--text-2)] mt-1">
-                  {t("claim_rewards_count")}: <b>{c.count}</b> · <b><Ltr>{sar(c.totalSar)}</Ltr></b>
+                  {t("claim_rewards_count")}: <b>{c.count}</b> · <b><Money amount={c.totalSar} /></b>
                 </div>
                 {c.email?.failed && (
                   <button type="button" className="cl-retry" onClick={() => resend(c)} disabled={rowBusy === `mail-${c.id}`}>
@@ -234,8 +234,8 @@ export default function ClaimRewards({ onBack, toast }) {
             <motion.div className="cl-sheet" initial={{ y: 40 }} animate={{ y: 0 }} exit={{ y: 40 }} onClick={(e) => e.stopPropagation()}
               role="dialog" aria-modal="true" aria-labelledby="cl-confirm-title">
               <h3 id="cl-confirm-title" className="text-[18px] font-extrabold text-[var(--text)]">{t("claim_confirm_title")}</h3>
-              <p className="text-[14px] text-[var(--text-2)] mt-2">{t("claim_confirm_body", { count: picked.size, amount: sar(pickedSar) })}</p>
-              <div className="cl-sheet-total">{sar(pickedSar)}</div>
+              <p className="text-[14px] text-[var(--text-2)] mt-2"><Trans i18nKey="claim_confirm_body" values={{ count: picked.size }} components={{ money: <Money amount={pickedSar} /> }} /></p>
+              <div className="cl-sheet-total"><Money amount={pickedSar} /></div>
               <div className="grid grid-cols-2 gap-3 mt-4">
                 <button type="button" className="btn btn-outline" onClick={() => setConfirming(false)} disabled={busy}>{t("cancel")}</button>
                 <button type="button" className="btn btn-primary" onClick={submit} disabled={busy}>
