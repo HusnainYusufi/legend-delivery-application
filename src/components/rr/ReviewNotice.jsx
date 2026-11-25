@@ -1,6 +1,6 @@
 // src/components/rr/ReviewNotice.jsx
 // Pop-up when Shaheen AI (or the office) decides one of the driver's reviews:
-// approved -> "You earned 5 <Riyal sign>" with the reward sound, rejected -> the reason. Checks on start, when
+// approved -> "You earned 5 <Riyal sign>", rejected -> the reason; both play the review sound. Checks on start, when
 // the app comes back to the foreground, and every minute while it is open.
 // A notice is marked seen on the server once the driver closes it.
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -14,14 +14,15 @@ import { rejectText } from "./rejectText.js";
 
 const POLL_MS = 60000;
 
-// "Money in" sound for an approved review, served by the API (sounds/).
-const REWARD_SOUND_URL = `${AUTH_BASE_URL}/sounds/review-approved.opus`;
-let rewardSound = null;
-function playRewardSound() {
+// Notification sound when Shaheen AI (or the office) decides a review,
+// approved or not. Served by the API (sounds/).
+const REVIEW_SOUND_URL = `${AUTH_BASE_URL}/sounds/review-result.mp3`;
+let reviewSound = null;
+function playReviewSound() {
   try {
-    if (!rewardSound) { rewardSound = new Audio(REWARD_SOUND_URL); rewardSound.preload = "auto"; }
-    rewardSound.currentTime = 0;
-    rewardSound.play()?.catch(() => {}); // muted, offline or blocked: the pop-up still shows
+    if (!reviewSound) { reviewSound = new Audio(REVIEW_SOUND_URL); reviewSound.preload = "auto"; }
+    reviewSound.currentTime = 0;
+    reviewSound.play()?.catch(() => {}); // muted, offline or blocked: the pop-up still shows
   } catch {
     // no audio support
   }
@@ -69,10 +70,10 @@ export default function ReviewNotice({ onOpenRewards, onReupload }) {
 
   const approved = current?.status === "APPROVED";
 
-  // Once per approved pop-up.
+  // Once per pop-up, approved or not.
   useEffect(() => {
-    if (approved) playRewardSound();
-  }, [current?.id, approved]);
+    if (current?.id) playReviewSound();
+  }, [current?.id]);
 
   return (
     <AnimatePresence>
