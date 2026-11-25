@@ -563,7 +563,9 @@ body.overflow-hidden { overflow: hidden; }
 .ad-meta { display: flex; align-items: center; gap: 8px; font-size: 15px; color: var(--text-2); margin-top: 6px; }
 .ad-meta svg { color: var(--muted); }
 .ad-otp { display: inline-block; margin-top: 10px; font-size: 13px; font-weight: 700; color: #A16207; background: rgba(255,204,2,0.16); border-radius: 999px; padding: 4px 12px; }
-.ad-rejected { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 12px; color: #B91C1C; }
+.ad-rejected { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 12px; color: #B91C1C; white-space: pre-line; }
+.ad-rejected--list { align-items: flex-start; }
+.ad-rejected--list svg { flex-shrink: 0; margin-top: 2px; }
 .ad-btn { padding: 12px 10px; border-radius: 14px; font-size: 15px; font-weight: 700; }
 .ad-review { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border-radius: 14px; font-size: 14px; font-weight: 700; padding: 12px 8px; }
 .ad-review--wait { background: #FEF3D7; color: #B45309; }
@@ -600,7 +602,7 @@ body.overflow-hidden { overflow: hidden; }
   .rr-row-end { flex-direction: row; justify-content: space-between; flex-basis: 100%; padding-inline-start: 0; border-inline-start: 0; padding-top: 10px; border-top: 1px solid var(--border); }
 }
 .rr-plus { font-size: 15px; font-weight: 800; color: #15803D; white-space: nowrap; }
-.rr-reason { margin-top: 4px; font-size: 12px; color: #B91C1C; }
+.rr-reason { margin-top: 4px; font-size: 12px; color: #B91C1C; white-space: pre-line; }
 
 /* Claim Rewards */
 .rr-claim { display: flex; align-items: center; gap: 12px; width: 100%; margin-top: 12px; padding: 12px 14px; border-radius: 16px; background: #111111; color: #fff; text-align: start; }

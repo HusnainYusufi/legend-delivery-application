@@ -89,7 +89,7 @@ export default function ReviewNotice({ onOpenRewards, onReupload }) {
                 <div className="text-xl font-bold text-[#1A1A1A]">{t("review_notice_rejected_title")}</div>
                 <p className="mt-2 text-sm text-[#484848]">{t("review_notice_rejected_body", { orderNo: current.orderNo })}</p>
                 {rejectText(t, current) && (
-                  <div className="mt-3 rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{rejectText(t, current)}</div>
+                  <div className={`mt-3 rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700 whitespace-pre-line${rejectText(t, current).includes("\n") ? " text-start" : ""}`}>{rejectText(t, current)}</div>
                 )}
               </>
             )}
