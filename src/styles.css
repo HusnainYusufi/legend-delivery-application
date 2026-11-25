@@ -648,6 +648,13 @@ body.overflow-hidden { overflow: hidden; }
   width: 100%; min-height: 128px; border: 1.5px dashed #D6D6D6; border-radius: 14px; display: flex; flex-direction: column;
   align-items: center; justify-content: center; gap: 8px; color: var(--muted); font-size: 13px; padding: 12px; overflow: hidden;
 }
+.ur-shot { position: relative; }
+.ur-remove {
+  position: absolute; top: 8px; inset-inline-end: 8px; width: 32px; height: 32px; border-radius: 999px;
+  display: flex; align-items: center; justify-content: center; background: rgba(17, 17, 17, .72); color: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .25);
+}
+.ur-remove:active { transform: scale(.94); }
 .ur-preview { max-height: 240px; width: auto; max-width: 100%; border-radius: 10px; object-fit: contain; }
 .ur-btn { padding: 12px 8px; font-size: 14px; font-weight: 700; }
 .ur-btn:disabled { opacity: .5; }

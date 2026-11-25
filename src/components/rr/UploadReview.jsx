@@ -4,7 +4,7 @@
 // review in Pending verification. "Save for Later" keeps the draft on this
 // phone (per order) and restores it next time.
 import React, { useEffect, useRef, useState } from "react";
-import { Package, CalendarDays, User, MapPin, ImageIcon, Upload, RefreshCcw, Link2, PencilLine, Info, Send, Loader2 } from "lucide-react";
+import { Package, CalendarDays, User, MapPin, ImageIcon, Upload, X, Link2, PencilLine, Info, Send, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import ScreenHeader from "../ScreenHeader.jsx";
 import { submitReview } from "../../lib/api.js";
@@ -55,6 +55,13 @@ export default function UploadReview({ order, onBack, onSubmitted, toast }) {
     setPreview(URL.createObjectURL(f));
   };
 
+  // Clear the chosen screenshot before submitting (the ✕ on the preview).
+  const removeShot = () => {
+    setFile(null);
+    setPreview(null);
+    setError("");
+  };
+
   const saveForLater = async () => {
     try {
       const shot = file && file.size < 2.5 * 1024 * 1024 ? await fileToDataUrl(file) : null;
@@ -103,22 +110,24 @@ export default function UploadReview({ order, onBack, onSubmitted, toast }) {
       <div className="px-4 pt-4">
         <h2 className="ur-label text-[16px]">{t("review_screenshot")}</h2>
         <div className="ur-card">
-          <button type="button" className="ur-drop" onClick={() => fileRef.current?.click()}>
-            {preview
-              ? <img src={preview} alt="" className="ur-preview" />
-              : (<>
-                  <ImageIcon size={40} className="text-[var(--muted)]" />
-                  <span>{t("review_screenshot_hint")}</span>
-                </>)}
-          </button>
-          <div className="grid grid-cols-2 gap-3 mt-3">
-            <button type="button" className="btn btn-primary ur-btn" onClick={() => fileRef.current?.click()}>
-              <Upload size={17} />{t("review_upload_screenshot")}
+          <div className="ur-shot">
+            <button type="button" className="ur-drop" onClick={() => fileRef.current?.click()}>
+              {preview
+                ? <img src={preview} alt="" className="ur-preview" />
+                : (<>
+                    <ImageIcon size={40} className="text-[var(--muted)]" />
+                    <span>{t("review_screenshot_hint")}</span>
+                  </>)}
             </button>
-            <button type="button" className="btn btn-outline ur-btn" disabled={!file} onClick={() => fileRef.current?.click()}>
-              <RefreshCcw size={17} />{t("review_replace")}
-            </button>
+            {preview && (
+              <button type="button" className="ur-remove" onClick={removeShot} disabled={busy} aria-label={t("review_remove_screenshot")}>
+                <X size={18} strokeWidth={2.5} />
+              </button>
+            )}
           </div>
+          <button type="button" className="btn btn-primary ur-btn w-full mt-3" onClick={() => fileRef.current?.click()} disabled={busy}>
+            <Upload size={17} />{t("review_upload_screenshot")}
+          </button>
           <input ref={fileRef} type="file" accept="image/*" hidden onChange={pick} />
         </div>
 
