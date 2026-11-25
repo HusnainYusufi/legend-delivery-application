@@ -1,20 +1,19 @@
 // src/components/rr/DeliveredDetails.jsx
 // Order Details for a delivered parcel: OTP Verified (this parcel), Proof of
-// Delivery photo with Upload / Retake underneath (Retake once a photo
-// exists), and when it was delivered.
+// Delivery photo with one Upload button underneath and an x on the photo to
+// remove it, and when it was delivered.
 import React, { useRef, useState } from "react";
-import { Package, MapPin, User, CheckCircle2, CircleDashed, Camera, ImageUp, CalendarDays, Loader2, ImageIcon } from "lucide-react";
+import { Package, MapPin, User, CheckCircle2, CircleDashed, ImageUp, CalendarDays, Loader2, ImageIcon, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import ScreenHeader from "../ScreenHeader.jsx";
 import usePrivateImage from "./usePrivateImage.js";
-import { uploadPodPhoto } from "../../lib/api.js";
+import { uploadPodPhoto, removePodPhoto } from "../../lib/api.js";
 
 const when = (d) => (d ? new Date(d).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true }) : "—");
 
 export default function DeliveredDetails({ order, onBack, toast }) {
   const { t } = useTranslation();
   const pickRef = useRef(null);
-  const camRef = useRef(null);
   const [pod, setPod] = useState(order?.pod || null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -33,6 +32,22 @@ export default function DeliveredDetails({ order, onBack, toast }) {
       const res = await uploadPodPhoto(order.orderNo, pkg.id, f);
       setPod(res.pod);
       toast?.("success", t("pod_saved"));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // The x on the photo: the server hides it and returns the photo now shown
+  // for this parcel (an earlier one, or none).
+  const remove = async () => {
+    if (!pod?.id) return;
+    setBusy(true); setError("");
+    try {
+      const res = await removePodPhoto(pod.id);
+      setPod(res.pod || null);
+      toast?.("success", t("pod_removed"));
     } catch (err) {
       setError(err.message);
     } finally {
@@ -74,24 +89,25 @@ export default function DeliveredDetails({ order, onBack, toast }) {
             <div className="text-[17px] font-bold text-[var(--text)]">{t("pod_title")}</div>
           </div>
 
-          <div className="dd-photo">
-            {busy || loading
-              ? <Loader2 size={28} className="animate-spin text-[var(--red)]" />
-              : url
-                ? <img src={url} alt={t("pod_title")} />
-                : (<div className="flex flex-col items-center gap-2 text-[var(--muted)] text-sm"><ImageIcon size={38} />{t("pod_none")}</div>)}
+          <div className="ur-shot">
+            <div className="dd-photo">
+              {busy || loading
+                ? <Loader2 size={28} className="animate-spin text-[var(--red)]" />
+                : url
+                  ? <img src={url} alt={t("pod_title")} />
+                  : (<div className="flex flex-col items-center gap-2 text-[var(--muted)] text-sm"><ImageIcon size={38} />{t("pod_none")}</div>)}
+            </div>
+            {pod && url && !busy && (
+              <button type="button" className="ur-remove" onClick={remove} aria-label={t("pod_remove")}>
+                <X size={18} strokeWidth={2.5} />
+              </button>
+            )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3 mt-3">
-            <button type="button" className="btn btn-primary dd-btn" disabled={busy} onClick={() => pickRef.current?.click()}>
-              <ImageUp size={22} />{t("pod_upload")}
-            </button>
-            <button type="button" className="btn btn-outline dd-btn" disabled={busy || !pod} onClick={() => camRef.current?.click()}>
-              <Camera size={22} />{t("pod_retake")}
-            </button>
-          </div>
+          <button type="button" className="btn btn-primary ur-btn w-full mt-3" disabled={busy} onClick={() => pickRef.current?.click()}>
+            <ImageUp size={17} />{t("pod_upload")}
+          </button>
           <input ref={pickRef} type="file" accept="image/*" hidden onChange={upload} />
-          <input ref={camRef} type="file" accept="image/*" capture="environment" hidden onChange={upload} />
           {pod?.takenAt && <div className="text-[12px] text-[var(--muted)] mt-2 text-center">{t("pod_taken")} {when(pod.takenAt)}</div>}
           {error && <div className="rr-error mt-3">{error}</div>}
         </div>

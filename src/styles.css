@@ -676,7 +676,6 @@ body.overflow-hidden { overflow: hidden; }
 .dd-card { background: var(--surface); border-radius: 18px; padding: 16px; box-shadow: var(--shadow-sm); }
 .dd-photo { min-height: 200px; border-radius: 14px; background: var(--bg); display: flex; align-items: center; justify-content: center; overflow: hidden; }
 .dd-photo img { width: 100%; max-height: 320px; object-fit: cover; }
-.dd-btn { flex-direction: column; gap: 4px; padding: 12px 8px; font-size: 15px; font-weight: 800; border-radius: 16px; }
 
 /* Amounts: number + Saudi Riyal symbol (components/Money.jsx) */
 .money { white-space: nowrap; }
