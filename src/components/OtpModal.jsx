@@ -48,18 +48,18 @@ export default function OtpModal({ open, orderNo, onClose, onSubmit, loading = f
             </div>
 
             <div className="flex items-center justify-between px-5 py-3 border-b border-[#DDDDDD]">
-              <div className="font-semibold text-[#222222]">{t("enter_otp_for") || "Enter OTP"}</div>
-              <button onClick={onClose} className="p-1.5 text-[#717171] rounded-full" aria-label="Close">
+              <div className="font-semibold text-[#222222]">{t("verify_otp")}</div>
+              <button onClick={onClose} className="p-1.5 text-[#717171] rounded-full" aria-label={t("close")}>
                 <X size={20} />
               </button>
             </div>
 
             <div className="px-5 pt-4 pb-8">
               <p className="text-sm text-[#717171] text-center">{t("enter_otp_for")}</p>
-              <p className="text-base font-semibold text-[#222222] text-center mt-0.5 break-all">{orderNo}</p>
+              <p className="text-base font-semibold text-[#222222] text-center mt-0.5 break-all"><bdi dir="ltr">#{orderNo}</bdi></p>
 
               {/* OTP boxes */}
-              <div className="flex items-center justify-center gap-3 mt-5">
+              <div className="flex items-center justify-center gap-3 mt-5" dir="ltr">
                 {digits.map((d, i) => (
                   <motion.div
                     key={i}
@@ -87,7 +87,7 @@ export default function OtpModal({ open, orderNo, onClose, onSubmit, loading = f
               )}
 
               {/* Numpad */}
-              <div className="mt-5 grid grid-cols-3 gap-2.5">
+              <div className="mt-5 grid grid-cols-3 gap-2.5" dir="ltr">
                 {[1,2,3,4,5,6,7,8,9].map((n) => (
                   <motion.button
                     key={n}
@@ -134,7 +134,7 @@ export default function OtpModal({ open, orderNo, onClose, onSubmit, loading = f
                 >
                   {loading
                     ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    : (t("submit") || "Verify")}
+                    : (t("verify_otp"))}
                 </motion.button>
               </div>
             </div>

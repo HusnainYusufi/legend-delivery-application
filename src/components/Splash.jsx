@@ -2,11 +2,13 @@
 import React, { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { gsap } from "gsap";
+import { useTranslation } from "react-i18next";
 import logoUrl from "/shaheen-icon.png";
 
 const LETTERS = "SHAHEENE".split("");
 
 export default function Splash() {
+  const { t } = useTranslation();
   const ringRefs = [useRef(null), useRef(null), useRef(null)];
   const logoRef = useRef(null);
   const brandRef = useRef(null);
@@ -119,13 +121,13 @@ export default function Splash() {
 
         {/* Tagline */}
         <p ref={taglineRef} className="splash-tagline" style={{ opacity: 0 }}>
-          Delivery Intelligence Platform
+          {t("splash_platform")}
         </p>
 
         {/* Attribution — has its own ref and tween so it trails the tagline
             rather than competing with it. */}
         <p ref={poweredRef} className="splash-powered-by" style={{ opacity: 0 }}>
-          Powered by <span className="splash-powered-by-brand">LEGEND SLEEP</span>
+          {t("powered_by")} <span className="splash-powered-by-brand">LEGEND SLEEP</span>
         </p>
 
         {/* Progress line */}

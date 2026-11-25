@@ -1,5 +1,6 @@
 // src/components/StatusBadge.jsx
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 const STATUS_MAP = {
   DELIVERED:         { bg: "#ECFDF5", text: "#065F46", dot: "#10B981", label: "Delivered" },
@@ -16,9 +17,10 @@ const DEFAULT = { bg: "#F9FAFB", text: "#374151", dot: "#9CA3AF" };
 
 // `manual`: delivered by hand, not through the delivery pipeline -> "Delivered - M".
 export default function StatusBadge({ value, manual = false }) {
+  const { t } = useTranslation();
   const key = String(value || "").toUpperCase().replace(/\s+/g, "_");
   const s = STATUS_MAP[key] || DEFAULT;
-  const base = s.label || key.replace(/_/g, " ");
+  const base = t(`statuses.${key}`, { defaultValue: s.label || key.replace(/_/g, " ") });
   const label = manual && key === "DELIVERED" ? `${base} - M` : base;
 
   return (

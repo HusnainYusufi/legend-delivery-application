@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export default function ScannerOverlay({ visible, onClose, scannerDivId, title }) {
+  const { t } = useTranslation();
   const overlayRef = useRef(null);
   const [boxSize, setBoxSize] = useState(320); // square scan area
 
@@ -43,7 +45,7 @@ export default function ScannerOverlay({ visible, onClose, scannerDivId, title }
           onClick={onClose}
           className="btn bg-white/10 border border-white/30 text-white px-3 py-1.5 rounded-lg text-sm"
         >
-          <X className="h-4 w-4" /> Close
+          <X className="h-4 w-4" /> {t("close")}
         </button>
       </div>
 
@@ -57,7 +59,7 @@ export default function ScannerOverlay({ visible, onClose, scannerDivId, title }
       </div>
 
       <div className="text-center text-white text-sm pb-6">
-        Point camera at the QR code
+        {t("scanner_hint")}
       </div>
     </div>
   );

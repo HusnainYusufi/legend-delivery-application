@@ -55,9 +55,10 @@ function LoginForm({ onLogin }) {
           <label className="block text-sm font-medium text-[#222222] mb-1.5">{t("email")}</label>
           <input
             type="email"
+            dir="ltr"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="input-field"
+            className="input-field input-field--ltr"
             placeholder={t("email_placeholder")}
             required
             autoComplete="username"
@@ -71,7 +72,7 @@ function LoginForm({ onLogin }) {
               type={showPw ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="input-field pr-12"
+              className="input-field input-field--end"
               placeholder={t("password_placeholder")}
               required
               autoComplete="current-password"
@@ -79,7 +80,7 @@ function LoginForm({ onLogin }) {
             <button
               type="button"
               onClick={() => setShowPw((s) => !s)}
-              className="absolute inset-y-0 right-3 flex items-center text-[#717171]"
+              className="absolute inset-y-0 end-3 flex items-center text-[#717171]"
               aria-label={showPw ? t("hide_password") : t("show_password")}
             >
               {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -171,6 +172,7 @@ function ModalContent({ onClose, onLogin }) {
  * order lookup, no scanner, nothing else.
  */
 export function LoginScreen({ onLogin, language, onChangeLanguage }) {
+  const { t } = useTranslation();
   return (
     <motion.div
       key="login-screen"
@@ -185,10 +187,10 @@ export function LoginScreen({ onLogin, language, onChangeLanguage }) {
             value={language}
             onChange={(e) => onChangeLanguage(e.target.value)}
             className="border border-[#DDDDDD] rounded-lg px-2.5 py-1.5 text-sm font-medium text-[#222222] bg-white outline-none"
-            aria-label="Language"
+            aria-label={t("language")}
           >
-            <option value="en">EN</option>
-            <option value="ar">AR</option>
+            <option value="en">English</option>
+            <option value="ar">العربية</option>
           </select>
         )}
       </div>

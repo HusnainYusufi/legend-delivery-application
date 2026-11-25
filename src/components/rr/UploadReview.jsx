@@ -6,12 +6,14 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Package, CalendarDays, User, MapPin, ImageIcon, Upload, X, Link2, PencilLine, Info, Send, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import OrderNo from "../OrderNo.jsx";
 import ScreenHeader from "../ScreenHeader.jsx";
+import { fmtDay } from "../../lib/format.js";
 import { submitReview } from "../../lib/api.js";
 
 const NOTE_MAX = 200;
 const draftKey = (orderNo) => `ld.reviewDraft.${orderNo}`;
-const dayOf = (d) => (d ? new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "");
+const dayOf = (d) => fmtDay(d);
 
 const readDraft = (orderNo) => {
   try { return JSON.parse(localStorage.getItem(draftKey(orderNo)) || "null"); } catch { return null; }
@@ -98,9 +100,9 @@ export default function UploadReview({ order, onBack, onSubmitted, toast }) {
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-2">
               <span className="rr-pill rr-pill--ok rr-pill--dot">{t("status_delivered")}</span>
-              {deliveredAt && <span className="rr-meta m-0"><CalendarDays size={13} />{dayOf(deliveredAt)}</span>}
+              {deliveredAt && <span className="rr-meta m-0"><CalendarDays size={13} /><bdi>{dayOf(deliveredAt)}</bdi></span>}
             </div>
-            <div className="text-[17px] font-bold text-[var(--text)] mt-1 break-all">{t("order_hash")}{orderNo}</div>
+            <div className="text-[17px] font-bold text-[var(--text)] mt-1 break-all"><OrderNo no={orderNo} /></div>
             {order?.customerName && <div className="rr-meta"><User size={13} />{order.customerName}</div>}
             {order?.city && <div className="rr-meta"><MapPin size={13} />{order.city}</div>}
           </div>
