@@ -333,7 +333,7 @@ export default function OrdersList({ showDeliveredOnly = false, onBack, onOpenDe
                   {o.customerName && <div className="ad-meta"><User size={16} />{safeText(o.customerName)}</div>}
                   {key && <span className="ad-otp">OTP: {key}</span>}
                   {o.review?.status === "REJECTED" && rejectText(t, o.review) && (
-                    <div className="ad-rejected"><XCircle size={14} />{rejectText(t, o.review)}</div>
+                    <div className={`ad-rejected${rejectText(t, o.review).includes("\n") ? " ad-rejected--list" : ""}`}><XCircle size={14} />{rejectText(t, o.review)}</div>
                   )}
                   {reviewDue && (
                     <div className="ad-deadline"><Clock3 size={14} />{t("review_window_by")} <bdi dir="ltr">{windowEnd}</bdi></div>
