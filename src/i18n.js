@@ -350,7 +350,7 @@ const resources = {
       review_status_rejected: "مرفوض",
       review_upload_title: "رفع تقييم",
       review_upload_cta: "رفع تقييم",
-      review_upload_again: "رفع مرة أخرى",
+      review_upload_again: "إثبات التقييم",
       review_pending_short: "التقييم قيد المراجعة",
       review_approved_short: "معتمد",
       review_screenshot: "لقطة شاشة التقييم",
