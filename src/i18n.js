@@ -281,7 +281,7 @@ const resources = {
       orders_tab_active: "النشطة",
       orders_tab_delivered: "المُسلَّمة",
       no_orders_match: "لا توجد طلبات مطابقة لبحثك.",
-      verify_otp: "تحقق من الرمز",
+      verify_otp: "رمز التحقق",
       cant_deliver: "تعذّر التسليم",
       submitting: "جارٍ الإرسال…",
       note_postponed: "مؤجَّل",
@@ -311,7 +311,7 @@ const resources = {
       rewards_all_reviews: "كل التقييمات",
       rewards_empty: "لا توجد تقييمات بعد. أرسل تقييمًا من «جميع المُسلَّمة».",
       // Claim Rewards
-      claim_title: "صرف المكافآت",
+      claim_title: "طلب صرف المكافأة",
       claim_open: "صرف",
       claim_open_sub: "<money/> جاهزة للصرف",
       claim_available: "المتاح للصرف",
