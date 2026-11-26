@@ -1,6 +1,6 @@
 // src/components/rr/ReviewNotice.jsx
 // Pop-up when Shaheen AI (or the office) decides one of the driver's reviews:
-// approved -> "You earned 5 <Riyal sign>", rejected -> the reason; both play the review sound. Checks on start, when
+// approved -> "You earned 5 <Riyal sign>", rejected -> the reason; only an approval plays the review sound. Checks on start, when
 // the app comes back to the foreground, and every minute while it is open.
 // A notice is marked seen on the server once the driver closes it.
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -14,8 +14,8 @@ import { rejectText } from "./rejectText.js";
 
 const POLL_MS = 60000;
 
-// Notification sound when Shaheen AI (or the office) decides a review,
-// approved or not. Served by the API (sounds/).
+// Notification sound when Shaheen AI (or the office) approves a review.
+// Rejections stay silent. Served by the API (sounds/).
 const REVIEW_SOUND_URL = `${AUTH_BASE_URL}/sounds/review-result.mp3`;
 let reviewSound = null;
 function playReviewSound() {
@@ -70,10 +70,10 @@ export default function ReviewNotice({ onOpenRewards, onReupload }) {
 
   const approved = current?.status === "APPROVED";
 
-  // Once per pop-up, approved or not.
+  // Once per pop-up, and only for an approved review.
   useEffect(() => {
-    if (current?.id) playReviewSound();
-  }, [current?.id]);
+    if (current?.id && approved) playReviewSound();
+  }, [current?.id, approved]);
 
   return (
     <AnimatePresence>
