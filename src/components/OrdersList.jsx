@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { gsap } from "gsap";
 import {
   RefreshCcw, Loader2, Info, CheckCircle2, X, Search, AlertTriangle, ChevronDown,
-  FileText, Star, MapPin, User, Clock3, XCircle, Ban,
+  FileText, Star, MapPin, User, Clock3, XCircle, Ban, Undo2,
 } from "lucide-react";
 import Money from "./Money.jsx";
 import { useTranslation } from "react-i18next";
@@ -12,7 +12,7 @@ import { fmtDay, fmtDateTime } from "../lib/format.js";
 import OrderNo from "./OrderNo.jsx";
 import {
   fetchAssignedOrders, AUTH_BASE_URL, verifyOrderOtp,
-  fetchMyInTransit, fetchMyDelivered, setDeliveryNote,
+  fetchMyInTransit, fetchMyDelivered, returnOrderToPool,
 } from "../lib/api.js";
 import { getAuth } from "../lib/auth.js";
 import { rejectText } from "./rr/rejectText.js";
@@ -99,12 +99,16 @@ export default function OrdersList({ showDeliveredOnly = false, onBack, onOpenDe
   const [noteError, setNoteError] = useState("");
   const [noteSuccess, setNoteSuccess] = useState("");
   const [noteComment, setNoteComment] = useState("");
+  const [noteReason, setNoteReason] = useState("");
 
-  const DELIVERY_NOTES = [
-    { value: "POSTPONED",     label: t("note_postponed"),     description: t("note_postponed_desc") },
-    { value: "NEEDS_ACTION",  label: t("note_needs_action"),  description: t("note_needs_action_desc") },
-    { value: "NOT_AVAILABLE", label: t("note_not_available"), description: t("note_not_available_desc") },
+  // Why the driver is returning the order (API ReturnReasonEnum).
+  const RETURN_REASONS = [
+    { value: "CUSTOMER_NOT_AVAILABLE", label: t("reason_not_available"), description: t("reason_not_available_desc") },
+    { value: "CUSTOMER_REFUSED",       label: t("reason_refused"),       description: t("reason_refused_desc") },
+    { value: "WRONG_ADDRESS",          label: t("reason_wrong_address"), description: t("reason_wrong_address_desc") },
   ];
+  const NOTE_MIN = 3; // same as the API
+  const canReturn = !!noteReason && noteComment.trim().length >= NOTE_MIN && !noteLoading;
 
   const [deliveredMsg, setDeliveredMsg] = useState("");
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -210,15 +214,15 @@ export default function OrdersList({ showDeliveredOnly = false, onBack, onOpenDe
     finally { setOtpLoading(false); }
   };
 
-  const onSubmitDeliveryNote = async (note) => {
-    if (!noteOrder?.orderNo) return;
+  const onReturnOrder = async () => {
+    if (!noteOrder?.orderNo || !canReturn) return;
     setNoteLoading(true); setNoteError("");
     try {
-      await setDeliveryNote(noteOrder.orderNo, note, noteComment);
+      await returnOrderToPool(noteOrder.orderNo, noteReason, noteComment);
       setNoteOpen(false);
-      setNoteSuccess(`Note set: ${DELIVERY_NOTES.find((n) => n.value === note)?.label || note}`);
+      setNoteSuccess(t("return_done"));
       if (noteSuccessTimer.current) clearTimeout(noteSuccessTimer.current);
-      noteSuccessTimer.current = setTimeout(() => setNoteSuccess(""), 2000);
+      noteSuccessTimer.current = setTimeout(() => setNoteSuccess(""), 2500);
       await load({ reset: true });
     } catch (e) { setNoteError(errorToString(e)); }
     finally { setNoteLoading(false); }
@@ -402,7 +406,7 @@ export default function OrdersList({ showDeliveredOnly = false, onBack, onOpenDe
                         {t("verify_otp")}
                       </button>
                       <button
-                        onClick={() => { setNoteOrder(o); setNoteOpen(true); setNoteError(""); setNoteComment(""); }}
+                        onClick={() => { setNoteOrder(o); setNoteOpen(true); setNoteError(""); setNoteComment(""); setNoteReason(""); }}
                         className="btn-outline-red btn text-sm px-3 py-2"
                         aria-label={t("cant_deliver")}
                       >
@@ -508,7 +512,30 @@ export default function OrdersList({ showDeliveredOnly = false, onBack, onOpenDe
                 <div className="mb-3 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">{noteError}</div>
               )}
 
-              <label className="block text-sm text-[var(--muted)] mb-1" htmlFor="attempt-note">
+              <p className="text-sm text-[var(--muted)] mb-3">{t("return_explain")}</p>
+
+              <div className="text-sm font-semibold text-[var(--text)] mb-2">{t("return_reason_label")}</div>
+              <div className="space-y-2.5 mb-4" role="radiogroup" aria-label={t("return_reason_label")}>
+                {RETURN_REASONS.map((r) => {
+                  const on = noteReason === r.value;
+                  return (
+                    <button
+                      key={r.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={on}
+                      onClick={() => setNoteReason(r.value)}
+                      disabled={noteLoading}
+                      className={`w-full p-4 rounded-xl border text-start transition-colors disabled:opacity-50 ${on ? "border-[#ffcc02] bg-[#FFF8D6]" : "border-[#DDDDDD] bg-[#F7F7F7] hover:bg-[#EEEEEE]"}`}
+                    >
+                      <div className="font-semibold text-[var(--text)] text-sm">{r.label}</div>
+                      <div className="text-xs text-[var(--muted)] mt-0.5">{r.description}</div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <label className="block text-sm font-semibold text-[var(--text)] mb-1" htmlFor="attempt-note">
                 {t("attempt_note_label")}
               </label>
               <textarea
@@ -523,26 +550,10 @@ export default function OrdersList({ showDeliveredOnly = false, onBack, onOpenDe
                 className="w-full mb-4 rounded-xl border border-[#DDDDDD] bg-white px-3 py-2.5 text-sm text-[var(--text)] resize-none focus:outline-none focus:border-[var(--text)]"
               />
 
-              <div className="space-y-2.5">
-                {DELIVERY_NOTES.map((note) => (
-                  <button
-                    key={note.value}
-                    onClick={() => onSubmitDeliveryNote(note.value)}
-                    disabled={noteLoading}
-                    className="w-full p-4 rounded-xl border border-[#DDDDDD] bg-[#F7F7F7] hover:bg-[#EEEEEE] text-start transition-colors disabled:opacity-50"
-                  >
-                    <div className="font-semibold text-[var(--text)] text-sm">{note.label}</div>
-                    <div className="text-xs text-[var(--muted)] mt-0.5">{note.description}</div>
-                  </button>
-                ))}
-              </div>
-
-              {noteLoading && (
-                <div className="mt-4 flex items-center justify-center text-[var(--muted)] gap-2">
-                  <Loader2 size={18} className="animate-spin" />
-                  <span className="text-sm">{t("submitting")}</span>
-                </div>
-              )}
+              <button onClick={onReturnOrder} disabled={!canReturn} className="btn-primary btn w-full">
+                {noteLoading ? <Loader2 size={18} className="animate-spin" /> : <Undo2 size={18} />}
+                {noteLoading ? t("submitting") : t("return_order")}
+              </button>
 
               <button
                 onClick={() => setNoteOpen(false)}
@@ -580,7 +591,7 @@ export default function OrdersList({ showDeliveredOnly = false, onBack, onOpenDe
 
       {/* Note success */}
       {noteSuccess && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[150] rounded-full px-5 py-3 shadow-lg text-white text-sm font-semibold flex items-center gap-2 bg-amber-500">
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[150] w-max max-w-[90vw] rounded-2xl px-5 py-3 shadow-lg text-white text-sm font-semibold flex items-center gap-2 bg-amber-500">
           <AlertTriangle size={16} />
           {noteSuccess}
         </div>

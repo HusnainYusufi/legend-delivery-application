@@ -458,21 +458,20 @@ async function apiFetch(path, options = {}) {
   }
 }
 
-/* --------------- DRIVER: Set delivery note (failed delivery) --------------- */
+/* --------------- DRIVER: Return an order to the pickup pool --------------- */
 /**
- * POST /orders/:orderNo/delivery-note
- * Body: { note: "POSTPONED" | "NEEDS_ACTION" | "NOT_AVAILABLE", comment?: string }
- * Called when driver marks delivery as failed and adds a note.
- * `comment` is the driver's own words (max 300 chars), shown in the portal's
- * driver activity history.
+ * POST /orders/:orderNo/return-to-pool
+ * Body: { reason: "CUSTOMER_NOT_AVAILABLE" | "CUSTOMER_REFUSED" | "WRONG_ADDRESS", note: string }
+ * The driver couldn't deliver: their parcels go back to the pickup list for
+ * any driver, and the attempt (reason + note) is kept on the order.
  */
-async function setDeliveryNote(orderNo, note, comment = "") {
+async function returnOrderToPool(orderNo, reason, note) {
   const auth = getAuth();
   if (!auth?.token) throw new Error("No auth token. Please log in.");
   if (!orderNo) throw new Error("Missing order number.");
-  if (!note) throw new Error("Missing delivery note.");
+  if (!reason) throw new Error("Missing reason.");
 
-  const url = `${AUTH_BASE_URL}/orders/${encodeURIComponent(orderNo)}/delivery-note`;
+  const url = `${AUTH_BASE_URL}/orders/${encodeURIComponent(orderNo)}/return-to-pool`;
 
   const res = await fetchWithTimeout(url, {
     method: "POST",
@@ -481,7 +480,7 @@ async function setDeliveryNote(orderNo, note, comment = "") {
       Accept: "application/json",
       Authorization: `Bearer ${auth.token}`,
     },
-    body: JSON.stringify({ note, ...(comment && comment.trim() ? { comment: comment.trim().slice(0, 300) } : {}) }),
+    body: JSON.stringify({ reason, note: String(note || "").trim().slice(0, 300) }),
   });
 
   let data = null;
@@ -495,11 +494,7 @@ async function setDeliveryNote(orderNo, note, comment = "") {
   if (!res.ok || !okByBody) {
     const serverMsg =
       serverMessage(data) || (raw && raw.slice(0, 300)) || "";
-    throw new Error(
-      `Set delivery note failed (HTTP ${res.status}${
-        res.statusText ? " " + res.statusText : ""
-      })${serverMsg ? " - " + serverMsg : ""}`
-    );
+    throw new Error(serverMsg || `Return order failed (HTTP ${res.status})`);
   }
   return data || { status: 200 };
 }
@@ -723,5 +718,5 @@ export {
   claimPickupByOrderNo,
   sendOrderOtp,
   verifyOrderOtp,
-  setDeliveryNote,
+  returnOrderToPool,
 };
