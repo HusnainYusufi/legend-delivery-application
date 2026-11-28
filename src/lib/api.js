@@ -419,6 +419,11 @@ async function verifyOrderOtp(orderNo, code, pkgKey) {
   if (!res.ok || !okByBody) {
     const serverMsg =
       serverMessage(data) || (raw && raw.slice(0, 300)) || "";
+    if (/invalid otp/i.test(serverMsg)) {
+      const err = new Error("Wrong OTP code.");
+      err.code = "OTP_WRONG";
+      throw err;
+    }
     throw new Error(
       `OTP verify failed (HTTP ${res.status}${
         res.statusText ? " " + res.statusText : ""

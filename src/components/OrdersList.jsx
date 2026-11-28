@@ -107,8 +107,7 @@ export default function OrdersList({ showDeliveredOnly = false, onBack, onOpenDe
     { value: "CUSTOMER_REFUSED",       label: t("reason_refused"),       description: t("reason_refused_desc") },
     { value: "WRONG_ADDRESS",          label: t("reason_wrong_address"), description: t("reason_wrong_address_desc") },
   ];
-  const NOTE_MIN = 3; // same as the API
-  const canReturn = !!noteReason && noteComment.trim().length >= NOTE_MIN && !noteLoading;
+  const canReturn = !!noteReason && !noteLoading; // the note is optional
 
   const [deliveredMsg, setDeliveredMsg] = useState("");
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -210,7 +209,7 @@ export default function OrdersList({ showDeliveredOnly = false, onBack, onOpenDe
       if (deliveredTimer.current) clearTimeout(deliveredTimer.current);
       deliveredTimer.current = setTimeout(() => setDeliveredMsg(""), 2000);
       await load({ reset: true });
-    } catch (e) { setOtpError(errorToString(e)); }
+    } catch (e) { setOtpError(e?.code === "OTP_WRONG" ? t("otp_wrong") : errorToString(e)); }
     finally { setOtpLoading(false); }
   };
 
