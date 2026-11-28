@@ -11,6 +11,8 @@ export default function OtpModal({ open, orderNo, onClose, onSubmit, loading = f
   const maxLen = 4;
 
   useEffect(() => { if (!open) setCode(""); }, [open]);
+  // A rejected code is cleared so the driver can type it again.
+  useEffect(() => { if (error) setCode(""); }, [error]);
 
   const digits = useMemo(() => {
     const arr = new Array(maxLen).fill("");
